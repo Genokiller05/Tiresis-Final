@@ -11,9 +11,10 @@ export class SupabaseService {
 
   get client(): SupabaseClient {
     if (!this.supabase) {
-      const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oemhvcmtwcm53ZmJmZ21ycWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MzgyODUsImV4cCI6MjA3OTUxNDI4NX0.eXKbWsoHTcXqh5De5hk77Z1ftxJiaTDB3VwRPpe6Nos';
-      this.supabase = createClient(supabaseUrl, supabaseKey);
+      // const supabaseUrl = 'https://uklohjdookcdibmogivq.supabase.co';
+      // const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrbG9oamRvb2tjZGlibW9naXZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjA3ODUsImV4cCI6MjA4MDQzNjc4NX0.v36A-m0IeY_biE2y2K7N22Q1d48i2yGvMh2Z9bSk9L0';
+      // this.supabase = createClient(supabaseUrl, supabaseKey);
+      throw new Error('Supabase credentials are not configured.');
     }
     return this.supabase;
   }

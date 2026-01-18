@@ -10,6 +10,7 @@ const port = 3000;
 
 // Path to the local guards JSON file
 const guardsFilePath = path.join(__dirname, 'src', 'assets', 'guards.json');
+const adminsFilePath = path.join(__dirname, 'src', 'assets', 'admins.json');
 
 // Create a dedicated uploads directory in the system's temp folder
 const uploadsDir = path.join(os.tmpdir(), 'seguridad_uploads');
@@ -40,6 +41,26 @@ const saveGuards = (guards) => {
     return true;
   } catch (err) {
     console.error('Error writing guards file:', err);
+    return false;
+  }
+};
+
+const getAdmins = () => {
+  try {
+    const data = fs.readFileSync(adminsFilePath, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading admins file:', err);
+    return [];
+  }
+};
+
+const saveAdmins = (admins) => {
+  try {
+    fs.writeFileSync(adminsFilePath, JSON.stringify(admins, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Error writing admins file:', err);
     return false;
   }
 };
@@ -122,6 +143,86 @@ app.delete('/api/guards/:idEmpleado', (req, res) => {
     }
   } else {
     res.status(404).json({ message: 'Guardia no encontrado.' });
+  }
+});
+
+// POST: Registrar un nuevo administrador
+app.post('/api/register-admin', (req, res) => {
+  const newAdmin = req.body;
+  // Added companyName to validation
+  if (!newAdmin || !newAdmin.fullName || !newAdmin.email || !newAdmin.password || !newAdmin.location || !newAdmin.companyName) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios para el registro (incluyendo nombre de la compañía).' });
+  }
+
+  // Validación básica de contraseña en servidor (RELJADA - Opcional)
+  if (!newAdmin.password) {
+    return res.status(400).json({ message: 'La contraseña es obligatoria.' });
+  }
+
+  const admins = getAdmins();
+
+  // Verificar si el email ya existe
+  if (admins.find(a => a.email === newAdmin.email)) {
+    return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
+  }
+
+  admins.push(newAdmin);
+
+  if (saveAdmins(admins)) {
+    res.status(201).json({
+      message: 'Administrador registrado correctamente.',
+      admin: {
+        name: newAdmin.fullName,
+        email: newAdmin.email,
+        companyName: newAdmin.companyName,
+        location: newAdmin.location
+      }
+    });
+  } else {
+    res.status(500).json({ message: 'Error al guardar el administrador.' });
+  }
+});
+
+// POST: Login de administrador
+app.post('/api/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Credenciales incompletas.' });
+  }
+
+  // 1. Verificar credenciales por defecto (para testing)
+  if (email === 'admin123@tiresis.com' && password === 'tiresis12345') {
+    return res.status(200).json({
+      message: 'Login exitoso (Default Admin)',
+      admin: {
+        fullName: 'Administrador Default',
+        email: email,
+        location: 'Oficina Central', // Ubicación dummy
+        companyName: 'Tiresis Security',
+        lat: 19.4326,
+        lng: -99.1332 // CDMX default
+      }
+    });
+  }
+
+  const admins = getAdmins();
+  const admin = admins.find(a => a.email === email && a.password === password);
+
+  if (admin) {
+    // En un sistema real usaríamos JWT, aquí simulamos éxito
+    res.status(200).json({
+      message: 'Login exitoso',
+      admin: {
+        name: admin.fullName,
+        email: admin.email,
+        location: admin.location,
+        companyName: admin.companyName,
+        lat: admin.lat,
+        lng: admin.lng
+      }
+    });
+  } else {
+    res.status(401).json({ message: 'Credenciales incorrectas.' });
   }
 });
 

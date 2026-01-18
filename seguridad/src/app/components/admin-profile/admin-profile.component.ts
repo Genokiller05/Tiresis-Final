@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
+import { AuthService } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -24,6 +25,8 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   public adminPhone: string = '+1 (555) 123-4567';
   public profileImageUrl: string = 'https://lh3.googleusercontent.com/aida-public/AB6AXuDQmWUv9sstTOZeCdKbqAGq4-uBgDkOTEF0cDZJNbvJ_j_lXk18EZLWH7xcFdqcb0ragF6cJdZD2pQuN2RUHqKLGXJEADyujxtP9UGnYVcmZNYi-UlT9KNYYEjhei64yx9RytYpTHNSbt_-XcAoqmyS0LcJzsNb3_fFph10xLsDaE2jw7C5FjHnTwVs71Hjv6Vm66jUWKq4f3C4Z7a-uafFkpjAKfyUhgYmpQfoiQLSo4ASQkUmaWtDW3JtKZUU9u_JRzfUAUvMk7ah';
   public adminEmail: string = '';
+  public companyName: string = '';
+  public location: string = '';
   public lastLoginDate: string | null = null;
 
   // Password change models
@@ -42,11 +45,12 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   private themeSubscription!: Subscription;
 
   constructor(
-    private router: Router, 
+    private router: Router,
     private themeService: ThemeService,
+    private authService: AuthService, // Inject AuthService
     public translationService: TranslationService, // Make it public
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
@@ -71,15 +75,31 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   private loadProfile(): void {
     if (isPlatformBrowser(this.platformId)) {
+      // 1. Try to load from 'currentUser' (source of truth regarding auth)
+      const currentUser = this.authService.getCurrentUser();
+
+      // 2. Load locally saved profile edits
       const savedProfile = localStorage.getItem('adminProfile');
+
+      if (currentUser) {
+        this.adminName = currentUser.fullName || currentUser.name || this.adminName;
+        this.adminEmail = currentUser.email || this.adminEmail;
+        this.companyName = currentUser.companyName || 'Sin Compañía';
+        this.location = currentUser.location || 'Sin Ubicación';
+      }
+
+      // Overwrite with local edits if they exist (for name/phone/image)
       if (savedProfile) {
         const profile = JSON.parse(savedProfile);
         this.adminName = profile.name || this.adminName;
         this.adminPhone = profile.phone || this.adminPhone;
         this.profileImageUrl = profile.imageUrl || this.profileImageUrl;
+        // Allows editing company/location locally if we want, but usually these are fixed or updated elsewhere.
+        // For now, let's allow local overrides if we added inputs for them, but I'll stick to showing them from Auth mostly.
+        if (profile.companyName) this.companyName = profile.companyName;
+        if (profile.location) this.location = profile.location;
       }
-      
-      this.adminEmail = localStorage.getItem('adminEmail') || '';
+
       this.lastLoginDate = localStorage.getItem('lastLoginDate');
     }
   }
@@ -89,9 +109,20 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
       const profile = {
         name: this.adminName,
         phone: this.adminPhone,
-        imageUrl: this.profileImageUrl
+        imageUrl: this.profileImageUrl,
+        companyName: this.companyName,
+        location: this.location
       };
       localStorage.setItem('adminProfile', JSON.stringify(profile));
+
+      // Optional: Update currentUser in localStorage too so it persists across reloads effectively
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        currentUser.fullName = this.adminName;
+        currentUser.companyName = this.companyName;
+        currentUser.location = this.location;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      }
     }
   }
 
@@ -161,7 +192,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('adminPassword', this.newPassword);
     }
-    
+
     // 4. Reset and hide the form, then show success
     this.cancelChangePassword();
     this.showSuccessModal();
@@ -174,6 +205,11 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   public hideSuccessModal(): void {
     this.isSuccessModalVisible = false;
+  }
+
+  public logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
 

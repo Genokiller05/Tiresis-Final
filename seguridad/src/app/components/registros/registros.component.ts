@@ -5,13 +5,13 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
+import { JsonStorageService } from '../../services/json-storage.service'; // Importar el nuevo servicio
 import { Subscription } from 'rxjs';
-import { SidebarComponent } from '../sidebar/sidebar.component';
 
 @Component({
   selector: 'app-registros',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidebarComponent],
+  imports: [CommonModule, FormsModule], // Eliminar SidebarComponent de imports
   templateUrl: './registros.component.html',
   styleUrls: ['./registros.component.css']
 })
@@ -23,7 +23,7 @@ export class RegistrosComponent implements OnInit, OnDestroy {
   public area: string = '';
   public idGuardia: string = '';
   public imagePreview: string | null = null;
-  private photoUrl: string = ''; // To store the URL from the server
+  public photoUrl: string = ''; // To store the URL from the server, now local base64
 
   // State management properties
   public statusMessage: string = '';
@@ -42,7 +42,8 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     @Inject(PLATFORM_ID) private platformId: Object,
     private router: Router,
     private themeService: ThemeService,
-    private translationService: TranslationService
+    private translationService: TranslationService,
+    private jsonStorageService: JsonStorageService // Inyectar JsonStorageService
   ) {}
 
   ngOnInit(): void {
@@ -61,7 +62,12 @@ export class RegistrosComponent implements OnInit, OnDestroy {
   }
 
   public generarIdGuardia(): string {
-    return Math.floor(10000000 + Math.random() * 90000000).toString();
+    let newId: string;
+    let guards = this.jsonStorageService.getData('guards') || [];
+    do {
+      newId = 'GRD' + Math.floor(100 + Math.random() * 900).toString(); // GRDxxx
+    } while (guards.some((g: any) => g.idEmpleado === newId));
+    return newId;
   }
 
   public setAndDisplayNewId(): void {
@@ -74,61 +80,34 @@ export class RegistrosComponent implements OnInit, OnDestroy {
 
     if (!file) return;
 
+    if (!isPlatformBrowser(this.platformId)) {
+        this.fieldErrors['photo'] = 'La carga de imágenes no está disponible en el servidor.';
+        return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       this.imagePreview = reader.result as string;
+      this.photoUrl = reader.result as string; // Usar base64 como URL
     };
     reader.readAsDataURL(file);
     this.fieldErrors['photo'] = '';
-    // Forcing dev server cache invalidation.
-
-    const formData = new FormData();
-    formData.append('photo', file);
-
-    try {
-      const response = await fetch('http://localhost:3000/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al subir la imagen.');
-      }
-
-      const result = await response.json();
-      this.photoUrl = result.filePath;
-      this.fieldErrors['photo'] = ''; 
-
-    } catch (error: any) {
-      this.fieldErrors['photo'] = error.message;
-      this.photoUrl = '';
-    }
   }
 
-  private async validateUniqueness(): Promise<boolean> {
-    try {
-      const response = await fetch('http://localhost:3000/api/guards');
-      if (!response.ok) {
-        throw new Error('No se pudo verificar la información del guardia.');
-      }
-      const existingGuards = await response.json();
+  private validateUniqueness(): boolean {
+    const existingGuards = this.jsonStorageService.getData('guards') || [];
 
-      if (existingGuards.some((g: any) => g.email === this.email)) {
-        this.fieldErrors['email'] = 'Este correo electrónico ya está en uso.';
-        return false;
-      }
-
-      if (existingGuards.some((g: any) => g.idEmpleado === this.idGuardia)) {
-        this.fieldErrors['idGuardia'] = 'Este ID ya existe. Por favor, genere uno nuevo.';
-        return false;
-      }
-
-      return true;
-    } catch (error: any) {
-      this.statusMessage = `<span class="text-red-500">${error.message}</span>`;
+    if (existingGuards.some((g: any) => g.email === this.email)) {
+      this.fieldErrors['email'] = 'Este correo electrónico ya está en uso.';
       return false;
     }
+
+    if (existingGuards.some((g: any) => g.idEmpleado === this.idGuardia)) {
+      this.fieldErrors['idGuardia'] = 'Este ID ya existe. Por favor, genere uno nuevo.';
+      return false;
+    }
+
+    return true;
   }
 
   private validateForm(): boolean {
@@ -161,21 +140,21 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     }
 
     if (!this.photoUrl) {
-      this.fieldErrors['photo'] = 'Debe seleccionar y esperar a que la imagen se suba.';
+      this.fieldErrors['photo'] = 'Debe seleccionar una imagen.';
       isValid = false;
     }
     
     return isValid;
   }
 
-  public async onSubmit(): Promise<void> {
+  public onSubmit(): void { // No async
     if (!this.validateForm()) {
       this.statusMessage = `<span class="text-red-500">${this.uiText.validationError || 'Por favor, corrija los errores en el formulario.'}</span>`;
       return;
     }
 
     this.statusMessage = `<span class="text-blue-500">${this.uiText.validating || 'Validando información...'}</span>`;
-    if (!await this.validateUniqueness()) {
+    if (!this.validateUniqueness()) {
         this.statusMessage = `<span class="text-red-500">${this.uiText.validationError || 'El email o ID ya existen.'}</span>`;
         return;
     }
@@ -184,30 +163,22 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     this.summaryCardData = null;
 
     const guardData = {
-      idEmpleado: this.idGuardia,
+      idEmpleado: this.idGuardia, // Usar 'idEmpleado' para consistencia con los datos de ejemplo
       nombre: this.nombre,
       email: this.email,
       area: this.area,
-      foto: this.photoUrl,
       estado: 'Fuera de servicio',
+      foto: this.photoUrl,
       actividades: []
     };
 
     try {
-      const response = await fetch('http://localhost:3000/api/guards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(guardData),
-      });
+      let guards = this.jsonStorageService.getData('guards') || [];
+      guards.push(guardData);
+      this.jsonStorageService.setData('guards', guards);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al crear el guardia.');
-      }
-
-      const result = await response.json();
       this.statusMessage = `<span class="text-green-500 font-bold">${this.uiText.successMessage || 'Guardia registrado con éxito.'}</span>`;
-      this.summaryCardData = result.guard;
+      this.summaryCardData = guardData; // Usar guardData directamente para el resumen
       this.resetForm();
 
     } catch (error: any) {

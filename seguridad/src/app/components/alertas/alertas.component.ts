@@ -2,16 +2,16 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { SidebarComponent } from '../sidebar/sidebar.component';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
-import { SupabaseService } from '../../services/supabase.service';
+import { JsonStorageService } from '../../services/json-storage.service'; // Importar el nuevo servicio
+import { AuthService } from '../../services/auth.service'; // Importar el AuthService
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-alertas',
   standalone: true,
-  imports: [CommonModule, FormsModule, SidebarComponent],
+  imports: [CommonModule, FormsModule], // Eliminar SidebarComponent de imports
   templateUrl: './alertas.component.html',
   styleUrl: './alertas.component.css'
 })
@@ -54,11 +54,12 @@ export class AlertasComponent implements OnInit, OnDestroy {
     private router: Router, 
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private supabaseService: SupabaseService
+    private jsonStorageService: JsonStorageService, // Inyectar JsonStorageService
+    private authService: AuthService // Inyectar AuthService
   ) {}
 
   async ngOnInit(): Promise<void> {
-    await this.fetchReports();
+    this.fetchReports(); // Llamar a fetchReports sin await
     this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
       this.currentTheme = theme;
     });
@@ -67,18 +68,9 @@ export class AlertasComponent implements OnInit, OnDestroy {
     });
   }
 
-  async fetchReports() {
-    const { data, error } = await this.supabaseService.client
-      .from('reports')
-      .select('*');
-
-    if (error) {
-      console.error('Error fetching reports:', error);
-      // Handle error appropriately, maybe show a message to the user
-    } else {
-      this.allAlerts = data.map(report => ({ ...report, menuVisible: false }));
-      this.aplicarFiltros();
-    }
+  fetchReports() { // No async, ya que JsonStorageService es síncrono
+    this.allAlerts = this.jsonStorageService.getData('alerts') || [];
+    this.aplicarFiltros();
   }
 
   ngOnDestroy(): void {
@@ -95,8 +87,6 @@ export class AlertasComponent implements OnInit, OnDestroy {
     this.themeService.setTheme(theme);
   }
   
-  // ... (rest of the component logic is unchanged)
-  
   // --- Logout Modal Methods ---
   public showLogoutModal(): void {
     this.isLogoutModalVisible = true;
@@ -107,7 +97,8 @@ export class AlertasComponent implements OnInit, OnDestroy {
   }
   
   public confirmLogout(): void {
-      this.router.navigate(['/']);
+      this.authService.logout(); // Usar el servicio de autenticación
+      this.router.navigate(['/login']);
   }
 
   // --- Actions Menu ---
@@ -143,19 +134,16 @@ export class AlertasComponent implements OnInit, OnDestroy {
     this.selectedStatus = '';
   }
 
-  public async confirmStatusChange(): Promise<void> {
+  public confirmStatusChange(): void { // No async
     if (this.alertToModify && this.selectedStatus) {
-      const { data, error } = await this.supabaseService.client
-        .from('reports')
-        .update({ estado: this.selectedStatus })
-        .eq('id', this.alertToModify.id);
-
-      if (error) {
-        console.error('Error updating status:', error);
-      } else {
-        this.alertToModify.estado = this.selectedStatus;
-        this.aplicarFiltros(); // Re-apply filters to update view if sorting/filtering is affected
+      this.alertToModify.estado = this.selectedStatus;
+      const allAlerts = this.jsonStorageService.getData('alerts');
+      const index = allAlerts.findIndex((a: any) => a.id === this.alertToModify.id);
+      if (index > -1) {
+        allAlerts[index] = this.alertToModify;
+        this.jsonStorageService.setData('alerts', allAlerts);
       }
+      this.aplicarFiltros(); // Re-apply filters to update view if sorting/filtering is affected
     }
     this.hideStatusModal();
   }
@@ -178,26 +166,15 @@ export class AlertasComponent implements OnInit, OnDestroy {
     alerta.menuVisible = false;
   }
 
-  public async confirmDelete(): Promise<void> {
+  public confirmDelete(): void { // No async
     if (!this.alertToDelete) return;
 
-    const { error } = await this.supabaseService.client
-      .from('reports')
-      .delete()
-      .eq('id', this.alertToDelete.id);
-
-    if (error) {
-      console.error('Error deleting report:', error);
-    } else {
-      // Eliminar de la lista principal
-      const indexAll = this.allAlerts.findIndex(a => a.id === this.alertToDelete.id);
-      if (indexAll > -1) {
-        this.allAlerts.splice(indexAll, 1);
-      }
+    let allAlerts = this.jsonStorageService.getData('alerts');
+    allAlerts = allAlerts.filter((a: any) => a.id !== this.alertToDelete.id);
+    this.jsonStorageService.setData('alerts', allAlerts);
       
-      // Volver a aplicar filtros para actualizar la vista
-      this.aplicarFiltros();
-    }
+    // Volver a aplicar filtros para actualizar la vista
+    this.fetchReports(); // Recargar los reportes y aplicar filtros
     
     this.hideDeleteModal();
   }
@@ -209,21 +186,38 @@ export class AlertasComponent implements OnInit, OnDestroy {
   
   // --- Filtering Logic ---
   public aplicarFiltros(): void {
-    const hastaDate = this.filterHasta ? new Date(this.filterHasta) : null;
+    // Parse filter dates properly
+    const desdeDate = this.filterDesde ? new Date(this.filterDesde) : null;
+    let hastaDate = this.filterHasta ? new Date(this.filterHasta) : null;
+    
+    // Set hasta to end of day if provided
     if (hastaDate) {
       hastaDate.setHours(23, 59, 59, 999);
     }
 
     const filtered = this.allAlerts.filter(alerta => {
+      // Parse alert date
       const fechaAlerta = new Date(alerta.fechaHora);
-      if (this.filterDesde && fechaAlerta < new Date(this.filterDesde)) return false;
+      
+      // Apply date filters
+      if (desdeDate && fechaAlerta < desdeDate) return false;
       if (hastaDate && fechaAlerta > hastaDate) return false;
+      
+      // Apply origin filter
       if (this.filterOrigen !== 'Todos' && alerta.origen !== this.filterOrigen) return false;
+      
+      // Apply type filter
       if (this.filterTipo !== 'Todos' && alerta.tipo !== this.filterTipo) return false;
+      
       return true;
     });
 
-    this.displayedAlerts = filtered.sort((a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime());
+    // Sort by date descending (newest first)
+    this.displayedAlerts = filtered.sort((a, b) => {
+      const dateA = new Date(a.fechaHora).getTime();
+      const dateB = new Date(b.fechaHora).getTime();
+      return dateB - dateA;
+    });
   }
 
   public limpiarFiltros(): void {

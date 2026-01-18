@@ -1,16 +1,19 @@
 <div class="min-h-screen bg-gray-100 dark:bg-gray-900 font-display text-gray-800 dark:text-gray-200">
   <div class="flex h-screen">
-    <app-sidebar></app-sidebar>
 
     <!-- Main Content -->
     <div class="flex-1 flex flex-col overflow-y-auto">
-      <header class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-6 shadow-md border-b border-gray-200 dark:border-gray-700">
+      <header
+        class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-6 shadow-md border-b border-gray-200 dark:border-gray-700">
         <div class="container mx-auto flex justify-between items-center">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ uiText.pageTitle }}</h1>
+          <div class="flex items-center space-x-3">
+            <span class="material-icons text-3xl text-purple-600 dark:text-purple-400">person_search</span>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ uiText.pageTitle }}</h1>
+          </div>
           <div class="flex items-center space-x-4">
-            <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">A</div>
-            <a href="#" (click)="navigateTo($event, '/admin-profile')" class="font-medium text-gray-800 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-500 transition-colors">Admin</a>
-            <button (click)="showLogoutModal()" class="text-sm text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-full px-4 py-1 hover:bg-purple-600 hover:text-white dark:hover:bg-purple-600 dark:hover:text-white transition">{{ uiText.logoutButton }}</button>
+            <div class="flex items-center space-x-4">
+              <!-- Admin icon removed as requested -->
+            </div>
           </div>
         </div>
       </header>
@@ -18,18 +21,22 @@
       <main class="flex-grow container mx-auto p-6 lg:p-8">
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
           <div class="mb-8">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2" for="search-id">{{ uiText.searchLabel }}</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2" for="search-id">{{
+              uiText.searchLabel }}</label>
             <div class="flex items-center space-x-4">
               <div class="relative flex-grow">
-                <input class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-100 dark:bg-gray-700 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-gray-100" 
-                       id="search-id" 
-                       placeholder="{{ uiText.searchPlaceholder }}" 
-                       type="text"
-                       [(ngModel)]="searchId"/>
-                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-2xl">search</span>
+                <input
+                  class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full bg-gray-100 dark:bg-gray-700 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-gray-100"
+                  id="search-id" placeholder="{{ uiText.searchPlaceholder }}" type="text" [(ngModel)]="searchId" />
+                <span
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-2xl">search</span>
               </div>
-              <button (click)="onSearch()" class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">{{ uiText.searchButton }}</button>
-              <button (click)="clearSearch()" class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition">{{ uiText.clearButton }}</button>
+              <button (click)="onSearch()"
+                class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">{{
+                uiText.searchButton }}</button>
+              <button (click)="clearSearch()"
+                class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-full text-gray-800 dark:text-gray-200 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 transition">{{
+                uiText.clearButton }}</button>
             </div>
             <p *ngIf="errorMessage" class="text-red-500 mt-2 text-sm h-5">{{ errorMessage }}</p>
             <p *ngIf="successMessage" class="text-green-500 mt-2 text-sm h-5">{{ successMessage }}</p>
@@ -38,43 +45,55 @@
           <div>
             <div *ngIf="currentGuard" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <!-- Guard Details Column -->
-              <div class="lg:col-span-1 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+              <div
+                class="lg:col-span-1 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                 <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-white">{{ currentGuard.nombre }}</h2>
-                <div class="flex items-center space-x-2 mb-4" [ngClass]="{'text-green-500 dark:text-green-400': currentGuard.estado === 'En servicio', 'text-gray-500 dark:text-gray-400': currentGuard.estado !== 'En servicio'}">
+                <div class="flex items-center space-x-2 mb-4"
+                  [ngClass]="{'text-green-500 dark:text-green-400': currentGuard.estado === 'En servicio', 'text-gray-500 dark:text-gray-400': currentGuard.estado !== 'En servicio'}">
                   <span class="material-icons text-base">circle</span>
                   <span class="text-sm font-medium">{{ currentGuard.estado }}</span>
                 </div>
                 <div class="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.emailLabel }}:</strong><br/><span>{{ currentGuard.email }}</span></p>
-                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.employeeIdLabel }}:</strong><br/><span>{{ currentGuard.idEmpleado }}</span></p>
-                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.areaLabel }}:</strong><br/><span>{{ currentGuard.area }}</span></p>
+                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.emailLabel
+                      }}:</strong><br /><span>{{ currentGuard.email }}</span></p>
+                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.employeeIdLabel
+                      }}:</strong><br /><span>{{ currentGuard.idEmpleado }}</span></p>
+                  <p><strong class="font-medium text-gray-600 dark:text-gray-400">{{ uiText.areaLabel
+                      }}:</strong><br /><span>{{ currentGuard.area }}</span></p>
                 </div>
-                <button (click)="deleteGuard()" class="w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                <button (click)="deleteGuard()"
+                  class="w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
                   <span class="material-icons text-xl">delete</span>
                   <span>{{ uiText.deleteButton }}</span>
                 </button>
               </div>
               <!-- Photo and Actions Column -->
               <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="p-6 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-700/50">
+                <div
+                  class="p-6 border border-gray-200 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-700/50">
                   <div class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg mb-4 flex items-center justify-center">
-                    <img alt="Foto de {{ currentGuard.nombre }}" class="rounded-lg w-full h-full object-cover" [src]="getGuardImageUrl()"/>
+                    <img alt="Foto de {{ currentGuard.nombre }}" class="rounded-lg w-full h-full object-cover"
+                      [src]="getGuardImageUrl()" />
                   </div>
                   <h3 class="font-bold text-lg mb-4 text-gray-900 dark:text-white">{{ currentGuard.nombre }}</h3>
 
                   <!-- Botón para cambiar imagen -->
                   <div class="mt-4 w-full max-w-xs">
-                    <button (click)="fileInput.click()" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium">
+                    <button (click)="fileInput.click()"
+                      class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors text-sm font-medium">
                       <span class="material-icons text-base mr-2">photo_camera</span>
-                      <span>Cambiar imagen</span>
+                      <span>Cambiar Foto</span>
                     </button>
-                    <input type="file" #fileInput (change)="onGuardFileSelected($event)" class="hidden" accept="image/*"/>
+                    <input type="file" #fileInput (change)="onGuardFileSelected($event)" class="hidden"
+                      accept="image/*" />
                   </div>
                 </div>
                 <div class="p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50">
                   <h3 class="font-bold text-lg mb-4 text-gray-900 dark:text-white">{{ uiText.actionsTitle }}</h3>
-                  <div *ngIf="currentGuard.actividades && currentGuard.actividades.length > 0; else noActivities" class="space-y-3">
-                    <div *ngFor="let act of currentGuard.actividades" class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                  <div *ngIf="currentGuard.actividades && currentGuard.actividades.length > 0; else noActivities"
+                    class="space-y-3">
+                    <div *ngFor="let act of currentGuard.actividades"
+                      class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                       <p>{{ act.fechaHora | date:'dd/MM/yyyy - HH:mm' }} - {{ act.descripcion }}</p>
                     </div>
                   </div>
@@ -84,7 +103,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div *ngIf="!currentGuard && !errorMessage" class="text-center py-10 text-gray-500 dark:text-gray-400">
               <p>{{ uiText.initialMessage }}</p>
             </div>
@@ -99,8 +118,11 @@
     <div class="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center">
       <p class="text-lg font-medium text-gray-900 dark:text-white mb-6">{{ uiText.logoutModalTitle }}</p>
       <div class="flex justify-center space-x-4">
-        <button (click)="confirmLogout()" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">{{ uiText.yesButton }}</button>
-        <button (click)="hideLogoutModal()" class="px-6 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">{{ uiText.noButton }}</button>
+        <button (click)="confirmLogout()"
+          class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">{{ uiText.yesButton }}</button>
+        <button (click)="hideLogoutModal()"
+          class="px-6 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">{{
+          uiText.noButton }}</button>
       </div>
     </div>
   </div>
@@ -109,13 +131,18 @@
   <div *ngIf="isDeleteModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
     <div class="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-sm mx-auto">
       <p *ngIf="currentGuard" class="text-lg font-medium text-gray-900 dark:text-white mb-6">
-        {{ uiText.deleteModalTitle }} <strong class="font-bold">{{ currentGuard.nombre }}</strong> (ID: {{ currentGuard.idEmpleado }})?
-        <br/><br/>
+        {{ uiText.deleteModalTitle }} <strong class="font-bold">{{ currentGuard.nombre }}</strong> (ID: {{
+        currentGuard.idEmpleado }})?
+        <br /><br />
         <span class="text-sm text-red-500 dark:text-red-400">{{ uiText.deleteModalWarning }}</span>
       </p>
       <div class="flex justify-center space-x-4">
-        <button (click)="confirmDelete()" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">{{ uiText.confirmDeleteButton }}</button>
-        <button (click)="hideDeleteModal()" class="px-6 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">{{ uiText.cancelButton }}</button>
+        <button (click)="confirmDelete()"
+          class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">{{ uiText.confirmDeleteButton
+          }}</button>
+        <button (click)="hideDeleteModal()"
+          class="px-6 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-md hover:bg-gray-400 dark:hover:bg-gray-500 transition">{{
+          uiText.cancelButton }}</button>
       </div>
     </div>
   </div>

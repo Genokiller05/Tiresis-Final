@@ -1,0 +1,89 @@
+<div class="relative h-[calc(100vh-64px)] w-full overflow-hidden">
+
+  <div id="map" class="absolute inset-0 z-0 h-full w-full"></div>
+
+  <!-- Admin Controls (Top Right) -->
+  <div
+    class="absolute top-4 right-4 z-[500] bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Mi Ubicación</h3>
+    <button (click)="toggleAdminEdit()"
+      class="w-full px-4 py-2 text-sm font-bold text-white rounded-md transition-colors"
+      [ngClass]="isEditingAdmin ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700'">
+      {{ isEditingAdmin ? 'Guardar Ubicación' : 'Modificar Ubicación' }}
+    </button>
+  </div>
+
+  <!-- Guard Management Panel (Left Side) -->
+  <div
+    class="absolute top-4 left-4 z-[500] w-80 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col gap-4">
+    <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+      <span class="material-symbols-outlined">security</span>
+      Gestión de Guardias
+    </h3>
+
+    <!-- Search -->
+    <div class="flex gap-2">
+      <input [(ngModel)]="searchId" (keyup.enter)="searchGuard()" type="text" placeholder="ID de Guardia"
+        class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white">
+      <button (click)="searchGuard()"
+        class="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600">
+        <span class="material-symbols-outlined text-sm">search</span>
+      </button>
+    </div>
+
+    <!-- Selected Guard Details -->
+    <div *ngIf="selectedGuard"
+      class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-full bg-gray-300 overflow-hidden">
+          <img *ngIf="selectedGuard.foto" [src]="'http://localhost:3000' + selectedGuard.foto"
+            class="w-full h-full object-cover">
+        </div>
+        <div>
+          <p class="font-bold text-gray-900 dark:text-white leading-tight">{{ selectedGuard.nombre }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">ID: {{ selectedGuard.idEmpleado }}</p>
+        </div>
+      </div>
+
+      <div class="space-y-1 text-sm text-gray-600 dark:text-gray-300 mb-3">
+        <p><span class="font-semibold">Area:</span> {{ selectedGuard.area }}</p>
+        <p class="flex items-center gap-2">
+          <span class="font-semibold">Estado:</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+            [ngClass]="selectedGuard.estado === 'En servicio' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+            {{ selectedGuard.estado }}
+          </span>
+        </p>
+        <p><span class="font-semibold">Ubicación:</span> {{ selectedGuard.lat ? 'Asignada' : 'No asignada' }}</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex flex-col gap-2">
+        <button (click)="enableGuardLocationPick()"
+          class="w-full px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-base">location_on</span>
+          {{ selectedGuard.lat ? 'Modificar Ubicación' : 'Asignar Ubicación' }}
+        </button>
+        <button *ngIf="selectedGuard.lat" (click)="removeGuardLocation()"
+          class="w-full px-3 py-2 bg-red-100 text-red-600 rounded-md text-sm font-medium hover:bg-red-200 transition-colors">
+          Eliminar Ubicación
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="!selectedGuard" class="text-center text-gray-500 text-sm py-4">
+      Busca un guardia para gestionar su ubicación.
+    </div>
+  </div>
+
+  <!-- Location Picking Overlay Info -->
+  <div *ngIf="isPickingLocation"
+    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-900/90 backdrop-blur text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle">
+    <div class="flex flex-col">
+      <span class="font-bold">Modo de Selección</span>
+      <span class="text-sm text-gray-300">Haga clic en el mapa para asignar la ubicación</span>
+    </div>
+    <button (click)="cancelPick()"
+      class="bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Cancelar</button>
+  </div>
+</div>
