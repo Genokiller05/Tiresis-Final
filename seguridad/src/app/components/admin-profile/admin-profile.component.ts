@@ -34,6 +34,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   public confirmPassword: string = '';
   public passwordErrorMessage: string = '';
   public isSuccessModalVisible: boolean = false;
+  public isLogoutConfirmationVisible: boolean = false;
 
   // Language properties
   public selectedLanguage: string = 'Español';
@@ -205,6 +206,14 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   public hideSuccessModal(): void {
     this.isSuccessModalVisible = false;
+  }
+
+  public requestLogout(): void {
+    this.isLogoutConfirmationVisible = true;
+  }
+
+  public cancelLogout(): void {
+    this.isLogoutConfirmationVisible = false;
   }
 
   public logout(): void {

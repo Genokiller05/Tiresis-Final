@@ -9,11 +9,11 @@ const app = express();
 const port = 3000;
 
 // Path to the local guards JSON file
-const guardsFilePath = path.join(__dirname, 'src', 'assets', 'guards.json');
-const adminsFilePath = path.join(__dirname, 'src', 'assets', 'admins.json');
+const guardsFilePath = path.join(__dirname, 'data', 'guards.json');
+const adminsFilePath = path.join(__dirname, 'data', 'admins.json');
 
-// Create a dedicated uploads directory in the system's temp folder
-const uploadsDir = path.join(os.tmpdir(), 'seguridad_uploads');
+// Create a dedicated uploads directory in 'data' folder for persistence
+const uploadsDir = path.join(__dirname, 'data', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -21,8 +21,38 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use('/assets', express.static(path.join(__dirname, 'src', 'assets')));
+// Serve the uploads directory statically
 app.use('/uploads', express.static(uploadsDir));
+
+// ... (rest of code)
+
+// Multer Configuration is already defined above.
+// Reusing 'upload' middleware.
+
+
+// ... (rest of code)
+
+// --- Multer Configuration ---
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) { cb(null, uploadsDir); },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'photo-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
+
+// --- API Endpoints ---
+
+// POST: Upload a guard's photo
+app.post('/api/upload', upload.single('photo'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+  // Return the static URL served by Express
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: fileUrl });
+});
 
 // --- Helper functions for JSON file ---
 const getGuards = () => {
@@ -65,15 +95,7 @@ const saveAdmins = (admins) => {
   }
 };
 
-// --- Multer Configuration ---
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) { cb(null, uploadsDir); },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+
 
 // --- API Endpoints ---
 
@@ -87,6 +109,17 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 // GET: Obtener todos los guardias
 app.get('/api/guards', (req, res) => {
   res.json(getGuards());
+});
+
+// GET: Obtener admin por email
+app.get('/api/admins/:email', (req, res) => {
+  const admins = getAdmins();
+  const admin = admins.find(a => a.email === req.params.email);
+  if (admin) {
+    res.json(admin);
+  } else {
+    res.status(404).json({ message: 'Admin no encontrado.' });
+  }
 });
 
 // GET: Obtener un guardia por ID
@@ -183,6 +216,33 @@ app.post('/api/register-admin', (req, res) => {
   }
 });
 
+// PATCH: Actualizar ubicación/datos del administrador (por email)
+app.patch('/api/admins/update', (req, res) => {
+  const { email, location, lat, lng } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email es requerido para actualizar.' });
+  }
+
+  const admins = getAdmins();
+  const index = admins.findIndex(a => a.email === email);
+
+  if (index !== -1) {
+    // Update fields if provided
+    if (location !== undefined) admins[index].location = location;
+    if (lat !== undefined) admins[index].lat = lat;
+    if (lng !== undefined) admins[index].lng = lng;
+
+    if (saveAdmins(admins)) {
+      res.status(200).json({ message: 'Administrador actualizado correctamente', admin: admins[index] });
+    } else {
+      res.status(500).json({ message: 'Error al actualizar el archivo JSON.' });
+    }
+  } else {
+    res.status(404).json({ message: 'Administrador no encontrado.' });
+  }
+});
+
 // POST: Login de administrador
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
@@ -225,6 +285,8 @@ app.post('/api/login', (req, res) => {
     res.status(401).json({ message: 'Credenciales incorrectas.' });
   }
 });
+
+
 
 app.listen(port, () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);

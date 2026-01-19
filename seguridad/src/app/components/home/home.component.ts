@@ -25,6 +25,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   public currentGuard: any = null; // Store the entire guard object
   public isLogoutModalVisible: boolean = false;
   public isDeleteModalVisible: boolean = false;
+  public isEditModalVisible: boolean = false; // Add Edit Modal state
+
+  // Edit Form
+  public editForm = {
+    nombre: '',
+    email: '',
+    area: ''
+  };
 
   private currentGuardId: string | null = null;
 
@@ -110,7 +118,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.resetGuardState();
   }
 
-  public onGuardFileSelected(event: any): void { // No async
+  public onGuardFileSelected(event: any): void {
     const file = event.target.files?.[0];
     if (!file || !this.currentGuardId) {
       this.errorMessage = 'Por favor, primero busque un guardia y luego seleccione un archivo.';
@@ -125,24 +133,31 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.successMessage = '';
     this.errorMessage = 'Subiendo imagen...';
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const newPhotoPath = reader.result as string;
+    // Use GuardService to upload
+    this.guardService.uploadPhoto(file).subscribe({
+      next: (response) => {
+        const newPhotoUrl = response.url;
 
-      // Actualizar la imagen en el JsonStorageService
-      let guards = this.jsonStorageService.getData('guards') || [];
-      const index = guards.findIndex((g: any) => g.idEmpleado === this.currentGuardId);
-      if (index > -1) {
-        guards[index].foto = newPhotoPath;
-        this.jsonStorageService.setData('guards', guards);
-        this.currentGuard.foto = newPhotoPath; // Actualizar la imagen del guardia actual
-        this.successMessage = 'Foto de perfil actualizada permanentemente.';
-        this.errorMessage = '';
-      } else {
-        this.errorMessage = 'Guardia no encontrado para actualizar la foto.';
+        // Update current guard object
+        this.currentGuard.foto = newPhotoUrl;
+
+        // Persist changes to backend via updateGuard
+        this.guardService.updateGuard(this.currentGuardId!, { foto: newPhotoUrl }).subscribe({
+          next: () => {
+            this.successMessage = 'Foto de perfil actualizada correctamente.';
+            this.errorMessage = '';
+          },
+          error: (err) => {
+            console.error('Error saving photo url to guard:', err);
+            this.errorMessage = 'Error al guardar la referencia de la foto.';
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error uploading photo:', err);
+        this.errorMessage = 'Error al subir la imagen al servidor.';
       }
-    };
-    reader.readAsDataURL(file);
+    });
   }
 
   public getGuardImageUrl(): string {
@@ -150,6 +165,10 @@ export class HomeComponent implements OnInit, OnDestroy {
       // Si la foto es una URL base64, usarla directamente
       if (this.currentGuard.foto.startsWith('data:image')) {
         return this.currentGuard.foto;
+      }
+      // NEW: Handle server uploads
+      if (this.currentGuard.foto.startsWith('/uploads/')) {
+        return 'http://localhost:3000' + this.currentGuard.foto;
       }
       // Si es una ruta relativa a assets, usarla
       if (this.currentGuard.foto.startsWith('assets/images/guards/')) {
@@ -204,6 +223,48 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public hideDeleteModal(): void {
     this.isDeleteModalVisible = false;
+  }
+
+  // --- Edit Modal Methods ---
+  public showEditModal(): void {
+    if (!this.currentGuard) return;
+    this.editForm = {
+      nombre: this.currentGuard.nombre,
+      email: this.currentGuard.email,
+      area: this.currentGuard.area
+    };
+    this.isEditModalVisible = true;
+  }
+
+  public hideEditModal(): void {
+    this.isEditModalVisible = false;
+  }
+
+  public saveEditGuard(): void {
+    if (!this.currentGuardId) return;
+
+    const updatedData = {
+      nombre: this.editForm.nombre,
+      email: this.editForm.email,
+      area: this.editForm.area
+    };
+
+    this.guardService.updateGuard(this.currentGuardId, updatedData).subscribe({
+      next: () => {
+        // Update local state
+        this.currentGuard.nombre = updatedData.nombre;
+        this.currentGuard.email = updatedData.email;
+        this.currentGuard.area = updatedData.area;
+
+        this.successMessage = 'Datos actualizados correctamente.';
+        this.hideEditModal();
+        setTimeout(() => this.successMessage = '', 3000);
+      },
+      error: (err) => {
+        console.error('Error updating guard:', err);
+        this.errorMessage = 'Error al actualizar los datos.';
+      }
+    });
   }
 
   // --- Private Helper ---

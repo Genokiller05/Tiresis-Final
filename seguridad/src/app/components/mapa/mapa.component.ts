@@ -23,6 +23,8 @@ export class MapaComponent implements OnInit {
   public selectedGuard: any = null;
   public isPickingLocation: boolean = false;
 
+  public feedbackMessage: string = '';
+  public feedbackType: 'success' | 'error' = 'success';
   public guards: any[] = [];
 
   constructor(
@@ -31,9 +33,9 @@ export class MapaComponent implements OnInit {
     private http: HttpClient
   ) { }
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (isPlatformBrowser(this.platformId)) {
-      this.initMap();
+      await this.initMap();
       this.loadGuards();
     }
   }
@@ -51,61 +53,87 @@ export class MapaComponent implements OnInit {
   private async initMap(): Promise<void> {
     const L = await import('leaflet');
 
-    // Default location (e.g., Mexico City or user location)
+    // Default location
     let lat = 19.4326;
     let lng = -99.1332;
     let zoom = 12;
 
-    // Check for user location
-    const user = this.authService.getCurrentUser();
-    if (user && user.lat && user.lng) {
-      lat = parseFloat(user.lat);
-      lng = parseFloat(user.lng);
-      zoom = 15;
-    }
+    // Helper to initialize map once coordinates are settled
+    const createMap = (latitude: number, longitude: number, z: number, user: any) => {
+      this.map = L.map('map', {
+        center: [latitude, longitude],
+        zoom: z,
+        attributionControl: false
+      });
 
-    this.map = L.map('map', {
-      center: [lat, lng],
-      zoom: zoom
-    });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        minZoom: 3,
+      }).addTo(this.map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      minZoom: 3,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(this.map);
+      this.map.attributionControl.setPrefix('');
 
-    // Admin Marker
-    this.createAdminMarker(L, lat, lng, user);
+      // Admin Marker
+      this.createAdminMarker(L, latitude, longitude, user);
 
-    // Map Click Handler for Guard Assignment
-    this.map.on('click', (e: any) => {
-      if (this.isPickingLocation && this.selectedGuard) {
-        this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
+      // Map Click Handler
+      this.map.on('click', (e: any) => {
+        if (this.isPickingLocation && this.selectedGuard) {
+          this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
+        }
+        if (this.isEditingAdmin && this.adminMarker) {
+          this.adminMarker.setLatLng(e.latlng);
+        }
+      });
+
+      // Force refresh guards
+      if (this.guards.length > 0) {
+        this.refreshGuardMarkers();
       }
-    });
+    };
+
+    // Check for user location - Fetch fresh from API
+    const localUser = this.authService.getCurrentUser();
+    if (localUser && localUser.email) {
+      this.http.get<any>(`http://localhost:3000/api/admins/${localUser.email}`).subscribe({
+        next: (adminData) => {
+          if (adminData.lat && adminData.lng) {
+            lat = parseFloat(adminData.lat);
+            lng = parseFloat(adminData.lng);
+            zoom = 15;
+          }
+          createMap(lat, lng, zoom, adminData);
+        },
+        error: () => {
+          createMap(lat, lng, zoom, localUser);
+        }
+      });
+    } else {
+      createMap(lat, lng, zoom, null);
+    }
   }
 
   private createAdminMarker(L: any, lat: number, lng: number, user: any) {
-    const icon = L.icon({
-      iconUrl: 'assets/marker-icon.png', // Default leaflet marker
-      shadowUrl: 'assets/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
+    const adminIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: #9333ea; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
-    // Fix for missing assets in some builds, but let's assume standard leaflet setup or use a colored one
-    // For admin, maybe blue.
-
-    this.adminMarker = L.marker([lat, lng], { draggable: this.isEditingAdmin }).addTo(this.map);
+    this.adminMarker = L.marker([lat, lng], {
+      icon: adminIcon,
+      draggable: this.isEditingAdmin
+    }).addTo(this.map);
 
     if (user) {
-      this.adminMarker.bindPopup(`<b>Administrador: ${user.fullName || user.name}</b><br>${user.companyName || 'Sin Compañía'}`).openPopup();
+      this.adminMarker.bindPopup(`<b>Administrador: ${user.fullName || user.name}</b><br>${user.companyName || 'Sin Compañía'}`);
+      // Open popup only if not editing to avoid obstruction
+      if (!this.isEditingAdmin) this.adminMarker.openPopup();
     }
 
     this.adminMarker.on('dragend', () => {
-      // Optional: Auto-save on drag end if needed, or wait for button
+      // Position updated automatically, save happens on button click
     });
   }
 
@@ -120,20 +148,30 @@ export class MapaComponent implements OnInit {
     // Add markers for guards with location
     this.guards.forEach(guard => {
       if (guard.lat && guard.lng) {
-        const marker = L.marker([guard.lat, guard.lng], {
+        const lat = parseFloat(guard.lat);
+        const lng = parseFloat(guard.lng);
+
+        const marker = L.marker([lat, lng], {
           icon: this.getGuardIcon(L, guard.estado)
         }).addTo(this.map);
 
-        marker.bindPopup(`
+        marker.bindTooltip(`
           <div class="text-center">
-            <h3 class="font-bold">${guard.nombre}</h3>
-            <p class="text-xs text-gray-500">ID: ${guard.idEmpleado}</p>
-            <p class="text-sm">${guard.area}</p>
-            <span class="inline-block px-2 py-0.5 rounded text-xs text-white ${guard.estado === 'En servicio' ? 'bg-green-500' : 'bg-red-500'}">
-              ${guard.estado}
-            </span>
+            <h3 class="font-bold whitespace-nowrap">${guard.nombre}</h3>
+            <p class="text-xs text-gray-500">${guard.area}</p>
           </div>
-        `);
+        `, {
+          permanent: false,
+          direction: 'top',
+          className: 'custom-tooltip'
+        });
+
+        // Click to select this guard as active selection
+        marker.on('click', () => {
+          this.searchId = guard.idEmpleado;
+          this.searchGuard();
+        });
+
 
         this.guardMarkers.set(guard.idEmpleado, marker);
       }
@@ -145,9 +183,9 @@ export class MapaComponent implements OnInit {
     // Using a filter to change hueTest could be complex, keeping default for now or using a custom divIcon
     return L.divIcon({
       className: 'custom-div-icon',
-      html: `<div style="background-color: ${status === 'En servicio' ? '#22c55e' : '#ef4444'}; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
+      html: `<div style="background-color: ${status === 'En servicio' ? '#22c55e' : '#6b7280'}; width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10]
     });
   }
 
@@ -168,24 +206,65 @@ export class MapaComponent implements OnInit {
   }
 
   private saveAdminLocation(lat: number, lng: number) {
-    // Update local user and user in storage
     const user = this.authService.getCurrentUser();
     if (user) {
       user.lat = lat;
       user.lng = lng;
-      // Also reverse geocode if possible to update text location, but for now just updating coords
+
+      // Save locally
       localStorage.setItem('currentUser', JSON.stringify(user));
-      alert('Ubicación del administrador actualizada.');
+
+      // Save to backend
+      this.http.patch('http://localhost:3000/api/admins/update', {
+        email: user.email,
+        lat: lat,
+        lng: lng
+      }).subscribe({
+        next: () => this.showFeedback('Ubicación del administrador actualizada.', 'success'),
+        error: (err) => {
+          console.error(err);
+          this.showFeedback('Error al actualizar ubicación en el servidor.', 'error');
+        }
+      });
     }
   }
 
   // --- Guard Management Logic ---
 
+
   public searchGuard() {
-    this.selectedGuard = this.guards.find(g => g.idEmpleado === this.searchId);
-    if (!this.selectedGuard) {
-      alert('Guardia no encontrado');
+    this.selectedGuard = null;
+    if (!this.searchId || !this.searchId.trim()) {
+      this.showFeedback('Por favor, ingrese un ID.', 'error');
+      return;
     }
+
+    // Case insensitive search and trim, also check for partial matches if exact fails
+    const term = this.searchId.trim().toLowerCase();
+
+    this.selectedGuard = this.guards.find(g =>
+      g.idEmpleado && g.idEmpleado.toString().toLowerCase() === term
+    );
+
+    // Optional: Allow partial match if exact not found?
+    // if (!this.selectedGuard) {
+    //   this.selectedGuard = this.guards.find(g => g.idEmpleado && g.idEmpleado.toString().toLowerCase().includes(term));
+    // }
+
+    if (!this.selectedGuard) {
+      this.showFeedback('Guardia no encontrado', 'error');
+    } else {
+      // Center map on guard if they have a location
+      if (this.selectedGuard.lat && this.selectedGuard.lng && this.map) {
+        this.map.flyTo([parseFloat(this.selectedGuard.lat), parseFloat(this.selectedGuard.lng)], 16);
+      }
+    }
+  }
+
+  private showFeedback(message: string, type: 'success' | 'error') {
+    this.feedbackMessage = message;
+    this.feedbackType = type;
+    setTimeout(() => this.feedbackMessage = '', 4000);
   }
 
   public enableGuardLocationPick() {
@@ -202,15 +281,18 @@ export class MapaComponent implements OnInit {
     this.selectedGuard.lat = lat;
     this.selectedGuard.lng = lng;
 
+    // Optimistic Update: Show marker immediately
+    this.refreshGuardMarkers();
+    this.isPickingLocation = false;
+
     this.updateGuard(this.selectedGuard).subscribe({
       next: () => {
-        this.isPickingLocation = false;
-        this.refreshGuardMarkers();
-        alert(`Ubicación asignada a ${this.selectedGuard.nombre}`);
+        this.showFeedback(`Ubicación asignada a ${this.selectedGuard.nombre}`, 'success');
       },
       error: (err) => {
         console.error('Error updating guard', err);
-        alert('Error al asignar ubicación');
+        this.showFeedback('Error al guardar ubicación en servidor', 'error');
+        // Rollback? Logic could be here
       }
     });
   }
@@ -225,9 +307,9 @@ export class MapaComponent implements OnInit {
     this.updateGuard(this.selectedGuard).subscribe({
       next: () => {
         this.refreshGuardMarkers();
-        alert('Ubicación eliminada');
+        this.showFeedback('Ubicación eliminada', 'success');
       },
-      error: (err) => alert('Error eliminando ubicación')
+      error: (err) => this.showFeedback('Error eliminando ubicación', 'error')
     });
   }
 

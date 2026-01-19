@@ -22,4 +22,10 @@ export class GuardService {
     updateGuard(id: string, guardData: any): Observable<any> {
         return this.http.patch(`${this.apiUrl}/${id}`, guardData);
     }
+
+    uploadPhoto(file: File): Observable<{ url: string }> {
+        const formData = new FormData();
+        formData.append('photo', file);
+        return this.http.post<{ url: string }>('http://localhost:3000/api/upload', formData);
+    }
 }

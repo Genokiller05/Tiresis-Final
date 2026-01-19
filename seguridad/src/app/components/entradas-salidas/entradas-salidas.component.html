@@ -6,38 +6,39 @@
       <span class="material-icons text-4xl text-purple-600 dark:text-purple-400">login</span>
       <h1 class="text-4xl font-bold">Registros de Entradas y Salidas</h1>
     </div>
-    <button (click)="registrar()"
-      class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow transition-colors">
-      Registrar Entrada/Salida
-    </button>
+    <!-- Removed Register Button -->
   </div>
 
   <!-- Filters -->
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
     <div>
       <label for="filterDesde" class="block text-sm font-medium mb-1">Desde</label>
-      <input type="date" id="filterDesde"
+      <input type="date" id="filterDesde" [(ngModel)]="filtroDesde" (change)="filtrar()"
         class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
     </div>
     <div>
       <label for="filterHasta" class="block text-sm font-medium mb-1">Hasta</label>
-      <input type="date" id="filterHasta"
+      <input type="date" id="filterHasta" [(ngModel)]="filtroHasta" (change)="filtrar()"
         class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
     </div>
     <div>
       <label for="filterTipo" class="block text-sm font-medium mb-1">Tipo</label>
-      <select id="filterTipo"
+      <select id="filterTipo" [(ngModel)]="filtroTipo" (change)="filtrar()"
         class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
-        <option>Todos</option>
-        <option>Entrada</option>
-        <option>Salida</option>
+        <option value="Todos">Todos</option>
+        <option value="Residente">Residente</option>
+        <option value="Personal">Personal</option>
+        <option value="Paquetería">Paquetería</option>
       </select>
     </div>
-    <div class="flex items-end">
-      <button (click)="buscar()"
-        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg w-full transition-colors">
-        Buscar
-      </button>
+    <div>
+      <label for="filterAccion" class="block text-sm font-medium mb-1">Acción</label>
+      <select id="filterAccion" [(ngModel)]="filtroAccion" (change)="filtrar()"
+        class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
+        <option value="Todos">Todas</option>
+        <option value="Entrada">Entrada</option>
+        <option value="Salida">Salida</option>
+      </select>
     </div>
   </div>
 
@@ -46,9 +47,8 @@
     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
       <thead class="bg-gray-50 dark:bg-gray-700">
         <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Residente/Personal
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Tipo</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Nombre / Tipo</th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Acción</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Fecha y Hora</th>
           <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Destino</th>
           <th scope="col" class="relative px-6 py-3">
@@ -57,23 +57,22 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        <!-- Ejemplo de Fila -->
-        <tr>
+        <tr *ngFor="let registro of registrosFiltrados">
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium">Juan Pérez</div>
-            <div class="text-sm text-gray-500">Residente</div>
+            <div class="text-sm font-medium">{{ registro.nombre }}</div>
+            <div class="text-sm text-gray-500">{{ registro.tipo }}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <span
-              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-              Entrada
+            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+              [ngClass]="registro.accion === 'Entrada' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'">
+              {{ registro.accion }}
             </span>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm">2024-01-16 10:30 AM</div>
+            <div class="text-sm">{{ registro.fecha | date:'short' }}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm">
-            Apartamento 101
+            {{ registro.destino }}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <button class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">
@@ -81,8 +80,11 @@
             </button>
           </td>
         </tr>
-        <!-- Fin Ejemplo de Fila -->
       </tbody>
     </table>
+
+    <div *ngIf="registrosFiltrados.length === 0" class="p-8 text-center text-gray-500">
+      No se encontraron registros.
+    </div>
   </div>
 </div>

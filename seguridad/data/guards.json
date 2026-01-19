@@ -22,7 +22,9 @@
         "descripcion": "Inicio de turno"
       }
     ],
-    "foto": "/uploads/photo-1764815894485-345837117.png"
+    "foto": "/uploads/photo-1764815894485-345837117.png",
+    "lat": null,
+    "lng": null
   },
   {
     "idEmpleado": "00054321",

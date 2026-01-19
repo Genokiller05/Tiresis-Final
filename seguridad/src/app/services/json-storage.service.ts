@@ -129,13 +129,13 @@ export class JsonStorageService {
       // Cargar guardias desde el archivo JSON de forma síncrona usando fetch
       if (!this.getData('guards')) {
         try {
-          fetch('assets/guards.json')
+          fetch('http://localhost:3000/api/guards')
             .then(response => response.json())
             .then(guardData => {
               this.setData('guards', guardData);
             })
             .catch(err => {
-              console.error('Error cargando guardias.json:', err);
+              console.error('Error cargando guards from API:', err);
               // Si falla, usar los datos por defecto
               this.setData('guards', this.defaultGuards);
             });
