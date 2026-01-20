@@ -42,17 +42,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- API Endpoints ---
 
-// POST: Upload a guard's photo
-app.post('/api/upload', upload.single('photo'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: 'No file uploaded' });
-  }
-  // Return the static URL served by Express
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.json({ url: fileUrl });
-});
 
 // --- Helper functions for JSON file ---
 const getGuards = () => {
@@ -102,8 +92,10 @@ const saveAdmins = (admins) => {
 // POST: Upload a guard's photo
 app.post('/api/upload', upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se subió ningún archivo.' });
-  const filePath = `/uploads/${req.file.filename}`;
-  res.status(200).json({ message: 'Archivo subido correctamente.', filePath: filePath });
+
+  // Use exact same format as the frontend expects
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.status(200).json({ url: fileUrl, message: 'Archivo subido correctamente.' });
 });
 
 // GET: Obtener todos los guardias

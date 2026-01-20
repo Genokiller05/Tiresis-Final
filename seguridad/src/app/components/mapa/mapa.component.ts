@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, NgZone } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
@@ -16,6 +16,7 @@ export class MapaComponent implements OnInit {
   private map: any;
   private adminMarker: any;
   private guardMarkers: Map<string, any> = new Map(); // Map guard ID to marker
+  private L: any; // Cache Leaflet instance
 
   // UI State
   public isEditingAdmin: boolean = false;
@@ -30,7 +31,8 @@ export class MapaComponent implements OnInit {
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private authService: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private ngZone: NgZone
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -51,7 +53,8 @@ export class MapaComponent implements OnInit {
   }
 
   private async initMap(): Promise<void> {
-    const L = await import('leaflet');
+    this.L = await import('leaflet');
+    const L = this.L;
 
     // Default location
     let lat = 19.4326;
@@ -78,13 +81,24 @@ export class MapaComponent implements OnInit {
 
       // Map Click Handler
       this.map.on('click', (e: any) => {
-        if (this.isPickingLocation && this.selectedGuard) {
-          this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
-        }
-        if (this.isEditingAdmin && this.adminMarker) {
-          this.adminMarker.setLatLng(e.latlng);
-        }
+        this.ngZone.run(() => {
+          if (this.isPickingLocation && this.selectedGuard) {
+            this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
+          }
+          if (this.isEditingAdmin && this.adminMarker) {
+            this.adminMarker.setLatLng(e.latlng);
+          }
+        });
       });
+
+      // Update cursor class
+      // Note: We use a simple watcher in ngDoCheck or similar if we wanted to be reactive perfectly, 
+      // but simpler is to toggle it in enable/disable methods OR bind it in HTML (would require viewChild).
+      // Since map div is not separate component, let's just use the simpler approach: binding class unavailable on ID, 
+      // so we might need to do it via ViewChild or simple document query if strict angular way is too verbose.
+      // Better way: use [class.picking-mode]="isPickingLocation" on a wrapper div in HTML if possible.
+      // Looking at HTML, #map is a div. We can add [class.cursor-crosshair]="isPickingLocation" in HTML.
+
 
       // Force refresh guards
       if (this.guards.length > 0) {
@@ -139,7 +153,7 @@ export class MapaComponent implements OnInit {
 
   private async refreshGuardMarkers() {
     if (!this.map) return;
-    const L = await import('leaflet');
+    const L = this.L || await import('leaflet');
 
     // Clear existing guard markers
     this.guardMarkers.forEach(marker => this.map.removeLayer(marker));
@@ -232,24 +246,32 @@ export class MapaComponent implements OnInit {
   // --- Guard Management Logic ---
 
 
+  // --- Guard Management Logic ---
+
+
   public searchGuard() {
+    // If we are currently editing this guard, DO NOT reset everything
+    if (this.isPickingLocation && this.selectedGuard) {
+      // Check if the search is triggered for the same guard (e.g. marker click)
+      if (this.selectedGuard.idEmpleado.toString().toLowerCase() === this.searchId.trim().toLowerCase()) {
+        return;
+      }
+    }
+
     this.selectedGuard = null;
+    this.cancelPick(); // Reset pick state if active
+
     if (!this.searchId || !this.searchId.trim()) {
       this.showFeedback('Por favor, ingrese un ID.', 'error');
       return;
     }
 
-    // Case insensitive search and trim, also check for partial matches if exact fails
+    // Case insensitive search
     const term = this.searchId.trim().toLowerCase();
 
     this.selectedGuard = this.guards.find(g =>
       g.idEmpleado && g.idEmpleado.toString().toLowerCase() === term
     );
-
-    // Optional: Allow partial match if exact not found?
-    // if (!this.selectedGuard) {
-    //   this.selectedGuard = this.guards.find(g => g.idEmpleado && g.idEmpleado.toString().toLowerCase().includes(term));
-    // }
 
     if (!this.selectedGuard) {
       this.showFeedback('Guardia no encontrado', 'error');
@@ -267,34 +289,123 @@ export class MapaComponent implements OnInit {
     setTimeout(() => this.feedbackMessage = '', 4000);
   }
 
+  // --- Location Picking (Google Maps Style) ---
+
+  // Temp storage for original location to rollback on cancel
+  private originalLocation: { lat: number, lng: number } | null = null;
+  // Track the temporary marker being dragged
+  private tempMarker: any = null;
+
   public enableGuardLocationPick() {
+    if (!this.selectedGuard) return;
     this.isPickingLocation = true;
+
+    // If guard already has location, make their marker draggable
+    if (this.selectedGuard.lat && this.selectedGuard.lng) {
+      this.originalLocation = { lat: this.selectedGuard.lat, lng: this.selectedGuard.lng };
+
+      const marker = this.guardMarkers.get(this.selectedGuard.idEmpleado);
+      if (marker) {
+        this.tempMarker = marker;
+        marker.dragging.enable();
+        marker.closeTooltip(); // Hide tooltip while editing
+
+        // Listen to drag events to visually update
+        marker.on('dragend', () => {
+          this.ngZone.run(() => {
+            // Just for UI update if needed, actual save is manual
+          });
+        });
+      }
+    } else {
+      this.originalLocation = null; // No previous location
+      this.showFeedback('Haz clic en el mapa para colocar el marcador', 'success');
+    }
   }
 
-  public cancelPick() {
-    this.isPickingLocation = false;
-  }
-
-  public assignGuardLocation(lat: number, lng: number) {
+  public confirmGuardLocation() {
     if (!this.selectedGuard) return;
 
+    let lat, lng;
+
+    if (this.tempMarker) {
+      const latLng = this.tempMarker.getLatLng();
+      lat = latLng.lat;
+      lng = latLng.lng;
+    } else {
+      this.showFeedback('Debes colocar un marcador primero', 'error');
+      return;
+    }
+
+    // Update Data
     this.selectedGuard.lat = lat;
     this.selectedGuard.lng = lng;
 
-    // Optimistic Update: Show marker immediately
-    this.refreshGuardMarkers();
-    this.isPickingLocation = false;
-
     this.updateGuard(this.selectedGuard).subscribe({
       next: () => {
-        this.showFeedback(`Ubicación asignada a ${this.selectedGuard.nombre}`, 'success');
+        this.showFeedback(`Ubicación de ${this.selectedGuard.nombre} guardada.`, 'success');
+        this.finishPick(true); // Keep changes
       },
       error: (err) => {
         console.error('Error updating guard', err);
         this.showFeedback('Error al guardar ubicación en servidor', 'error');
-        // Rollback? Logic could be here
       }
     });
+  }
+
+  public cancelPick() {
+    if (!this.isPickingLocation) return;
+
+    // Rollback changes
+    if (this.originalLocation && this.selectedGuard) {
+      this.selectedGuard.lat = this.originalLocation.lat;
+      this.selectedGuard.lng = this.originalLocation.lng;
+    } else if (this.selectedGuard) {
+      // Was new, so remove it
+      this.selectedGuard.lat = null;
+      this.selectedGuard.lng = null;
+    }
+
+    this.finishPick(false);
+  }
+
+  private finishPick(save: boolean) {
+    this.isPickingLocation = false;
+    this.originalLocation = null;
+
+    // Remove the temp marker layer explicitly if it exists
+    if (this.tempMarker && this.map) {
+      this.map.removeLayer(this.tempMarker);
+    }
+    this.tempMarker = null;
+
+    // Full refresh to ensure clean state (correct icon colors, tooltips, non-draggable)
+    this.refreshGuardMarkers();
+  }
+
+  // Modified map click handler called from ngOnInit
+  public assignGuardLocation(lat: number, lng: number) {
+    // This is called when user CLICKS the map in picking mode
+
+    if (!this.tempMarker) {
+      // Create new marker if we don't have one yet
+      if (this.L) {
+        this.tempMarker = this.L.marker([lat, lng], {
+          icon: this.getGuardIcon(this.L, this.selectedGuard.estado),
+          draggable: true
+        }).addTo(this.map);
+
+        this.tempMarker.on('dragend', () => {
+          this.ngZone.run(() => { });
+        });
+
+        // Allow dragging immediately
+        this.tempMarker.dragging.enable();
+      }
+    } else {
+      // Move existing marker to click spot
+      this.tempMarker.setLatLng([lat, lng]);
+    }
   }
 
   public removeGuardLocation() {
@@ -309,7 +420,7 @@ export class MapaComponent implements OnInit {
         this.refreshGuardMarkers();
         this.showFeedback('Ubicación eliminada', 'success');
       },
-      error: (err) => this.showFeedback('Error eliminando ubicación', 'error')
+      error: (err: any) => this.showFeedback('Error eliminando ubicación', 'error')
     });
   }
 

@@ -1,6 +1,6 @@
 <div class="relative h-screen w-full overflow-hidden">
 
-  <div id="map" class="absolute inset-0 z-0 h-full w-full"></div>
+  <div id="map" [class.picking-mode]="isPickingLocation" class="absolute inset-0 z-0 h-full w-full"></div>
 
   <!-- Admin Controls (Top Right) -->
   <div
@@ -61,18 +61,37 @@
         </div>
       </div>
 
-      <!-- Actions -->
+      <!-- Pick / Action Buttons -->
       <div class="flex flex-col gap-2">
-        <button (click)="enableGuardLocationPick()"
-          class="w-full px-3 py-2 bg-purple-600 text-white rounded-md text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm flex items-center justify-center gap-2">
-          <span class="material-symbols-outlined text-lg">{{ selectedGuard.lat ? 'edit_location' : 'add_location'
-            }}</span>
-          {{ selectedGuard.lat ? 'Reubicar' : 'Asignar Ubicación' }}
-        </button>
-        <button *ngIf="selectedGuard.lat" (click)="removeGuardLocation()"
-          class="w-full px-3 py-2 bg-white dark:bg-transparent border border-red-200 text-red-600 rounded-md text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-          Quitar del Mapa
-        </button>
+
+        <!-- Normal Mode -->
+        <ng-container *ngIf="!isPickingLocation">
+          <button (click)="enableGuardLocationPick()"
+            class="w-full px-3 py-2 bg-purple-600 text-white rounded-md text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-lg">{{ selectedGuard.lat ? 'edit_location' : 'add_location'
+              }}</span>
+            {{ selectedGuard.lat ? 'Reubicar' : 'Asignar Ubicación' }}
+          </button>
+          <button *ngIf="selectedGuard.lat" (click)="removeGuardLocation()"
+            class="w-full px-3 py-2 bg-white dark:bg-transparent border border-red-200 text-red-600 rounded-md text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+            Quitar del Mapa
+          </button>
+        </ng-container>
+
+        <!-- Picking Mode -->
+        <ng-container *ngIf="isPickingLocation">
+          <button (click)="confirmGuardLocation()"
+            class="w-full px-3 py-2 bg-green-600 text-white rounded-md text-sm font-bold hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center gap-2 animate-pulse">
+            <span class="material-symbols-outlined text-lg">check</span>
+            Confirmar Ubicación
+          </button>
+          <button (click)="cancelPick()"
+            class="w-full px-3 py-2 bg-red-100 text-red-700 border border-red-200 rounded-md text-sm font-bold hover:bg-red-200 transition-colors flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-lg">close</span>
+            Cancelar
+          </button>
+        </ng-container>
+
       </div>
 
       <!-- Feedback Message -->
@@ -90,16 +109,13 @@
 
   <!-- Location Picking Overlay Info -->
   <div *ngIf="isPickingLocation"
-    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-gray-700">
+    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-gray-700 pointer-events-none">
     <div class="flex items-center gap-3">
       <span class="material-symbols-outlined text-yellow-400 animate-pulse">touch_app</span>
       <div class="flex flex-col">
-        <span class="font-bold text-sm">Seleccionando ubicación</span>
-        <span class="text-xs text-gray-400">Haga clic en el mapa para confirmar</span>
+        <span class="font-bold text-sm">Modo Edición</span>
+        <span class="text-xs text-gray-400">Haz clic para colocar, arrastra para ajustar.</span>
       </div>
     </div>
-    <div class="h-8 w-px bg-gray-700"></div>
-    <button (click)="cancelPick()"
-      class="text-xs font-bold hover:text-white text-gray-300 transition-colors px-2">CANCELAR</button>
   </div>
 </div>
