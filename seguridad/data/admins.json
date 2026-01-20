@@ -4,5 +4,14 @@
     "email": "aldinalv62@gmail.com",
     "password": "Diego123",
     "location": "calle 17 x 10 y 12 Kanasín, Mérida, Yucatán, México"
+  },
+  {
+    "fullName": "Briana ",
+    "email": "jehielixool@gmail.com",
+    "password": "briana14.@",
+    "companyName": "CASA",
+    "location": "Unidad Morelos, 97190 Mérida, Yuc., Mérida, Yucatán, Mexico",
+    "lat": 20.9426536,
+    "lng": -89.5978737
   }
 ]
