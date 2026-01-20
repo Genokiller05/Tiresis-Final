@@ -1,0 +1,45 @@
+{
+  "reports": [
+    {
+      "id": 1,
+      "type": "Intrusión detectada",
+      "date": "2025-11-24 10:30",
+      "status": "Resuelto",
+      "summary": "Acceso no autorizado en Almacén B, se notificó a seguridad.",
+      "timestamp": "2025-11-24T10:30:00Z"
+    },
+    {
+      "id": 2,
+      "type": "Fallo de equipo",
+      "date": "2025-11-23 15:12",
+      "status": "En Revisión",
+      "summary": "La cámara CAM-04 del pasillo norte ha perdido la conexión.",
+      "timestamp": "2025-11-23T15:12:00Z"
+    },
+    {
+      "id": 3,
+      "type": "Actividad sospechosa",
+      "date": "2025-11-23 08:45",
+      "status": "Enviado",
+      "summary": "Vehículo desconocido sin placas fue visto rondando el perímetro norte.",
+      "timestamp": "2025-11-23T08:45:00Z"
+    },
+    {
+      "id": 4,
+      "type": "Vandalismo",
+      "date": "2025-11-22 23:50",
+      "status": "Resuelto",
+      "summary": "Graffiti encontrado en la pared exterior del Edificio C.",
+      "timestamp": "2025-11-22T23:50:00Z"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "name": "Marlene García",
+      "email": "marlene@example.com",
+      "role": "Guard",
+      "avatar": "👤"
+    }
+  ]
+}
