@@ -144,6 +144,7 @@ app.post('/api/guards', (req, res) => {
 app.patch('/api/guards/:idEmpleado', (req, res) => {
   const guards = getGuards();
   const index = guards.findIndex(g => g.idEmpleado === req.params.idEmpleado);
+
   if (index !== -1) {
     guards[index] = { ...guards[index], ...req.body };
     if (saveGuards(guards)) {
@@ -243,19 +244,19 @@ app.post('/api/login', (req, res) => {
   }
 
   // 1. Verificar credenciales por defecto (para testing)
-  if (email === 'admin123@tiresis.com' && password === 'tiresis12345') {
-    return res.status(200).json({
-      message: 'Login exitoso (Default Admin)',
-      admin: {
-        fullName: 'Administrador Default',
-        email: email,
-        location: 'Oficina Central', // Ubicación dummy
-        companyName: 'Tiresis Security',
-        lat: 19.4326,
-        lng: -99.1332 // CDMX default
-      }
-    });
-  }
+  // if (email === 'admin123@tiresis.com' && password === 'tiresis12345') {
+  //   return res.status(200).json({
+  //     message: 'Login exitoso (Default Admin)',
+  //     admin: {
+  //       fullName: 'Administrador Default',
+  //       email: email,
+  //       location: 'Oficina Central', // Ubicación dummy
+  //       companyName: 'Tiresis Security',
+  //       lat: 19.4326,
+  //       lng: -99.1332 // CDMX default
+  //     }
+  //   });
+  // }
 
   const admins = getAdmins();
   const admin = admins.find(a => a.email === email && a.password === password);

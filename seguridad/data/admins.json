@@ -1,9 +1,20 @@
 [
   {
+    "fullName": "Administrador Default",
+    "email": "admin123@tiresis.com",
+    "password": "tiresis12345",
+    "companyName": "Tiresis Security",
+    "location": "Oficina Central CDMX",
+    "lat": 19.4326,
+    "lng": -99.1332
+  },
+  {
     "fullName": "Diego Alberto Solis Baas",
     "email": "aldinalv62@gmail.com",
     "password": "Diego123",
-    "location": "calle 17 x 10 y 12 Kanasín, Mérida, Yucatán, México"
+    "location": "calle 17 x 10 y 12 Kanasín, Mérida, Yucatán, México",
+    "lat": 20.93963690133021,
+    "lng": -89.61698055267335
   },
   {
     "fullName": "Briana ",
@@ -13,5 +24,14 @@
     "location": "Unidad Morelos, 97190 Mérida, Yuc., Mérida, Yucatán, Mexico",
     "lat": 20.9426536,
     "lng": -89.5978737
+  },
+  {
+    "fullName": "Emilio Huchim",
+    "email": "emiliopena777@gmail.com",
+    "password": "12345678",
+    "companyName": "Residencial Torremolinos",
+    "lat": 20.9152278,
+    "lng": -89.5425702,
+    "location": "Kanasín, Yucatán, 97370, México"
   }
 ]

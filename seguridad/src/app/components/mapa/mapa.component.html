@@ -1,6 +1,7 @@
 <div class="relative h-screen w-full overflow-hidden">
 
-  <div id="map" [class.picking-mode]="isPickingLocation" class="absolute inset-0 z-0 h-full w-full"></div>
+  <div id="map" [class.picking-mode]="isPickingLocation || isEditingAdmin" class="absolute inset-0 z-0 h-full w-full">
+  </div>
 
   <!-- Admin Controls (Top Right) -->
   <div
@@ -113,8 +114,20 @@
     <div class="flex items-center gap-3">
       <span class="material-symbols-outlined text-yellow-400 animate-pulse">touch_app</span>
       <div class="flex flex-col">
-        <span class="font-bold text-sm">Modo Edición</span>
+        <span class="font-bold text-sm">Modo Asignación</span>
         <span class="text-xs text-gray-400">Haz clic para colocar, arrastra para ajustar.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Edit Mode Overlay -->
+  <div *ngIf="isEditingAdmin"
+    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-purple-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-purple-700 pointer-events-none">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-purple-300 animate-pulse">edit_location</span>
+      <div class="flex flex-col">
+        <span class="font-bold text-sm">Actualizando Mi Ubicación</span>
+        <span class="text-xs text-purple-200">Toca en el mapa para mover tu marcador.</span>
       </div>
     </div>
   </div>

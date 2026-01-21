@@ -48,6 +48,15 @@ export class CamarasComponent implements OnInit {
     ];
   }
 
+  // Registration Modal
+  public isRegisterModalVisible: boolean = false;
+  public newCamera: any = {
+    ip: '',
+    marca: '',
+    modelo: '',
+    area: ''
+  };
+
   // --- Menu Toggle ---
   toggleMenu(id: string) {
     if (this.activeMenuId === id) {
@@ -59,6 +68,57 @@ export class CamarasComponent implements OnInit {
 
   closeMenu() {
     this.activeMenuId = null;
+  }
+
+  // --- Registration Methods ---
+  showRegisterModal() {
+    this.newCamera = { ip: '', marca: '', modelo: '', area: '' };
+    this.isRegisterModalVisible = true;
+  }
+
+  hideRegisterModal() {
+    this.isRegisterModalVisible = false;
+  }
+
+  registerCamera() {
+    // Basic validation
+    if (!this.newCamera.ip || !this.newCamera.marca || !this.newCamera.modelo || !this.newCamera.area) {
+      alert('Por favor complete todos los campos');
+      return;
+    }
+
+    // Auto-generate ID
+    const nextId = this.generateNextId();
+
+    const cameraToAdd: Camera = {
+      id: nextId,
+      ip: this.newCamera.ip,
+      marca: this.newCamera.marca,
+      modelo: this.newCamera.modelo,
+      area: this.newCamera.area,
+      activa: true, // Default to active
+      alertas: 0
+    };
+
+    this.cameras.push(cameraToAdd);
+    this.hideRegisterModal();
+  }
+
+  private generateNextId(): string {
+    if (this.cameras.length === 0) return 'CAM-001';
+
+    // Extract numbers from IDs (e.g., "CAM-003" -> 3)
+    const numbers = this.cameras.map(c => {
+      const parts = c.id.split('-');
+      return parseInt(parts[1], 10);
+    });
+
+    const maxId = Math.max(...numbers);
+    const nextNum = maxId + 1;
+
+    // Pad with zeros (e.g., 4 -> "004")
+    const paddedNum = nextNum.toString().padStart(3, '0');
+    return `CAM-${paddedNum}`;
   }
 
   // --- Actions ---

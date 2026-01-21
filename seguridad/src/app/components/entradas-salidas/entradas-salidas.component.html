@@ -74,10 +74,33 @@
           <td class="px-6 py-4 whitespace-nowrap text-sm">
             {{ registro.destino }}
           </td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-            <button class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
+            <button (click)="toggleMenu(registro)"
+              class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 focus:outline-none">
               <span class="material-icons">more_vert</span>
             </button>
+            <!-- Dropdown Menu -->
+            <div *ngIf="registro.menuVisible"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-20 text-left">
+              <a (click)="prepareEdit(registro)"
+                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                <span class="flex items-center gap-2">
+                  <span class="material-icons text-sm">edit</span> Modificar
+                </span>
+              </a>
+              <a (click)="showDetails(registro)"
+                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                <span class="flex items-center gap-2">
+                  <span class="material-icons text-sm">visibility</span> Detalles
+                </span>
+              </a>
+              <a (click)="prepareDelete(registro)"
+                class="block px-4 py-2 text-sm text-red-600 dark:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
+                <span class="flex items-center gap-2">
+                  <span class="material-icons text-sm">delete</span> Eliminar
+                </span>
+              </a>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -85,6 +108,128 @@
 
     <div *ngIf="registrosFiltrados.length === 0" class="p-8 text-center text-gray-500">
       No se encontraron registros.
+    </div>
+  </div>
+
+  <!-- Details Modal -->
+  <div *ngIf="isDetailsModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full transform transition-all">
+      <h3
+        class="text-2xl font-bold text-gray-900 dark:text-white mb-6 border-b pb-2 border-gray-200 dark:border-gray-700">
+        Detalles del Registro</h3>
+      <div *ngIf="selectedRegistro" class="space-y-4 text-gray-700 dark:text-gray-300">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</p>
+            <p class="text-lg font-semibold">{{ selectedRegistro.nombre }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</p>
+            <p class="text-lg">{{ selectedRegistro.tipo }}</p>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</p>
+            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
+              [ngClass]="selectedRegistro.accion === 'Entrada' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'">
+              {{ selectedRegistro.accion }}
+            </span>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha y Hora</p>
+            <p class="text-lg">{{ selectedRegistro.fecha | date:'medium' }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Destino</p>
+          <p class="text-lg p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">{{ selectedRegistro.destino }}</p>
+        </div>
+      </div>
+      <div class="flex justify-end mt-8">
+        <button (click)="closeDetailsModal()"
+          class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modify Modal -->
+  <div *ngIf="isModifyModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full transform transition-all">
+      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Modificar Registro</h3>
+      <div *ngIf="registroToModify" class="space-y-4">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Nombre</label>
+          <input type="text" [(ngModel)]="registroToModify.nombre" disabled
+            class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 cursor-not-allowed">
+          <p class="text-xs text-gray-500 mt-1">El nombre no se puede editar.</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Tipo</label>
+          <select [(ngModel)]="registroToModify.tipo"
+            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
+            <option value="Residente">Residente</option>
+            <option value="Personal">Personal</option>
+            <option value="Paquetería">Paquetería</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Acción</label>
+          <select [(ngModel)]="registroToModify.accion"
+            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
+            <option value="Entrada">Entrada</option>
+            <option value="Salida">Salida</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Destino</label>
+          <input type="text" [(ngModel)]="registroToModify.destino"
+            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
+        </div>
+
+      </div>
+      <div class="flex justify-end space-x-3 mt-8">
+        <button (click)="closeModifyModal()"
+          class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+          Cancelar
+        </button>
+        <button (click)="confirmEdit()"
+          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+          Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div *ngIf="isDeleteModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+    <div
+      class="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-sm mx-auto transform transition-all border border-gray-200 dark:border-gray-700">
+      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 mb-4">
+        <span class="material-icons text-red-600 dark:text-red-300">warning</span>
+      </div>
+      <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-2">Eliminar Registro</h3>
+      <div class="mt-2">
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          ¿Estás seguro que deseas eliminar el registro de
+          <span class="font-bold" *ngIf="selectedRegistro">{{ selectedRegistro.nombre }}</span>?
+          Esta acción no se puede deshacer.
+        </p>
+      </div>
+      <div class="flex justify-center space-x-3 mt-6">
+        <button (click)="confirmDelete()"
+          class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
+          Eliminar
+        </button>
+        <button (click)="closeDeleteModal()"
+          class="w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+          Cancelar
+        </button>
+      </div>
     </div>
   </div>
 </div>

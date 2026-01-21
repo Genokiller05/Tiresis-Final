@@ -20,6 +20,15 @@ export class EntradasSalidasComponent implements OnInit {
   public filtroTipo: string = 'Todos'; // Residente, Personal, Paquetería
   public filtroAccion: string = 'Todos'; // Entrada, Salida
 
+  // Modal States
+  public isDeleteModalVisible: boolean = false;
+  public isModifyModalVisible: boolean = false;
+  public isDetailsModalVisible: boolean = false;
+
+  // Selected Records
+  public selectedRegistro: any = null;
+  public registroToModify: any = null; // For the form
+
   constructor() { }
 
   ngOnInit(): void {
@@ -30,19 +39,19 @@ export class EntradasSalidasComponent implements OnInit {
   cargarDatosPrueba() {
     this.registros = [
       // 3 Residentes
-      { nombre: 'Juan Pérez', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-18T10:30', destino: 'Apto 101' },
-      { nombre: 'Ana López', tipo: 'Residente', accion: 'Salida', fecha: '2025-01-18T08:15', destino: 'Gimnasio' },
-      { nombre: 'Carlos Ruiz', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-17T19:00', destino: 'Apto 205' },
+      { id: 1, nombre: 'Juan Pérez', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-18T10:30', destino: 'Apto 101' },
+      { id: 2, nombre: 'Ana López', tipo: 'Residente', accion: 'Salida', fecha: '2025-01-18T08:15', destino: 'Gimnasio' },
+      { id: 3, nombre: 'Carlos Ruiz', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-17T19:00', destino: 'Apto 205' },
 
       // 3 Personal
-      { nombre: 'María González', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T07:00', destino: 'Limpieza' },
-      { nombre: 'Pedro Ramírez', tipo: 'Personal', accion: 'Salida', fecha: '2025-01-18T16:00', destino: 'Mantenimiento' },
-      { nombre: 'Luisa Fernández', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T09:00', destino: 'Administración' },
+      { id: 4, nombre: 'María González', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T07:00', destino: 'Limpieza' },
+      { id: 5, nombre: 'Pedro Ramírez', tipo: 'Personal', accion: 'Salida', fecha: '2025-01-18T16:00', destino: 'Mantenimiento' },
+      { id: 6, nombre: 'Luisa Fernández', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T09:00', destino: 'Administración' },
 
       // 3 Paquetería
-      { nombre: 'Amazon Delivery', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-18T11:45', destino: 'Recepción' },
-      { nombre: 'DHL Express', tipo: 'Paquetería', accion: 'Salida', fecha: '2025-01-18T12:00', destino: 'Salida General' },
-      { nombre: 'FedEx', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-17T15:30', destino: 'Apto 302' },
+      { id: 7, nombre: 'Amazon Delivery', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-18T11:45', destino: 'Recepción' },
+      { id: 8, nombre: 'DHL Express', tipo: 'Paquetería', accion: 'Salida', fecha: '2025-01-18T12:00', destino: 'Salida General' },
+      { id: 9, nombre: 'FedEx', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-17T15:30', destino: 'Apto 302' },
     ];
   }
 
@@ -73,6 +82,74 @@ export class EntradasSalidasComponent implements OnInit {
 
       return true;
     });
+  }
+
+  // --- Actions Menu ---
+  toggleMenu(registro: any): void {
+    // Close others
+    this.registrosFiltrados.forEach(r => {
+      if (r !== registro) r.menuVisible = false;
+    });
+    registro.menuVisible = !registro.menuVisible;
+  }
+
+  // --- Details Modal ---
+  showDetails(registro: any): void {
+    this.selectedRegistro = registro;
+    this.isDetailsModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  closeDetailsModal(): void {
+    this.isDetailsModalVisible = false;
+    this.selectedRegistro = null;
+  }
+
+  // --- Modify Modal ---
+  prepareEdit(registro: any): void {
+    this.selectedRegistro = registro;
+    // Clone to avoid direct mutation before save
+    this.registroToModify = { ...registro };
+    this.isModifyModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  confirmEdit(): void {
+    if (this.selectedRegistro && this.registroToModify) {
+      // Update original object properties
+      Object.assign(this.selectedRegistro, this.registroToModify);
+
+      // Refresh filter in case filtered properties changed
+      // (Though in a real app coupled with backend, we might reload data)
+      this.filtrar();
+    }
+    this.closeModifyModal();
+  }
+
+  closeModifyModal(): void {
+    this.isModifyModalVisible = false;
+    this.selectedRegistro = null;
+    this.registroToModify = null;
+  }
+
+  // --- Delete Modal ---
+  prepareDelete(registro: any): void {
+    this.selectedRegistro = registro;
+    this.isDeleteModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  confirmDelete(): void {
+    if (this.selectedRegistro) {
+      this.registros = this.registros.filter(r => r.id !== this.selectedRegistro.id);
+      this.filtrar();
+    }
+    this.closeDeleteModal();
+  }
+
+  closeDeleteModal(): void {
+    this.isDeleteModalVisible = false;
+    this.selectedRegistro = null;
   }
 
   registrar(): void {

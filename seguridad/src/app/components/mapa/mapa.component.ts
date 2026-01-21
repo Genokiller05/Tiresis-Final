@@ -74,7 +74,7 @@ export class MapaComponent implements OnInit {
         minZoom: 3,
       }).addTo(this.map);
 
-      this.map.attributionControl.setPrefix('');
+      // this.map.attributionControl.setPrefix(''); // Removed to prevent crash when attributionControl is false
 
       // Admin Marker
       this.createAdminMarker(L, latitude, longitude, user);
