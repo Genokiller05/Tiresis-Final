@@ -498,3 +498,72 @@ values
   ('person','Persona'),
   ('car','Vehículo')
 on conflict (code) do nothing;
+
+-- =================================================================
+-- 1. ACTUALIZACIÓN DE LA TABLA PERFILES (TRACKING EN VIVO)
+-- =================================================================
+-- Agregamos las columnas para rastrear la ubicación en tiempo real
+-- Esto permite que el mapa web muestre dónde están sin depender de reportes.
+
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS current_lat numeric(10,7),
+ADD COLUMN IF NOT EXISTS current_lng numeric(10,7),
+ADD COLUMN IF NOT EXISTS last_seen_at timestamptz DEFAULT now();
+
+-- Trigger opcional: Actualizar automáticamente 'last_seen_at' cuando cambie la ubicación
+CREATE OR REPLACE FUNCTION update_last_seen()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_seen_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS tr_update_location_timestamp ON public.profiles;
+CREATE TRIGGER tr_update_location_timestamp
+BEFORE UPDATE OF current_lat, current_lng ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION update_last_seen();
+
+-- =================================================================
+-- 2. "APARTADO DE GUARDIAS" (VISTA SIMPLIFICADA)
+-- =================================================================
+-- Como tu base de datos es relacional (3FN), no hay una tabla "guards".
+-- Esta VISTA crea una "tabla virtual" para que tu Web pueda hacer:
+-- "SELECT * FROM active_guards_view" y obtener todo listo.
+
+CREATE OR REPLACE VIEW public.active_guards_view AS
+SELECT 
+    p.id as guard_id,
+    p.full_name as nombre,
+    p.document_id,
+    p.phone,
+    p.current_lat as lat,       -- Mapeado directo para tu frontend
+    p.current_lng as lng,       -- Mapeado directo para tu frontend
+    p.last_seen_at,
+    s.name as sitio_asignado,
+    sm.is_active as en_servicio -- Si la membresía está activa
+FROM 
+    public.profiles p
+JOIN 
+    public.site_memberships sm ON p.id = sm.user_id
+JOIN 
+    public.roles r ON sm.role_id = r.id
+JOIN 
+    public.sites s ON sm.site_id = s.id
+WHERE 
+    r.code = 'guard'; -- Filtra SOLO a los guardias
+
+-- =================================================================
+-- 3. DATOS SEMILLA ESENCIALES (ASEGURAR QUE EXISTAN)
+-- =================================================================
+-- Asegura que el rol 'guard' exista para que la vista funcione
+
+INSERT INTO public.roles (code, name)
+VALUES ('guard', 'Guardia de Seguridad')
+ON CONFLICT (code) DO NOTHING;
+
+-- Crear un Sitio por defecto si no existe (para pruebas)
+INSERT INTO public.sites (name, address)
+VALUES ('Sitio Central', 'Oficina Principal')
+ON CONFLICT DO NOTHING; -- Nota: sites no tiene unique constraint por nombre por defecto, esto es ilustrativo

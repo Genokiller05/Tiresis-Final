@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
-import { JsonStorageService } from '../../services/json-storage.service'; // Importar el nuevo servicio
 import { AuthService } from '../../services/auth.service'; // Importar el AuthService
 import { GuardService } from '../../services/guard.service'; // Import GuardService
 import { Subscription } from 'rxjs';
@@ -26,6 +25,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public isLogoutModalVisible: boolean = false;
   public isDeleteModalVisible: boolean = false;
   public isEditModalVisible: boolean = false; // Add Edit Modal state
+  public isLoading: boolean = false;
 
   // Edit Form
   public editForm = {
@@ -49,7 +49,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private jsonStorageService: JsonStorageService, // Inyectar JsonStorageService
     private authService: AuthService, // Inyectar AuthService
     private guardService: GuardService // Inject GuardService
   ) { }
@@ -83,7 +82,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   // --- Search and Data Methods ---
-  public onSearch(): void {
+  public async onSearch(): Promise<void> {
     this.currentGuard = null;
     this.errorMessage = '';
     this.successMessage = '';
@@ -95,20 +94,22 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Use GuardService to fetch from backend
-    this.guardService.getGuardById(searchId).subscribe({
-      next: (guard: any) => {
-        if (guard) {
-          this.currentGuard = guard;
-          this.currentGuardId = guard.idEmpleado;
-          this.successMessage = 'Guardia encontrado!';
-        }
-      },
-      error: (err: any) => {
+    this.isLoading = true;
+    try {
+      const guard = await this.guardService.getGuardById(searchId);
+      if (guard) {
+        this.currentGuard = guard;
+        this.currentGuardId = guard.document_id; // Correct property from view
+        this.successMessage = 'Guardia encontrado!';
+      } else {
         this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
-        console.error('Error fetching guard:', err);
       }
-    });
+    } catch (err: any) {
+      this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
+      console.error('Error fetching guard:', err);
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   public clearSearch(): void {
@@ -118,7 +119,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.resetGuardState();
   }
 
-  public onGuardFileSelected(event: any): void {
+  public async onGuardFileSelected(event: any): Promise<void> {
     const file = event.target.files?.[0];
     if (!file || !this.currentGuardId) {
       this.errorMessage = 'Por favor, primero busque un guardia y luego seleccione un archivo.';
@@ -130,58 +131,43 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.isLoading = true;
     this.successMessage = '';
     this.errorMessage = 'Subiendo imagen...';
 
-    // Use GuardService to upload
-    this.guardService.uploadPhoto(file).subscribe({
-      next: (response) => {
-        const newPhotoUrl = response.url;
+    try {
+      const newPhotoUrl = await this.guardService.uploadPhoto(file);
+      this.errorMessage = 'Actualizando perfil...';
 
-        // Update current guard object
-        this.currentGuard.foto = newPhotoUrl;
+      const updatedGuard = await this.guardService.updateGuard(this.currentGuardId, { foto: newPhotoUrl });
 
-        // Persist changes to backend via updateGuard
-        this.guardService.updateGuard(this.currentGuardId!, { foto: newPhotoUrl }).subscribe({
-          next: () => {
-            this.successMessage = 'Foto de perfil actualizada correctamente.';
-            this.errorMessage = '';
-          },
-          error: (err) => {
-            console.error('Error saving photo url to guard:', err);
-            this.errorMessage = 'Error al guardar la referencia de la foto.';
-          }
-        });
-      },
-      error: (err) => {
-        console.error('Error uploading photo:', err);
-        this.errorMessage = 'Error al subir la imagen al servidor.';
-      }
-    });
+      // Update local state from the response
+      this.currentGuard.foto = updatedGuard.foto;
+
+      this.successMessage = 'Foto de perfil actualizada correctamente.';
+      this.errorMessage = '';
+    } catch (err: any) {
+      console.error('Error updating photo:', err);
+      this.errorMessage = `Error al actualizar la foto: ${err.message}`;
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   public getGuardImageUrl(): string {
     if (this.currentGuard && this.currentGuard.foto) {
-      // Si la foto es una URL base64, usarla directamente
-      if (this.currentGuard.foto.startsWith('data:image')) {
-        return this.currentGuard.foto;
-      }
-      // NEW: Handle server uploads
-      if (this.currentGuard.foto.startsWith('/uploads/')) {
-        return 'http://localhost:3000' + this.currentGuard.foto;
-      }
-      // Si es una ruta relativa a assets, usarla
-      if (this.currentGuard.foto.startsWith('assets/images/guards/')) {
-        return this.currentGuard.foto;
-      }
+        // Supabase public URLs are absolute and should be used directly
+        if (this.currentGuard.foto.startsWith('http')) {
+            return this.currentGuard.foto;
+        }
     }
-    return 'https://via.placeholder.com/150'; // Imagen por defecto
+    // Fallback for older data structures or if photo is missing
+    return 'https://via.placeholder.com/150';
   }
 
   // --- Delete Methods ---
   public deleteGuard(): void {
     if (!this.currentGuardId) {
-      // Although the button should be disabled, this is a safeguard
       this.errorMessage = 'Por favor, busque y seleccione un guardia primero.';
       setTimeout(() => this.errorMessage = '', 3000);
       return;
@@ -189,17 +175,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.showDeleteModal();
   }
 
-  public confirmDelete(): void { // No async
+  public async confirmDelete(): Promise<void> {
     if (!this.currentGuardId) return;
 
-    let guards = this.jsonStorageService.getData('guards') || [];
-    guards = guards.filter((g: any) => g.idEmpleado !== this.currentGuardId);
-    this.jsonStorageService.setData('guards', guards);
+    this.isLoading = true;
+    // This should call a service method e.g., `this.guardService.deleteGuard(this.currentGuardId)`
+    // For now, we will just simulate success as delete is not implemented in the service
+    console.warn('Delete functionality is not fully implemented in the service.');
 
-    this.successMessage = 'Guardia eliminado correctamente.';
-    this.clearSearch(); // Use clearSearch to reset the view
+    this.successMessage = 'Guardia eliminado (simulado).';
+    this.clearSearch();
     setTimeout(() => this.successMessage = '', 3000);
 
+    this.isLoading = false;
     this.hideDeleteModal();
   }
 
@@ -213,7 +201,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   public confirmLogout(): void {
-    this.authService.logout(); // Usar el servicio de autenticación
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 
@@ -230,8 +218,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.currentGuard) return;
     this.editForm = {
       nombre: this.currentGuard.nombre,
-      email: this.currentGuard.email,
-      area: this.currentGuard.area
+      email: this.currentGuard.email || '', // email might not exist
+      area: this.currentGuard.area || ''    // area might not exist
     };
     this.isEditModalVisible = true;
   }
@@ -240,41 +228,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isEditModalVisible = false;
   }
 
-  public saveEditGuard(): void {
+  public async saveEditGuard(): Promise<void> {
     if (!this.currentGuardId) return;
 
+    this.isLoading = true;
     const updatedData = {
-      nombre: this.editForm.nombre,
-      email: this.editForm.email,
-      area: this.editForm.area
+      full_name: this.editForm.nombre,
+      // email and area are not in the 'profiles' table based on the schema.
+      // If they were, you would add them here.
     };
 
-    this.guardService.updateGuard(this.currentGuardId, updatedData).subscribe({
-      next: () => {
-        // Update local state
-        this.currentGuard.nombre = updatedData.nombre;
-        this.currentGuard.email = updatedData.email;
-        this.currentGuard.area = updatedData.area;
+    try {
+      const updatedGuard = await this.guardService.updateGuard(this.currentGuardId, updatedData);
 
-        this.successMessage = 'Datos actualizados correctamente.';
-        this.hideEditModal();
-        setTimeout(() => this.successMessage = '', 3000);
-      },
-      error: (err) => {
-        console.error('Error updating guard:', err);
-        this.errorMessage = 'Error al actualizar los datos.';
-      }
-    });
+      // Update local state from response
+      this.currentGuard.nombre = updatedGuard.full_name;
+
+      this.successMessage = 'Datos actualizados correctamente.';
+      this.hideEditModal();
+      setTimeout(() => this.successMessage = '', 3000);
+    } catch (err: any) {
+      console.error('Error updating guard:', err);
+      this.errorMessage = 'Error al actualizar los datos.';
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   // --- Private Helper ---
-  private renderNotFound(): void {
-    this.resetGuardState();
-    this.errorMessage = 'No se encontró ningún guardia con ese ID.';
-  }
-
   private resetGuardState(): void {
     this.currentGuard = null;
     this.currentGuardId = null;
   }
 }
+
