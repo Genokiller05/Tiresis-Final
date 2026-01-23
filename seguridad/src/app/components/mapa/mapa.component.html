@@ -7,11 +7,28 @@
   <div
     class="absolute top-4 right-4 z-[500] bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
     <h3 class="text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 mb-2">Administrador</h3>
-    <button (click)="toggleAdminEdit()"
-      class="w-full px-4 py-2 text-sm font-bold text-white rounded-md transition-colors shadow-sm"
-      [ngClass]="isEditingAdmin ? 'bg-green-600 hover:bg-green-700' : 'bg-purple-600 hover:bg-purple-700'">
-      {{ isEditingAdmin ? 'Guardar Cambios' : 'Actualizar Mi Ubicación' }}
+    <button (click)="toggleTracking()"
+      class="w-full px-4 py-2 text-sm font-bold text-white rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 mb-2"
+      [ngClass]="isTracking ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-purple-600 hover:bg-purple-700'">
+      <span class="material-symbols-outlined" *ngIf="isTracking">my_location</span>
+      {{ isTracking ? 'Detener Seguimiento' : 'Activar Ubicación Automática' }}
     </button>
+
+    <button (click)="toggleZoneEditor()"
+      class="w-full px-4 py-2 text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 border mb-2"
+      [ngClass]="isDrawingZone ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'">
+      <span class="material-symbols-outlined">{{ isDrawingZone ? 'edit_off' : 'edit_square' }}</span>
+      {{ isDrawingZone ? 'Cancelar Dibujo' : 'Definir Zona Segura' }}
+    </button>
+
+    <button (click)="toggleBuildingCreation()"
+      class="w-full px-4 py-2 text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 border"
+      [ngClass]="isCreatingBuilding ? 'bg-cyan-100 text-cyan-700 border-cyan-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'">
+      <span class="material-symbols-outlined">{{ isCreatingBuilding ? 'domain_disabled' : 'domain_add' }}</span>
+      {{ isCreatingBuilding ? 'Cancelar Edificio' : 'Crear Edificio' }}
+    </button>
+
+
   </div>
 
   <!-- Guard Management Panel (Left Side) -->
@@ -121,13 +138,27 @@
   </div>
 
   <!-- Admin Edit Mode Overlay -->
-  <div *ngIf="isEditingAdmin"
+  <!-- Tracking Active Overlay -->
+  <div *ngIf="isTracking"
     class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-purple-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-purple-700 pointer-events-none">
     <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-purple-300 animate-pulse">edit_location</span>
+      <span class="material-symbols-outlined text-purple-300 animate-pulse">satellite_alt</span>
       <div class="flex flex-col">
-        <span class="font-bold text-sm">Actualizando Mi Ubicación</span>
-        <span class="text-xs text-purple-200">Toca en el mapa para mover tu marcador.</span>
+        <span class="font-bold text-sm">Rastreo GPS Activo</span>
+        <span class="text-xs text-purple-200">Tu ubicación se actualiza automáticamente.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawing Mode Overlay -->
+  <div *ngIf="isDrawingZone"
+    class="absolute top-24 left-1/2 transform -translate-x-1/2 z-[1000] bg-yellow-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-yellow-700 pointer-events-none">
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-yellow-300 animate-pulse">draw</span>
+      <div class="flex flex-col">
+        <span class="font-bold text-sm">Modo Dibujo de Zona</span>
+        <span class="text-xs text-yellow-200">Haz clic en el mapa para marcar los puntos. Cierra la forma para
+          terminar.</span>
       </div>
     </div>
   </div>

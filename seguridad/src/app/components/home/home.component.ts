@@ -99,7 +99,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       const guard = await this.guardService.getGuardById(searchId);
       if (guard) {
         this.currentGuard = guard;
-        this.currentGuardId = guard.document_id; // Correct property from view
+        this.currentGuard = guard;
+        this.currentGuardId = guard.idEmpleado; // Updated to match local JSON property
+        this.successMessage = 'Guardia encontrado!';
         this.successMessage = 'Guardia encontrado!';
       } else {
         this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
@@ -156,10 +158,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public getGuardImageUrl(): string {
     if (this.currentGuard && this.currentGuard.foto) {
-        // Supabase public URLs are absolute and should be used directly
-        if (this.currentGuard.foto.startsWith('http')) {
-            return this.currentGuard.foto;
-        }
+      // Supabase public URLs are absolute and should be used directly
+      if (this.currentGuard.foto.startsWith('http')) {
+        return this.currentGuard.foto;
+      } else {
+        // It's a relative path from our local server
+        return `http://localhost:3000${this.currentGuard.foto}`;
+      }
     }
     // Fallback for older data structures or if photo is missing
     return 'https://via.placeholder.com/150';
@@ -233,16 +238,18 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.isLoading = true;
     const updatedData = {
-      full_name: this.editForm.nombre,
-      // email and area are not in the 'profiles' table based on the schema.
-      // If they were, you would add them here.
+      nombre: this.editForm.nombre,
+      email: this.editForm.email,
+      area: this.editForm.area
     };
 
     try {
       const updatedGuard = await this.guardService.updateGuard(this.currentGuardId, updatedData);
 
       // Update local state from response
-      this.currentGuard.nombre = updatedGuard.full_name;
+      this.currentGuard.nombre = updatedGuard.nombre;
+      this.currentGuard.email = updatedGuard.email;
+      this.currentGuard.area = updatedGuard.area;
 
       this.successMessage = 'Datos actualizados correctamente.';
       this.hideEditModal();

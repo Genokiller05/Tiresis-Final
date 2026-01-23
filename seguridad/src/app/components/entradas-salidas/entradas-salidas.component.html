@@ -13,13 +13,23 @@
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
     <div>
       <label for="filterDesde" class="block text-sm font-medium mb-1">Desde</label>
-      <input type="date" id="filterDesde" [(ngModel)]="filtroDesde" (change)="filtrar()"
-        class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
+      <div class="relative">
+        <input type="text" id="filterDesde" placeholder="Seleccionar fecha..."
+          class="w-full pl-3 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-white">
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <span class="material-icons text-gray-400 text-sm">calendar_today</span>
+        </div>
+      </div>
     </div>
     <div>
       <label for="filterHasta" class="block text-sm font-medium mb-1">Hasta</label>
-      <input type="date" id="filterHasta" [(ngModel)]="filtroHasta" (change)="filtrar()"
-        class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
+      <div class="relative">
+        <input type="text" id="filterHasta" placeholder="Seleccionar fecha..."
+          class="w-full pl-3 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-white">
+        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+          <span class="material-icons text-gray-400 text-sm">calendar_today</span>
+        </div>
+      </div>
     </div>
     <div>
       <label for="filterTipo" class="block text-sm font-medium mb-1">Tipo</label>

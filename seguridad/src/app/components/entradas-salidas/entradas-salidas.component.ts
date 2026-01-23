@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import flatpickr from 'flatpickr';
+import { Spanish } from 'flatpickr/dist/l10n/es';
 
 @Component({
   selector: 'app-entradas-salidas',
@@ -9,7 +11,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './entradas-salidas.component.html',
   styleUrls: ['./entradas-salidas.component.css']
 })
-export class EntradasSalidasComponent implements OnInit {
+export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public registros: any[] = [];
   public registrosFiltrados: any[] = [];
@@ -20,6 +22,10 @@ export class EntradasSalidasComponent implements OnInit {
   public filtroTipo: string = 'Todos'; // Residente, Personal, Paquetería
   public filtroAccion: string = 'Todos'; // Entrada, Salida
 
+  // Flatpickr instances
+  private datePickerDesde: any;
+  private datePickerHasta: any;
+
   // Modal States
   public isDeleteModalVisible: boolean = false;
   public isModifyModalVisible: boolean = false;
@@ -29,11 +35,62 @@ export class EntradasSalidasComponent implements OnInit {
   public selectedRegistro: any = null;
   public registroToModify: any = null; // For the form
 
-  constructor() { }
+  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
 
   ngOnInit(): void {
     this.cargarDatosPrueba();
     this.filtrar();
+  }
+
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.initFlatpickr();
+    }
+  }
+
+  private initFlatpickr() {
+    const config = {
+      enableTime: false, // Usually just date for filters, but can be true if needed
+      dateFormat: "Y-m-d",
+      locale: Spanish,
+      altInput: true,
+      altFormat: "d/m/Y",
+      allowInput: true
+    };
+
+    const desdeInput = document.getElementById('filterDesde');
+    const hastaInput = document.getElementById('filterHasta');
+
+    if (desdeInput) {
+      this.datePickerDesde = flatpickr(desdeInput, {
+        ...config,
+        defaultDate: this.filtroDesde,
+        onChange: (selectedDates, dateStr) => {
+          this.filtroDesde = dateStr;
+          this.filtrar();
+        }
+      });
+    }
+
+    if (hastaInput) {
+      this.datePickerHasta = flatpickr(hastaInput, {
+        ...config,
+        defaultDate: this.filtroHasta,
+        onChange: (selectedDates, dateStr) => {
+          this.filtroHasta = dateStr;
+          this.filtrar();
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.datePickerDesde) {
+      this.datePickerDesde.destroy();
+    }
+    if (this.datePickerHasta) {
+      this.datePickerHasta.destroy();
+    }
   }
 
   cargarDatosPrueba() {
@@ -61,12 +118,14 @@ export class EntradasSalidasComponent implements OnInit {
       const fechaRegistro = new Date(registro.fecha);
       if (this.filtroDesde) {
         const desde = new Date(this.filtroDesde);
+        // Start of day
+        desde.setHours(0, 0, 0, 0);
         if (fechaRegistro < desde) return false;
       }
       if (this.filtroHasta) {
         const hasta = new Date(this.filtroHasta);
-        // Ajustar hasta el final del día
-        hasta.setHours(23, 59, 59);
+        // End of day
+        hasta.setHours(23, 59, 59, 999);
         if (fechaRegistro > hasta) return false;
       }
 

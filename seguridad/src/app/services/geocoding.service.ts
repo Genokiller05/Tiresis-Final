@@ -151,5 +151,37 @@ export class GeocodingService {
         // For now, removing "No." or "#" might help if user typed "Calle 10 #20"
         return street.replace(/[#]/g, '');
     }
+
+    getBuildingsInPolygon(coords: any[]): Observable<any> {
+        if (!coords || coords.length < 3) return of(null);
+
+        // Calculate Bounding Box
+        let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+        coords.forEach(c => {
+            const lat = c[0];
+            const lon = c[1];
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+        });
+
+        // Construct BBox string: south,west,north,east
+        const bbox = `${minLat},${minLon},${maxLat},${maxLon}`;
+
+        // Query: ways and relations with building tag inside bbox, outputs geometry directly
+        const query = `
+            [out:json][timeout:25];
+            (
+              way["building"](${bbox});
+              relation["building"](${bbox});
+            );
+            out geom;
+        `;
+
+        const params = new HttpParams().set('data', query);
+        // Using a public instance of Overpass API
+        return this.http.get('https://overpass-api.de/api/interpreter', { params });
+    }
 }
 

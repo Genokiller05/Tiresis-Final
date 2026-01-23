@@ -11,6 +11,7 @@ const port = 3000;
 // Path to the local guards JSON file
 const guardsFilePath = path.join(__dirname, 'data', 'guards.json');
 const adminsFilePath = path.join(__dirname, 'data', 'admins.json');
+const buildingsFilePath = path.join(__dirname, 'data', 'buildings.json');
 
 // Create a dedicated uploads directory in 'data' folder for persistence
 const uploadsDir = path.join(__dirname, 'data', 'uploads');
@@ -211,7 +212,7 @@ app.post('/api/register-admin', (req, res) => {
 
 // PATCH: Actualizar ubicación/datos del administrador (por email)
 app.patch('/api/admins/update', (req, res) => {
-  const { email, location, lat, lng } = req.body;
+  const { email, location, lat, lng, zone } = req.body;
 
   if (!email) {
     return res.status(400).json({ message: 'Email es requerido para actualizar.' });
@@ -225,6 +226,7 @@ app.patch('/api/admins/update', (req, res) => {
     if (location !== undefined) admins[index].location = location;
     if (lat !== undefined) admins[index].lat = lat;
     if (lng !== undefined) admins[index].lng = lng;
+    if (zone !== undefined) admins[index].zone = zone;
 
     if (saveAdmins(admins)) {
       res.status(200).json({ message: 'Administrador actualizado correctamente', admin: admins[index] });
@@ -271,7 +273,8 @@ app.post('/api/login', (req, res) => {
         location: admin.location,
         companyName: admin.companyName,
         lat: admin.lat,
-        lng: admin.lng
+        lng: admin.lng,
+        zone: admin.zone
       }
     });
   } else {
@@ -279,6 +282,65 @@ app.post('/api/login', (req, res) => {
   }
 });
 
+
+
+// --- Buildings Management ---
+const getBuildings = () => {
+  try {
+    if (!fs.existsSync(buildingsFilePath)) return [];
+    const data = fs.readFileSync(buildingsFilePath, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('Error reading buildings file:', err);
+    return [];
+  }
+};
+
+const saveBuildings = (buildings) => {
+  try {
+    fs.writeFileSync(buildingsFilePath, JSON.stringify(buildings, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Error writing buildings file:', err);
+    return false;
+  }
+};
+
+app.get('/api/buildings', (req, res) => {
+  res.json(getBuildings());
+});
+
+app.post('/api/buildings', (req, res) => {
+  const rawBuilding = req.body;
+  if (!rawBuilding || !rawBuilding.name || !rawBuilding.geometry) {
+    return res.status(400).json({ message: 'Missing building data' });
+  }
+
+  // Auto-generate ID if missing
+  const newBuilding = {
+    id: Date.now().toString(),
+    ...rawBuilding
+  };
+
+  const buildings = getBuildings();
+  buildings.push(newBuilding);
+
+  if (saveBuildings(buildings)) {
+    res.status(201).json({ message: 'Building saved', building: newBuilding });
+  } else {
+    res.status(500).json({ message: 'Error saving building' });
+  }
+});
+
+app.delete('/api/buildings/:id', (req, res) => {
+  const buildings = getBuildings();
+  const filtered = buildings.filter(b => b.id !== req.params.id);
+  if (saveBuildings(filtered)) {
+    res.status(200).json({ message: 'Building deleted' });
+  } else {
+    res.status(500).json({ message: 'Error deleting building' });
+  }
+});
 
 
 app.listen(port, () => {
