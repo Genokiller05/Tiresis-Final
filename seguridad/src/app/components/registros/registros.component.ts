@@ -1,17 +1,16 @@
-// Force re-compile
 import { Component, PLATFORM_ID, Inject, OnInit, OnDestroy } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
-import { JsonStorageService } from '../../services/json-storage.service'; // Importar el nuevo servicio
+import { GuardService } from '../../services/guard.service'; // Importar el nuevo servicio
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-registros',
   standalone: true,
-  imports: [CommonModule, FormsModule], // Eliminar SidebarComponent de imports
+  imports: [CommonModule, FormsModule],
   templateUrl: './registros.component.html',
   styleUrls: ['./registros.component.css']
 })
@@ -19,21 +18,20 @@ export class RegistrosComponent implements OnInit, OnDestroy {
 
   // Form model properties
   public nombre: string = '';
-  public email: string = '';
-  public area: string = '';
-  public idGuardia: string = '';
+  public email: string = ''; // El email no está en `profiles`, se asume que se usará para auth más adelante
+  public area: string = ''; // El área tampoco, se podría añadir a `profiles` o `site_memberships`
+  public idGuardia: string = ''; // Mapeado a document_id
   public imagePreview: string | null = null;
-  public photoUrl: string = ''; // To store the URL from the server, now local base64
+  private selectedFile: File | null = null;
 
   // State management properties
   public statusMessage: string = '';
   public summaryCardData: any = null;
   public fieldErrors: { [key: string]: string } = {};
+  public isLoading: boolean = false;
 
-  // Theme property
+  // Theme and language properties
   public currentTheme: 'light' | 'dark' = 'dark';
-
-  // Language properties
   public uiText: any = {};
   private langSubscription!: Subscription;
   private themeSubscription!: Subscription;
@@ -43,11 +41,11 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private jsonStorageService: JsonStorageService // Inyectar JsonStorageService
+    private guardService: GuardService // Inyectar GuardService
   ) {}
 
   ngOnInit(): void {
-    this.idGuardia = this.generarIdGuardia();
+    // Ya no se genera el ID aquí, la base de datos se encarga.
     this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
       this.currentTheme = theme;
     });
@@ -61,20 +59,7 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     if (this.themeSubscription) this.themeSubscription.unsubscribe();
   }
 
-  public generarIdGuardia(): string {
-    let newId: string;
-    let guards = this.jsonStorageService.getData('guards') || [];
-    do {
-      newId = 'GRD' + Math.floor(100 + Math.random() * 900).toString(); // GRDxxx
-    } while (guards.some((g: any) => g.idEmpleado === newId));
-    return newId;
-  }
-
-  public setAndDisplayNewId(): void {
-    this.idGuardia = this.generarIdGuardia();
-  }
-
-  public async onFileSelected(event: Event): Promise<void> {
+  public onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
 
@@ -85,29 +70,15 @@ export class RegistrosComponent implements OnInit, OnDestroy {
         return;
     }
 
+    this.selectedFile = file; // Guardar el archivo para subirlo
+    this.fieldErrors['photo'] = '';
+
+    // Generar previsualización
     const reader = new FileReader();
     reader.onload = () => {
       this.imagePreview = reader.result as string;
-      this.photoUrl = reader.result as string; // Usar base64 como URL
     };
     reader.readAsDataURL(file);
-    this.fieldErrors['photo'] = '';
-  }
-
-  private validateUniqueness(): boolean {
-    const existingGuards = this.jsonStorageService.getData('guards') || [];
-
-    if (existingGuards.some((g: any) => g.email === this.email)) {
-      this.fieldErrors['email'] = 'Este correo electrónico ya está en uso.';
-      return false;
-    }
-
-    if (existingGuards.some((g: any) => g.idEmpleado === this.idGuardia)) {
-      this.fieldErrors['idGuardia'] = 'Este ID ya existe. Por favor, genere uno nuevo.';
-      return false;
-    }
-
-    return true;
   }
 
   private validateForm(): boolean {
@@ -115,74 +86,63 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     let isValid = true;
     const nameRegex = /^[a-zA-Z\s]+$/;
 
-    if (!this.nombre.trim()) {
-      this.fieldErrors['nombre'] = 'El nombre es obligatorio.';
-      isValid = false;
-    } else if (this.nombre.trim().length < 3) {
-      this.fieldErrors['nombre'] = 'El nombre debe tener al menos 3 caracteres.';
-      isValid = false;
-    } else if (!nameRegex.test(this.nombre)) {
-      this.fieldErrors['nombre'] = 'El nombre solo puede contener letras y espacios.';
+    if (!this.nombre.trim() || this.nombre.trim().length < 3 || !nameRegex.test(this.nombre)) {
+      this.fieldErrors['nombre'] = 'El nombre es obligatorio y solo debe contener letras.';
       isValid = false;
     }
-
-    if (!this.email.trim()) {
-      this.fieldErrors['email'] = 'El email es obligatorio.';
-      isValid = false;
-    } else if (!/^\S+@\S+\.\S+$/.test(this.email)) {
-      this.fieldErrors['email'] = 'El formato del email no es válido.';
+    if (!this.idGuardia.trim()) {
+      this.fieldErrors['idGuardia'] = 'El ID de empleado es obligatorio.';
       isValid = false;
     }
-
-    if (!this.area) {
-      this.fieldErrors['area'] = 'Debe seleccionar un área.';
-      isValid = false;
-    }
-
-    if (!this.photoUrl) {
-      this.fieldErrors['photo'] = 'Debe seleccionar una imagen.';
-      isValid = false;
-    }
-    
+    // La foto ya no es obligatoria
+    // if (!this.selectedFile) {
+    //   this.fieldErrors['photo'] = 'Debe seleccionar una imagen.';
+    //   isValid = false;
+    // }
     return isValid;
   }
 
-  public onSubmit(): void { // No async
+  public async onSubmit(): Promise<void> {
     if (!this.validateForm()) {
-      this.statusMessage = `<span class="text-red-500">${this.uiText.validationError || 'Por favor, corrija los errores en el formulario.'}</span>`;
+      this.statusMessage = `<span class="text-red-500">${this.uiText.validationError || 'Por favor, corrija los errores.'}</span>`;
       return;
     }
 
-    this.statusMessage = `<span class="text-blue-500">${this.uiText.validating || 'Validando información...'}</span>`;
-    if (!this.validateUniqueness()) {
-        this.statusMessage = `<span class="text-red-500">${this.uiText.validationError || 'El email o ID ya existen.'}</span>`;
-        return;
-    }
-
+    this.isLoading = true;
     this.statusMessage = `<span class="text-blue-500">${this.uiText.submitting || 'Registrando guardia...'}</span>`;
     this.summaryCardData = null;
 
-    const guardData = {
-      idEmpleado: this.idGuardia, // Usar 'idEmpleado' para consistencia con los datos de ejemplo
-      nombre: this.nombre,
-      email: this.email,
-      area: this.area,
-      estado: 'Fuera de servicio',
-      foto: this.photoUrl,
-      actividades: []
-    };
-
     try {
-      let guards = this.jsonStorageService.getData('guards') || [];
-      guards.push(guardData);
-      this.jsonStorageService.setData('guards', guards);
+      let photoUrl: string | null = null;
+      // 1. Subir la foto (solo si hay un archivo seleccionado)
+      if (this.selectedFile) {
+        if (!isPlatformBrowser(this.platformId)) {
+          this.statusMessage = `<span class="text-red-500">Error: La carga de imágenes no está disponible en el servidor.</span>`;
+          this.isLoading = false;
+          return;
+        }
+        photoUrl = await this.guardService.uploadPhoto(this.selectedFile);
+      }
+      
+      // 2. Construir el objeto del guardia
+      const guardData = {
+        full_name: this.nombre,
+        document_id: this.idGuardia,
+        photo_url: photoUrl || undefined // Pasar undefined si no hay foto
+      };
+
+      // 3. Llamar al servicio para crear el guardia en Supabase
+      const newGuard = await this.guardService.createGuard(guardData);
 
       this.statusMessage = `<span class="text-green-500 font-bold">${this.uiText.successMessage || 'Guardia registrado con éxito.'}</span>`;
-      this.summaryCardData = guardData; // Usar guardData directamente para el resumen
+      this.summaryCardData = { ...newGuard, foto: photoUrl }; // Mostrar resumen con la foto (si existe)
       this.resetForm();
 
     } catch (error: any) {
+      console.error(error);
       this.statusMessage = `<span class="text-red-500">${this.uiText.errorMessage || 'Ocurrió un error'}: ${error.message}</span>`;
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -190,13 +150,9 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     this.nombre = '';
     this.email = '';
     this.area = '';
+    this.idGuardia = '';
     this.imagePreview = null;
-    this.photoUrl = '';
+    this.selectedFile = null;
     this.fieldErrors = {};
-    this.idGuardia = this.generarIdGuardia();
-  }
-  
-  public setTheme(theme: 'light' | 'dark'): void {
-    this.themeService.setTheme(theme);
   }
 }

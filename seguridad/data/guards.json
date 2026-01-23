@@ -22,9 +22,9 @@
         "descripcion": "Inicio de turno"
       }
     ],
-    "foto": "/uploads/photo-1768885377661-488035860.png",
-    "lat": null,
-    "lng": null
+    "foto": "/uploads/photo-1768924742464-174782705.png",
+    "lat": 20.939056050556115,
+    "lng": -89.61482405662538
   },
   {
     "idEmpleado": "00054321",
@@ -44,7 +44,9 @@
         "descripcion": "Fin de turno"
       }
     ],
-    "foto": "/uploads/photo-1768328033115-138739819.png"
+    "foto": "/uploads/photo-1768328033115-138739819.png",
+    "lat": 20.939367141963956,
+    "lng": -89.61420714855194
   },
   {
     "idEmpleado": "00098765",
@@ -52,7 +54,8 @@
     "estado": "En servicio",
     "email": "carlos.sanchez@segcdmx.mx",
     "area": "Control de acceso – Estacionamiento",
-    "actividades": []
+    "actividades": [],
+    "foto": "/uploads/photo-1768929167400-337714382.png"
   },
   {
     "nombre": "Yael Rodríguez Rangel",

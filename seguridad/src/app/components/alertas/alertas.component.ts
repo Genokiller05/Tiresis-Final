@@ -1,12 +1,14 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
-import { JsonStorageService } from '../../services/json-storage.service'; // Importar el nuevo servicio
-import { AuthService } from '../../services/auth.service'; // Importar el AuthService
+import { AuthService } from '../../services/auth.service';
+import { ReportService } from '../../services/report.service';
 import { Subscription } from 'rxjs';
+import flatpickr from 'flatpickr';
+import { Spanish } from 'flatpickr/dist/l10n/es';
 
 @Component({
   selector: 'app-alertas',
@@ -15,17 +17,21 @@ import { Subscription } from 'rxjs';
   templateUrl: './alertas.component.html',
   styleUrl: './alertas.component.css'
 })
-export class AlertasComponent implements OnInit, OnDestroy {
+export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public allAlerts: any[] = [];
+
+  // Flatpickr instances
+  private datePickerDesde: any;
+  private datePickerHasta: any;
 
   // Public properties for data binding
   public displayedAlerts: any[] = [];
   public filterDesde: string = '';
   public filterHasta: string = '';
-  public filterOrigen: string = 'Todos';
+  public filterOrigen: string = 'Guardia';
   public filterTipo: string = 'Todos';
-  
+
   public isDeleteModalVisible: boolean = false;
   public alertToDelete: any = null;
 
@@ -41,7 +47,7 @@ export class AlertasComponent implements OnInit, OnDestroy {
 
   // Theme property
   public currentTheme: 'light' | 'dark' = 'dark';
-  
+
   // Logout Modal property
   public isLogoutModalVisible: boolean = false;
 
@@ -51,25 +57,73 @@ export class AlertasComponent implements OnInit, OnDestroy {
   private themeSubscription!: Subscription;
 
   constructor(
-    private router: Router, 
+    private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private jsonStorageService: JsonStorageService, // Inyectar JsonStorageService
-    private authService: AuthService // Inyectar AuthService
-  ) {}
+    private reportService: ReportService,
+    private authService: AuthService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) { }
 
   async ngOnInit(): Promise<void> {
     this.fetchReports(); // Llamar a fetchReports sin await
+    this.langSubscription = this.translationService.uiText.subscribe(translations => {
+      this.uiText = translations?.alertas || {};
+    });
     this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
       this.currentTheme = theme;
     });
-    this.langSubscription = this.translationService.uiText.subscribe(translations => {
-      this.uiText = translations.alertas || {};
-    });
   }
 
-  fetchReports() { // No async, ya que JsonStorageService es síncrono
-    this.allAlerts = this.jsonStorageService.getData('alerts') || [];
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.initFlatpickr();
+    }
+  }
+
+  private initFlatpickr() {
+    const config = {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      locale: Spanish,
+      altInput: true,
+      altFormat: "d/m/Y H:i",
+      time_24hr: true
+    };
+
+    const desdeInput = document.getElementById('filter-desde');
+    const hastaInput = document.getElementById('filter-hasta');
+
+    if (desdeInput) {
+      this.datePickerDesde = flatpickr(desdeInput, {
+        ...config,
+        defaultDate: this.filterDesde,
+        onChange: (selectedDates, dateStr) => {
+          this.filterDesde = dateStr;
+          this.aplicarFiltros();
+        }
+      });
+    }
+
+    if (hastaInput) {
+      this.datePickerHasta = flatpickr(hastaInput, {
+        ...config,
+        defaultDate: this.filterHasta,
+        onChange: (selectedDates, dateStr) => {
+          this.filterHasta = dateStr;
+          this.aplicarFiltros();
+        }
+      });
+    }
+  }
+
+  async fetchReports() {
+    try {
+      this.allAlerts = await this.reportService.getReports();
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      this.allAlerts = [];
+    }
     this.aplicarFiltros();
   }
 
@@ -80,13 +134,20 @@ export class AlertasComponent implements OnInit, OnDestroy {
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
     }
+    // Destroy Flatpickr instances
+    if (this.datePickerDesde) {
+      this.datePickerDesde.destroy();
+    }
+    if (this.datePickerHasta) {
+      this.datePickerHasta.destroy();
+    }
   }
-  
+
   // --- Theme Methods ---
   public setTheme(theme: 'light' | 'dark'): void {
     this.themeService.setTheme(theme);
   }
-  
+
   // --- Logout Modal Methods ---
   public showLogoutModal(): void {
     this.isLogoutModalVisible = true;
@@ -95,10 +156,10 @@ export class AlertasComponent implements OnInit, OnDestroy {
   public hideLogoutModal(): void {
     this.isLogoutModalVisible = false;
   }
-  
+
   public confirmLogout(): void {
-      this.authService.logout(); // Usar el servicio de autenticación
-      this.router.navigate(['/login']);
+    this.authService.logout(); // Usar el servicio de autenticación
+    this.router.navigate(['/login']);
   }
 
   // --- Actions Menu ---
@@ -112,7 +173,7 @@ export class AlertasComponent implements OnInit, OnDestroy {
     // Muestra u oculta el menú de la alerta seleccionada
     alerta.menuVisible = !alerta.menuVisible;
   }
-  
+
   // Modified modificarEstado to use custom modal
   public modificarEstado(alerta: any): void {
     this.alertToModify = alerta;
@@ -134,16 +195,23 @@ export class AlertasComponent implements OnInit, OnDestroy {
     this.selectedStatus = '';
   }
 
-  public confirmStatusChange(): void { // No async
+  async confirmStatusChange() {
     if (this.alertToModify && this.selectedStatus) {
       this.alertToModify.estado = this.selectedStatus;
-      const allAlerts = this.jsonStorageService.getData('alerts');
-      const index = allAlerts.findIndex((a: any) => a.id === this.alertToModify.id);
-      if (index > -1) {
-        allAlerts[index] = this.alertToModify;
-        this.jsonStorageService.setData('alerts', allAlerts);
+
+      try {
+        await this.reportService.updateReport(this.alertToModify.id, { estado: this.selectedStatus });
+
+        // Update local state is handled by re-fetching or optimistic update. 
+        // Here we just modified the object reference, which is displayed.
+        // But better to fetch fresh data or update array carefully.
+        // The modifying of 'alertToModify' already updated the object in memory if it's the same ref.
+
+        this.aplicarFiltros();
+      } catch (error) {
+        console.error('Error updating report status:', error);
+        // Revert change if needed
       }
-      this.aplicarFiltros(); // Re-apply filters to update view if sorting/filtering is affected
     }
     this.hideStatusModal();
   }
@@ -166,16 +234,20 @@ export class AlertasComponent implements OnInit, OnDestroy {
     alerta.menuVisible = false;
   }
 
-  public confirmDelete(): void { // No async
+  async confirmDelete() {
     if (!this.alertToDelete) return;
 
-    let allAlerts = this.jsonStorageService.getData('alerts');
-    allAlerts = allAlerts.filter((a: any) => a.id !== this.alertToDelete.id);
-    this.jsonStorageService.setData('alerts', allAlerts);
-      
-    // Volver a aplicar filtros para actualizar la vista
-    this.fetchReports(); // Recargar los reportes y aplicar filtros
-    
+    try {
+      await this.reportService.deleteReport(this.alertToDelete.id);
+
+      // Remove from local array to update UI immediately
+      this.allAlerts = this.allAlerts.filter(a => a.id !== this.alertToDelete.id);
+
+      this.aplicarFiltros();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+    }
+
     this.hideDeleteModal();
   }
 
@@ -183,13 +255,13 @@ export class AlertasComponent implements OnInit, OnDestroy {
     this.isDeleteModalVisible = false;
     this.alertToDelete = null;
   }
-  
+
   // --- Filtering Logic ---
   public aplicarFiltros(): void {
     // Parse filter dates properly
     const desdeDate = this.filterDesde ? new Date(this.filterDesde) : null;
     let hastaDate = this.filterHasta ? new Date(this.filterHasta) : null;
-    
+
     // Set hasta to end of day if provided
     if (hastaDate) {
       hastaDate.setHours(23, 59, 59, 999);
@@ -198,17 +270,17 @@ export class AlertasComponent implements OnInit, OnDestroy {
     const filtered = this.allAlerts.filter(alerta => {
       // Parse alert date
       const fechaAlerta = new Date(alerta.fechaHora);
-      
+
       // Apply date filters
       if (desdeDate && fechaAlerta < desdeDate) return false;
       if (hastaDate && fechaAlerta > hastaDate) return false;
-      
+
       // Apply origin filter
       if (this.filterOrigen !== 'Todos' && alerta.origen !== this.filterOrigen) return false;
-      
+
       // Apply type filter
       if (this.filterTipo !== 'Todos' && alerta.tipo !== this.filterTipo) return false;
-      
+
       return true;
     });
 
@@ -250,9 +322,9 @@ export class AlertasComponent implements OnInit, OnDestroy {
       case 'Completado':
         return `bg-green-500/20 text-green-400 ${baseClasses}`;
       case 'Cancelado':
-          return `bg-red-500/20 text-red-400 ${baseClasses}`;
+        return `bg-red-500/20 text-red-400 ${baseClasses}`;
       case 'Suspendido':
-          return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
+        return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
       default:
         return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
     }

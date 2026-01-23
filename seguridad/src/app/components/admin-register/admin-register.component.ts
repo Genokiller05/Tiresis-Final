@@ -52,6 +52,33 @@ import { LocationService } from '../../services/location.service';
                      class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
             </div>
 
+            <!-- Password -->
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
+              <div class="relative">
+                <input [type]="showPassword ? 'text' : 'password'" id="password" name="password" [(ngModel)]="adminData.password" required
+                       class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
+                <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
+                  <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Solo se permiten letras (mayúsculas o minúsculas) y números. No se permiten símbolos.
+              </p>
+            </div>
+
+            <!-- Confirm Password -->
+            <div>
+              <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Contraseña</label>
+              <div class="relative">
+                  <input [type]="showPassword ? 'text' : 'password'" id="confirmPassword" name="confirmPassword" [(ngModel)]="confirmPassword" required
+                         class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
+                  <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
+                    <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+              </div>
+            </div>
+
             <!-- Company Name / Residence -->
             <div>
               <label for="companyName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre de la Compañía / Residencia</label>
@@ -89,16 +116,6 @@ import { LocationService } from '../../services/location.service';
                      class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
             </div>
 
-            <!-- Password -->
-            <div>
-              <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
-              <input type="password" id="password" name="password" [(ngModel)]="adminData.password" required
-                     class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
-              <p class="text-xs text-gray-500 mt-1">
-                La contraseña es libre (letras, números, símbolos).
-              </p>
-            </div>
-
             <!-- Error Message -->
             <div *ngIf="error" class="text-sm text-red-600 dark:text-red-400 font-medium">
               {{ error }}
@@ -131,6 +148,9 @@ export class AdminRegisterComponent implements OnInit {
     password: '',
     companyName: ''
   };
+
+  confirmPassword: string = '';
+  showPassword: boolean = false;
 
   // Location properties
   countries: any[] = [];
@@ -184,6 +204,10 @@ export class AdminRegisterComponent implements OnInit {
     });
   }
 
+  togglePasswordVisibility() {
+    this.showPassword = !this.showPassword;
+  }
+
   register() {
     this.error = '';
 
@@ -193,37 +217,64 @@ export class AdminRegisterComponent implements OnInit {
       return;
     }
 
+    if (!this.confirmPassword) {
+      this.error = 'Por favor confirma tu contraseña.';
+      return;
+    }
+
     if (!this.selectedCountry || !this.selectedState || !this.selectedCity || !this.street) {
       this.error = 'Por favor completa todos los campos de ubicación.';
       return;
     }
 
-    // Construct full location string
-    const fullLocation = `${this.street}, ${this.selectedCity}, ${this.selectedState}, ${this.selectedCountry}`;
-    this.adminData.location = fullLocation;
+    // Validar que las contraseñas coincidan
+    if (this.adminData.password !== this.confirmPassword) {
+      this.error = 'Error: Las contraseñas no coinciden.';
+      return;
+    }
 
-    this.isLoading = true;
+    // Validar contraseña (solo letras y números)
+    const passwordRegex = /^[a-zA-Z0-9]+$/;
+    if (!passwordRegex.test(this.adminData.password)) {
+      this.error = 'Error: La contraseña solo puede contener letras y números. No agregue símbolos.';
+      return;
+    }
 
-    // 1. Validar ubicación primero
-    this.geocodingService.searchAddress(fullLocation).subscribe({
-      next: (coords) => {
-        if (!coords) {
+    // 1. Validar ubicación con búsqueda estructurada y estrategias de respaldo
+    const addressData = {
+      street: this.street,
+      city: this.selectedCity,
+      state: this.selectedState,
+      country: this.selectedCountry
+    };
+
+    this.geocodingService.searchAddressStructured(addressData).subscribe({
+      next: (result) => {
+        if (!result) {
           this.isLoading = false;
-          this.error = 'No pudimos encontrar esa ubicación en el mapa. Verifica la calle y número.';
+          // Show the user what we searched for so they can correct it
+          this.error = `No pudimos validar la ubicación: "${this.street}". Por favor verifica que la calle, colonia y número sean correctos y reconocibles en el mapa.`;
           this.cdr.detectChanges();
           return;
         }
 
+        console.log('Ubicación encontrada vía:', result.method);
+        console.log('Dirección normalizada:', result.display_name);
+
+        // Si fue un fallback muy general (solo ciudad), podríamos advertir al usuario, 
+        // pero para este caso de uso permitiremos el registro para no bloquearlo.
+
         // 2. Agregar coordenadas a los datos del admin
-        this.adminData.lat = coords.lat;
-        this.adminData.lng = coords.lon;
+        this.adminData.lat = result.lat;
+        this.adminData.lng = result.lon;
+        this.adminData.location = result.display_name; // Guardamos la dirección oficial encontrada
 
         // 3. Proceder al registro
         this.performRegistration();
       },
       error: (err) => {
         this.isLoading = false;
-        this.error = 'Error al validar la ubicación. Intente más tarde.';
+        this.error = 'Error de conexión al validar la ubicación. Intente más tarde.';
         this.cdr.detectChanges();
       }
     });
@@ -245,8 +296,8 @@ export class AdminRegisterComponent implements OnInit {
   }
 
   startApp() {
-    this.authService.login(); // Set login state
-    this.router.navigate(['/alertas']);
+    // Navigate to login so user can verify credentials
+    this.router.navigate(['/login']);
   }
 
   goToLogin() {

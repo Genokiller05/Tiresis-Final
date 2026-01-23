@@ -1,0 +1,569 @@
+-- ==========================================
+-- TIRESIS / SIVIS - Esquema 3FN para Supabase
+-- ==========================================
+
+-- Habilita UUIDs (en Supabase suele estar habilitado, pero se deja por claridad)
+create extension if not exists pgcrypto;
+
+-- =========================
+-- A) Núcleo de organización
+-- =========================
+
+create table if not exists public.sites (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  address text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.roles (
+  id int generated always as identity primary key,
+  code text not null unique, -- admin, supervisor, guard, resident
+  name text not null
+);
+
+create table if not exists public.profiles (
+  id uuid primary key, -- FK a auth.users(id) (se suele poblar con trigger handle_new_user)
+  full_name text not null,
+  document_id text unique,
+  phone text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.site_memberships (
+  site_id uuid not null references public.sites(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  role_id int not null references public.roles(id),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  primary key (site_id, user_id)
+);
+
+create index if not exists idx_site_memberships_role on public.site_memberships(role_id);
+create index if not exists idx_site_memberships_user on public.site_memberships(user_id);
+
+-- =========================
+-- B) Dispositivos (opcional)
+-- =========================
+create table if not exists public.devices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  device_type text not null,
+  push_token text,
+  last_seen_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_devices_user on public.devices(user_id);
+
+-- =========================
+-- C) Turnos / Operación
+-- =========================
+
+create table if not exists public.assignment_statuses (
+  id int generated always as identity primary key,
+  code text not null unique, -- assigned, on_duty, finished
+  name text not null
+);
+
+create table if not exists public.shifts (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  created_by uuid not null references public.profiles(id),
+  created_at timestamptz not null default now(),
+  constraint chk_shift_time check (end_at > start_at)
+);
+
+create index if not exists idx_shifts_site on public.shifts(site_id);
+create index if not exists idx_shifts_time on public.shifts(start_at, end_at);
+
+create table if not exists public.shift_assignments (
+  shift_id uuid not null references public.shifts(id) on delete cascade,
+  guard_id uuid not null references public.profiles(id) on delete cascade,
+  status_id int not null references public.assignment_statuses(id),
+  assigned_at timestamptz not null default now(),
+  primary key (shift_id, guard_id)
+);
+
+create index if not exists idx_shift_assignments_guard on public.shift_assignments(guard_id);
+
+-- =========================
+-- D) Ubicaciones (catálogo)
+-- =========================
+create table if not exists public.locations (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  name text not null,
+  description text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (site_id, name)
+);
+
+create index if not exists idx_locations_site on public.locations(site_id);
+
+-- =========================
+-- E) Catálogos de estados y tipos
+-- =========================
+
+-- Prioridad / Severidad (se reutiliza en reportes y alertas)
+create table if not exists public.priorities (
+  id int generated always as identity primary key,
+  code text not null unique, -- low, medium, high, critical
+  name text not null
+);
+
+create table if not exists public.report_types (
+  id int generated always as identity primary key,
+  code text not null unique, -- incident, novelty, patrol, received_alert
+  name text not null
+);
+
+create table if not exists public.report_statuses (
+  id int generated always as identity primary key,
+  code text not null unique, -- pending, in_review, closed
+  name text not null
+);
+
+create table if not exists public.resident_notice_types (
+  id int generated always as identity primary key,
+  code text not null unique, -- suspicious_person, noise, other
+  name text not null
+);
+
+create table if not exists public.resident_notice_statuses (
+  id int generated always as identity primary key,
+  code text not null unique, -- pending, in_review, closed
+  name text not null
+);
+
+create table if not exists public.alert_sources (
+  id int generated always as identity primary key,
+  code text not null unique, -- ai, manual, panic, resident
+  name text not null
+);
+
+create table if not exists public.alert_types (
+  id int generated always as identity primary key,
+  code text not null unique, -- intrusion, tripwire_cross, roi_intrusion, panic, other
+  name text not null
+);
+
+create table if not exists public.alert_statuses (
+  id int generated always as identity primary key,
+  code text not null unique, -- pending, in_review, resolved, false_alarm
+  name text not null
+);
+
+-- =========================
+-- F) Reportes (Guardia)
+-- =========================
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  shift_id uuid references public.shifts(id) on delete set null,
+  created_by_guard_id uuid not null references public.profiles(id),
+  report_type_id int not null references public.report_types(id),
+  status_id int not null references public.report_statuses(id),
+  priority_id int not null references public.priorities(id),
+  location_id uuid references public.locations(id) on delete set null,
+  gps_lat numeric(10,7),
+  gps_lng numeric(10,7),
+  short_description text not null,
+  created_at timestamptz not null default now(),
+  closed_at timestamptz,
+  constraint chk_report_gps check (
+    (gps_lat is null and gps_lng is null) or (gps_lat is not null and gps_lng is not null)
+  )
+);
+
+create index if not exists idx_reports_site on public.reports(site_id);
+create index if not exists idx_reports_status on public.reports(status_id);
+create index if not exists idx_reports_guard on public.reports(created_by_guard_id);
+create index if not exists idx_reports_created_at on public.reports(created_at);
+
+-- Cierre/Resolución de reporte separado (3FN + trazabilidad)
+create table if not exists public.report_closures (
+  report_id uuid primary key references public.reports(id) on delete cascade,
+  closed_by_user_id uuid not null references public.profiles(id),
+  resolution_notes text not null,
+  closed_at timestamptz not null default now()
+);
+
+-- =========================
+-- G) Avisos (Residente)
+-- =========================
+create table if not exists public.resident_notices (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  resident_id uuid not null references public.profiles(id),
+  notice_type_id int not null references public.resident_notice_types(id),
+  status_id int not null references public.resident_notice_statuses(id),
+  location_id uuid references public.locations(id) on delete set null,
+  gps_lat numeric(10,7),
+  gps_lng numeric(10,7),
+  description text not null,
+  created_at timestamptz not null default now(),
+  closed_at timestamptz,
+  constraint chk_notice_gps check (
+    (gps_lat is null and gps_lng is null) or (gps_lat is not null and gps_lng is not null)
+  )
+);
+
+create index if not exists idx_notices_site on public.resident_notices(site_id);
+create index if not exists idx_notices_status on public.resident_notices(status_id);
+create index if not exists idx_notices_resident on public.resident_notices(resident_id);
+create index if not exists idx_notices_created_at on public.resident_notices(created_at);
+
+-- =========================
+-- H) Cámaras / Zonas IA
+-- =========================
+create table if not exists public.cameras (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  name text not null,
+  rtsp_url text not null,
+  location_description text,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (site_id, name)
+);
+
+create index if not exists idx_cameras_site on public.cameras(site_id);
+
+create table if not exists public.zone_types (
+  id int generated always as identity primary key,
+  code text not null unique, -- tripwire, roi
+  name text not null
+);
+
+create table if not exists public.security_zones (
+  id uuid primary key default gen_random_uuid(),
+  camera_id uuid not null references public.cameras(id) on delete cascade,
+  name text not null,
+  zone_type_id int not null references public.zone_types(id),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (camera_id, name)
+);
+
+create index if not exists idx_zones_camera on public.security_zones(camera_id);
+
+-- Coordenadas normalizadas (sin JSON) -> 3FN estricta
+create table if not exists public.zone_coordinates (
+  id uuid primary key default gen_random_uuid(),
+  zone_id uuid not null references public.security_zones(id) on delete cascade,
+  point_order int not null,
+  x int not null,
+  y int not null,
+  unique (zone_id, point_order)
+);
+
+create index if not exists idx_zone_coordinates_zone on public.zone_coordinates(zone_id);
+
+-- Reglas normalizadas
+create table if not exists public.zone_rules (
+  zone_id uuid primary key references public.security_zones(id) on delete cascade,
+  direction text not null default 'both', -- both, inbound, outbound
+  sensitivity numeric(3,2) not null default 0.80,
+  min_dwell_ms int,
+  enabled boolean not null default true,
+  constraint chk_zone_direction check (direction in ('both','inbound','outbound')),
+  constraint chk_zone_sensitivity check (sensitivity >= 0 and sensitivity <= 1)
+);
+
+create table if not exists public.object_classes (
+  id int generated always as identity primary key,
+  code text not null unique, -- person, car, etc.
+  name text not null
+);
+
+create table if not exists public.zone_rule_objects (
+  zone_id uuid not null references public.security_zones(id) on delete cascade,
+  object_class_id int not null references public.object_classes(id) on delete restrict,
+  primary key (zone_id, object_class_id)
+);
+
+-- =========================
+-- I) Alertas (IA + Manual + Pánico + Residente)
+-- =========================
+create table if not exists public.alerts (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  source_id int not null references public.alert_sources(id),
+  alert_type_id int not null references public.alert_types(id),
+  severity_id int not null references public.priorities(id), -- reutiliza prioridades como severidad
+  status_id int not null references public.alert_statuses(id),
+  camera_id uuid references public.cameras(id) on delete set null,
+  zone_id uuid references public.security_zones(id) on delete set null,
+  linked_report_id uuid references public.reports(id) on delete set null,
+  linked_notice_id uuid references public.resident_notices(id) on delete set null,
+  description text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_alerts_site on public.alerts(site_id);
+create index if not exists idx_alerts_status on public.alerts(status_id);
+create index if not exists idx_alerts_severity on public.alerts(severity_id);
+create index if not exists idx_alerts_created_at on public.alerts(created_at);
+create index if not exists idx_alerts_camera on public.alerts(camera_id);
+create index if not exists idx_alerts_zone on public.alerts(zone_id);
+
+-- Resolución separada (3FN + trazabilidad)
+create table if not exists public.alert_resolutions (
+  alert_id uuid primary key references public.alerts(id) on delete cascade,
+  resolved_by_user_id uuid not null references public.profiles(id),
+  resolution_notes text not null,
+  resolved_at timestamptz not null default now()
+);
+
+-- Asignación con historial (recomendado)
+create table if not exists public.alert_assignments (
+  id uuid primary key default gen_random_uuid(),
+  alert_id uuid not null references public.alerts(id) on delete cascade,
+  assigned_to_user_id uuid not null references public.profiles(id),
+  assigned_by_user_id uuid not null references public.profiles(id),
+  assigned_at timestamptz not null default now(),
+  is_active boolean not null default true,
+  unassigned_at timestamptz
+);
+
+create index if not exists idx_alert_assignments_alert on public.alert_assignments(alert_id);
+create index if not exists idx_alert_assignments_to on public.alert_assignments(assigned_to_user_id);
+
+-- =========================
+-- J) Evidencias (unificadas)
+-- =========================
+create table if not exists public.evidence_types (
+  id int generated always as identity primary key,
+  code text not null unique, -- photo, snapshot, clip, file
+  name text not null
+);
+
+create table if not exists public.evidences (
+  id uuid primary key default gen_random_uuid(),
+  evidence_type_id int not null references public.evidence_types(id),
+  storage_path text not null, -- ruta privada en Supabase Storage
+  mime_type text,
+  created_by_user_id uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_evidences_type on public.evidences(evidence_type_id);
+
+-- Puentes (M:N) para reutilizar evidencias sin duplicarlas
+create table if not exists public.report_evidences (
+  report_id uuid not null references public.reports(id) on delete cascade,
+  evidence_id uuid not null references public.evidences(id) on delete cascade,
+  primary key (report_id, evidence_id)
+);
+
+create table if not exists public.alert_evidences (
+  alert_id uuid not null references public.alerts(id) on delete cascade,
+  evidence_id uuid not null references public.evidences(id) on delete cascade,
+  primary key (alert_id, evidence_id)
+);
+
+create table if not exists public.notice_evidences (
+  notice_id uuid not null references public.resident_notices(id) on delete cascade,
+  evidence_id uuid not null references public.evidences(id) on delete cascade,
+  primary key (notice_id, evidence_id)
+);
+
+-- =========================
+-- K) Auditoría
+-- =========================
+create table if not exists public.audit_actions (
+  id int generated always as identity primary key,
+  code text not null unique, -- REPORT_CREATED, ALERT_ASSIGNED, ZONE_UPDATED...
+  name text not null
+);
+
+create table if not exists public.audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  site_id uuid not null references public.sites(id) on delete cascade,
+  actor_user_id uuid not null references public.profiles(id),
+  action_id int not null references public.audit_actions(id),
+  entity_type text not null, -- report, alert, zone, camera...
+  entity_id uuid not null,
+  metadata jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_audit_logs_site on public.audit_logs(site_id);
+create index if not exists idx_audit_logs_actor on public.audit_logs(actor_user_id);
+create index if not exists idx_audit_logs_created_at on public.audit_logs(created_at);
+
+-- ==========================================
+-- Datos semilla (catálogos) recomendados
+-- ==========================================
+-- (Puedes ajustar nombres; se dejan como base)
+
+insert into public.roles (code, name)
+values
+  ('admin','Administrador'),
+  ('supervisor','Supervisor'),
+  ('guard','Guardia'),
+  ('resident','Residente')
+on conflict (code) do nothing;
+
+insert into public.priorities (code, name)
+values
+  ('low','Baja'),
+  ('medium','Media'),
+  ('high','Alta'),
+  ('critical','Crítica')
+on conflict (code) do nothing;
+
+insert into public.report_types (code, name)
+values
+  ('incident','Incidente'),
+  ('novelty','Novedad'),
+  ('patrol','Rondín'),
+  ('received_alert','Alerta recibida')
+on conflict (code) do nothing;
+
+insert into public.report_statuses (code, name)
+values
+  ('pending','Pendiente'),
+  ('in_review','En revisión'),
+  ('closed','Cerrado')
+on conflict (code) do nothing;
+
+insert into public.resident_notice_types (code, name)
+values
+  ('suspicious_person','Persona sospechosa'),
+  ('noise','Ruido inusual'),
+  ('other','Otro')
+on conflict (code) do nothing;
+
+insert into public.resident_notice_statuses (code, name)
+values
+  ('pending','Pendiente'),
+  ('in_review','En revisión'),
+  ('closed','Cerrado')
+on conflict (code) do nothing;
+
+insert into public.alert_sources (code, name)
+values
+  ('ai','IA'),
+  ('manual','Manual'),
+  ('panic','Pánico'),
+  ('resident','Residente')
+on conflict (code) do nothing;
+
+insert into public.alert_types (code, name)
+values
+  ('intrusion','Intrusión'),
+  ('tripwire_cross','Cruce de Tripwire'),
+  ('roi_intrusion','Intrusión en ROI'),
+  ('panic','Botón de pánico'),
+  ('other','Otro')
+on conflict (code) do nothing;
+
+insert into public.alert_statuses (code, name)
+values
+  ('pending','Pendiente'),
+  ('in_review','En revisión'),
+  ('resolved','Resuelta'),
+  ('false_alarm','Falsa alarma')
+on conflict (code) do nothing;
+
+insert into public.assignment_statuses (code, name)
+values
+  ('assigned','Asignado'),
+  ('on_duty','En turno'),
+  ('finished','Finalizado')
+on conflict (code) do nothing;
+
+insert into public.zone_types (code, name)
+values
+  ('tripwire','Tripwire'),
+  ('roi','ROI')
+on conflict (code) do nothing;
+
+insert into public.evidence_types (code, name)
+values
+  ('photo','Foto'),
+  ('snapshot','Snapshot'),
+  ('clip','Clip'),
+  ('file','Archivo')
+on conflict (code) do nothing;
+
+insert into public.object_classes (code, name)
+values
+  ('person','Persona'),
+  ('car','Vehículo')
+on conflict (code) do nothing;
+
+-- =================================================================
+-- 1. ACTUALIZACIÓN DE LA TABLA PERFILES (TRACKING EN VIVO)
+-- =================================================================
+-- Agregamos las columnas para rastrear la ubicación en tiempo real
+-- Esto permite que el mapa web muestre dónde están sin depender de reportes.
+
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS current_lat numeric(10,7),
+ADD COLUMN IF NOT EXISTS current_lng numeric(10,7),
+ADD COLUMN IF NOT EXISTS last_seen_at timestamptz DEFAULT now();
+
+-- Trigger opcional: Actualizar automáticamente 'last_seen_at' cuando cambie la ubicación
+CREATE OR REPLACE FUNCTION update_last_seen()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.last_seen_at = now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS tr_update_location_timestamp ON public.profiles;
+CREATE TRIGGER tr_update_location_timestamp
+BEFORE UPDATE OF current_lat, current_lng ON public.profiles
+FOR EACH ROW
+EXECUTE FUNCTION update_last_seen();
+
+-- =================================================================
+-- 2. "APARTADO DE GUARDIAS" (VISTA SIMPLIFICADA)
+-- =================================================================
+-- Como tu base de datos es relacional (3FN), no hay una tabla "guards".
+-- Esta VISTA crea una "tabla virtual" para que tu Web pueda hacer:
+-- "SELECT * FROM active_guards_view" y obtener todo listo.
+
+CREATE OR REPLACE VIEW public.active_guards_view AS
+SELECT 
+    p.id as guard_id,
+    p.full_name as nombre,
+    p.document_id,
+    p.phone,
+    p.current_lat as lat,       -- Mapeado directo para tu frontend
+    p.current_lng as lng,       -- Mapeado directo para tu frontend
+    p.last_seen_at,
+    s.name as sitio_asignado,
+    sm.is_active as en_servicio -- Si la membresía está activa
+FROM 
+    public.profiles p
+JOIN 
+    public.site_memberships sm ON p.id = sm.user_id
+JOIN 
+    public.roles r ON sm.role_id = r.id
+JOIN 
+    public.sites s ON sm.site_id = s.id
+WHERE 
+    r.code = 'guard'; -- Filtra SOLO a los guardias
+
+-- =================================================================
+-- 3. DATOS SEMILLA ESENCIALES (ASEGURAR QUE EXISTAN)
+-- =================================================================
+-- Asegura que el rol 'guard' exista para que la vista funcione
+
+INSERT INTO public.roles (code, name)
+VALUES ('guard', 'Guardia de Seguridad')
+ON CONFLICT (code) DO NOTHING;
+
+-- Crear un Sitio por defecto si no existe (para pruebas)
+INSERT INTO public.sites (name, address)
+VALUES ('Sitio Central', 'Oficina Principal')
+ON CONFLICT DO NOTHING; -- Nota: sites no tiene unique constraint por nombre por defecto, esto es ilustrativo

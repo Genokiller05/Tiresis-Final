@@ -19,6 +19,7 @@ export class AuthService {
     this.isLoggedIn$ = this.loggedIn.asObservable();
   }
 
+  // Set internal state to true
   login() {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('isLoggedIn', 'true');
@@ -29,6 +30,7 @@ export class AuthService {
   logout() {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('currentUser');
     }
     this.loggedIn.next(false);
   }
@@ -46,12 +48,13 @@ export class AuthService {
       tap((response: any) => {
         if (response && response.admin) {
           this.setCurrentUser(response.admin);
+          this.login(); // Auto set loggedIn state
         }
       })
     );
   }
 
-  private setCurrentUser(user: any) {
+  setCurrentUser(user: any) {
     if (isPlatformBrowser(this.platformId)) {
       localStorage.setItem('currentUser', JSON.stringify(user));
     }
@@ -69,6 +72,6 @@ export class AuthService {
     if (isPlatformBrowser(this.platformId)) {
       return !!localStorage.getItem('isLoggedIn');
     }
-    return false; // Por defecto no logueado en SSR
+    return false;
   }
 }

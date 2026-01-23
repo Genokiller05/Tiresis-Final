@@ -1,8 +1,111 @@
+@import 'flatpickr/dist/flatpickr.min.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Flatpickr Custom Purple Theme */
+.flatpickr-calendar {
+  font-family: inherit !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border: none !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover,
+.flatpickr-day.selected.prevMonthDay,
+.flatpickr-day.startRange.prevMonthDay,
+.flatpickr-day.endRange.prevMonthDay,
+.flatpickr-day.selected.nextMonthDay,
+.flatpickr-day.startRange.nextMonthDay,
+.flatpickr-day.endRange.nextMonthDay {
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
+}
+
+.flatpickr-months .flatpickr-month {
+  background: #7c3aed !important;
+  color: white !important;
+  fill: white !important;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding-top: 10px;
+  height: 60px;
+  /* Ensure enough height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+  padding-top: 15px;
+  /* Align arrows */
+  fill: white !important;
+  color: white !important;
+}
+
+.flatpickr-current-month {
+  padding-top: 0 !important;
+  /* Remove default padding */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+  color: white !important;
+  font-weight: bold;
+  background: transparent !important;
+  /* Fix background overlap */
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month input.cur-year:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.flatpickr-current-month .numInputWrapper span.arrowUp:after {
+  border-bottom-color: white !important;
+}
+
+.flatpickr-current-month .numInputWrapper span.arrowDown:after {
+  border-top-color: white !important;
+}
+
+.flatpickr-weekdays {
+  background: #7c3aed !important;
+}
+
+.flatpickr-weekday {
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: #7c3aed !important;
+}
+
+.flatpickr-day.today {
+  border-color: #7c3aed !important;
+}
+
+.flatpickr-day:hover {
+  background: #f3f4f6 !important;
+}
+
 /* You can add global styles to this file, and also import other style files */
+
 
 
 
@@ -21,15 +124,19 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1625; /* A dark color from the body background */
+  background: #1a1625;
+  /* A dark color from the body background */
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #4c1d95; /* A shade of purple */
+  background-color: #4c1d95;
+  /* A shade of purple */
   border-radius: 10px;
-  border: 2px solid #1a1625; /* Padding around thumb */
+  border: 2px solid #1a1625;
+  /* Padding around thumb */
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #6d28d9; /* A brighter purple on hover */
+  background-color: #6d28d9;
+  /* A brighter purple on hover */
 }

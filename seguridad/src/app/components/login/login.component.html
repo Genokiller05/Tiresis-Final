@@ -1,28 +1,29 @@
 <div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
   <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md dark:bg-gray-800">
     <h1 class="text-3xl font-bold text-center text-gray-900 dark:text-white">Iniciar Sesión</h1>
-    <form (ngSubmit)="login()" class="space-y-6">
+    <form (ngSubmit)="login()" class="flex flex-col gap-6">
       <div>
         <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Correo Electrónico</label>
         <input type="email" id="email" name="email" [(ngModel)]="email" required placeholder="admin123@tiresis.com"
-               class="w-full px-4 py-2 mt-2 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
+          class="w-full px-4 py-2 mt-2 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
       </div>
       <div>
         <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
         <input type="password" id="password" name="password" [(ngModel)]="password" required placeholder="••••••••"
-               class="w-full px-4 py-2 mt-2 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
-      </div>
-      <div *ngIf="error" class="text-sm text-red-600 dark:text-red-400">
-        {{ error }}
+          class="w-full px-4 py-2 mt-2 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
+        <div *ngIf="error" class="mt-2 text-sm text-red-600 dark:text-red-400">
+          {{ error }}
+        </div>
       </div>
       <div>
         <button type="submit" [disabled]="isLoading"
-                class="w-full px-4 py-2 font-bold text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed">
+          class="w-full px-4 py-2 font-bold text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:bg-purple-400 disabled:cursor-not-allowed">
           {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
         </button>
       </div>
       <div class="text-center mt-4">
-        <a routerLink="/register" class="text-sm text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 cursor-pointer font-medium">
+        <a routerLink="/register"
+          class="text-sm text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 cursor-pointer font-medium">
           ¿No tienes cuenta? Crear cuenta
         </a>
       </div>

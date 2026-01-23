@@ -1,6 +1,10 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import flatpickr from 'flatpickr';
+import { Spanish } from 'flatpickr/dist/l10n/es';
+
+import { EntryExitService } from '../../services/entry-exit.service';
 
 @Component({
   selector: 'app-entradas-salidas',
@@ -9,7 +13,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './entradas-salidas.component.html',
   styleUrls: ['./entradas-salidas.component.css']
 })
-export class EntradasSalidasComponent implements OnInit {
+export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public registros: any[] = [];
   public registrosFiltrados: any[] = [];
@@ -20,31 +24,90 @@ export class EntradasSalidasComponent implements OnInit {
   public filtroTipo: string = 'Todos'; // Residente, Personal, Paquetería
   public filtroAccion: string = 'Todos'; // Entrada, Salida
 
-  constructor() { }
+  // Flatpickr instances
+  private datePickerDesde: any;
+  private datePickerHasta: any;
+
+  // Modal States
+  public isDeleteModalVisible: boolean = false;
+  public isModifyModalVisible: boolean = false;
+  public isDetailsModalVisible: boolean = false;
+
+  // Selected Records
+  public selectedRegistro: any = null;
+  public registroToModify: any = null; // For the form
+
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private entryExitService: EntryExitService
+  ) { }
 
   ngOnInit(): void {
-    this.cargarDatosPrueba();
-    this.filtrar();
+    this.cargarDatos();
   }
 
-  cargarDatosPrueba() {
-    this.registros = [
-      // 3 Residentes
-      { nombre: 'Juan Pérez', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-18T10:30', destino: 'Apto 101' },
-      { nombre: 'Ana López', tipo: 'Residente', accion: 'Salida', fecha: '2025-01-18T08:15', destino: 'Gimnasio' },
-      { nombre: 'Carlos Ruiz', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-17T19:00', destino: 'Apto 205' },
-
-      // 3 Personal
-      { nombre: 'María González', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T07:00', destino: 'Limpieza' },
-      { nombre: 'Pedro Ramírez', tipo: 'Personal', accion: 'Salida', fecha: '2025-01-18T16:00', destino: 'Mantenimiento' },
-      { nombre: 'Luisa Fernández', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T09:00', destino: 'Administración' },
-
-      // 3 Paquetería
-      { nombre: 'Amazon Delivery', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-18T11:45', destino: 'Recepción' },
-      { nombre: 'DHL Express', tipo: 'Paquetería', accion: 'Salida', fecha: '2025-01-18T12:00', destino: 'Salida General' },
-      { nombre: 'FedEx', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-17T15:30', destino: 'Apto 302' },
-    ];
+  async cargarDatos() {
+    try {
+      this.registros = await this.entryExitService.getEntriesExits();
+      this.filtrar(); // Re-apply filters after loading
+    } catch (error) {
+      console.error('Error cargando registros:', error);
+    }
   }
+
+  ngAfterViewInit() {
+    if (isPlatformBrowser(this.platformId)) {
+      this.initFlatpickr();
+    }
+  }
+
+  private initFlatpickr() {
+    const config = {
+      enableTime: false, // Usually just date for filters, but can be true if needed
+      dateFormat: "Y-m-d",
+      locale: Spanish,
+      altInput: true,
+      altFormat: "d/m/Y",
+      allowInput: true
+    };
+
+    const desdeInput = document.getElementById('filterDesde');
+    const hastaInput = document.getElementById('filterHasta');
+
+    if (desdeInput) {
+      this.datePickerDesde = flatpickr(desdeInput, {
+        ...config,
+        defaultDate: this.filtroDesde,
+        onChange: (selectedDates, dateStr) => {
+          this.filtroDesde = dateStr;
+          this.filtrar();
+        }
+      });
+    }
+
+    if (hastaInput) {
+      this.datePickerHasta = flatpickr(hastaInput, {
+        ...config,
+        defaultDate: this.filtroHasta,
+        onChange: (selectedDates, dateStr) => {
+          this.filtroHasta = dateStr;
+          this.filtrar();
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.datePickerDesde) {
+      this.datePickerDesde.destroy();
+    }
+    if (this.datePickerHasta) {
+      this.datePickerHasta.destroy();
+    }
+  }
+
+  // cargarDatosPrueba removed
+
 
   filtrar(): void {
     this.registrosFiltrados = this.registros.filter(registro => {
@@ -52,12 +115,14 @@ export class EntradasSalidasComponent implements OnInit {
       const fechaRegistro = new Date(registro.fecha);
       if (this.filtroDesde) {
         const desde = new Date(this.filtroDesde);
+        // Start of day
+        desde.setHours(0, 0, 0, 0);
         if (fechaRegistro < desde) return false;
       }
       if (this.filtroHasta) {
         const hasta = new Date(this.filtroHasta);
-        // Ajustar hasta el final del día
-        hasta.setHours(23, 59, 59);
+        // End of day
+        hasta.setHours(23, 59, 59, 999);
         if (fechaRegistro > hasta) return false;
       }
 
@@ -73,6 +138,83 @@ export class EntradasSalidasComponent implements OnInit {
 
       return true;
     });
+  }
+
+  // --- Actions Menu ---
+  toggleMenu(registro: any): void {
+    // Close others
+    this.registrosFiltrados.forEach(r => {
+      if (r !== registro) r.menuVisible = false;
+    });
+    registro.menuVisible = !registro.menuVisible;
+  }
+
+  // --- Details Modal ---
+  showDetails(registro: any): void {
+    this.selectedRegistro = registro;
+    this.isDetailsModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  closeDetailsModal(): void {
+    this.isDetailsModalVisible = false;
+    this.selectedRegistro = null;
+  }
+
+  // --- Modify Modal ---
+  prepareEdit(registro: any): void {
+    this.selectedRegistro = registro;
+    // Clone to avoid direct mutation before save
+    this.registroToModify = { ...registro };
+    this.isModifyModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  async confirmEdit() {
+    if (this.selectedRegistro && this.registroToModify) {
+      try {
+        await this.entryExitService.updateEntryExit(this.selectedRegistro.id, this.registroToModify);
+
+        // Update original object properties locally to reflect changes immediately
+        Object.assign(this.selectedRegistro, this.registroToModify);
+
+        this.filtrar();
+      } catch (error) {
+        console.error('Error actualizando registro:', error);
+      }
+    }
+    this.closeModifyModal();
+  }
+
+  closeModifyModal(): void {
+    this.isModifyModalVisible = false;
+    this.selectedRegistro = null;
+    this.registroToModify = null;
+  }
+
+  // --- Delete Modal ---
+  prepareDelete(registro: any): void {
+    this.selectedRegistro = registro;
+    this.isDeleteModalVisible = true;
+    registro.menuVisible = false;
+  }
+
+  async confirmDelete() {
+    if (this.selectedRegistro) {
+      try {
+        await this.entryExitService.deleteEntryExit(this.selectedRegistro.id);
+        this.registros = this.registros.filter(r => r.id !== this.selectedRegistro.id);
+        this.filtrar();
+      } catch (error) {
+        console.error('Error eliminando registro:', error);
+      }
+    }
+    this.closeDeleteModal();
+  }
+
+  closeDeleteModal(): void {
+    this.isDeleteModalVisible = false;
+    this.selectedRegistro = null;
   }
 
   registrar(): void {
