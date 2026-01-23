@@ -161,9 +161,24 @@ app.delete('/api/guards/:idEmpleado', async (req, res) => {
 
 // --- Admins ---
 app.get('/api/admins/:email', async (req, res) => {
-  const { data, error } = await supabase.from('admins').select('*').eq('email', req.params.email).single();
-  if (error) return res.status(404).json({ message: 'Admin no encontrado' });
-  res.json(data);
+  let adminUser = null;
+
+  try {
+    const { data, error } = await supabase.from('admins').select('*').eq('email', req.params.email).single();
+    if (!error && data) {
+      adminUser = data;
+    }
+  } catch (err) {
+    console.warn('Supabase admin fetch failed, trying local:', err);
+  }
+
+  if (!adminUser) {
+    const admins = readJsonFile('admins.json');
+    adminUser = admins.find(a => a.email === req.params.email);
+  }
+
+  if (!adminUser) return res.status(404).json({ message: 'Admin no encontrado' });
+  res.json(adminUser);
 });
 
 app.post('/api/register-admin', async (req, res) => {
@@ -187,23 +202,39 @@ app.post('/api/register-admin', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  // Simple password check (plaintext match as per previous logic)
-  const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
 
-  if (error || !data) {
+  let adminUser = null;
+
+  // 1. Try Supabase
+  try {
+    const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
+    if (!error && data) {
+      adminUser = data;
+    }
+  } catch (err) {
+    console.warn('Supabase login check failed, trying local:', err);
+  }
+
+  // 2. Fallback to Local JSON if not found in Supabase
+  if (!adminUser) {
+    const admins = readJsonFile('admins.json');
+    adminUser = admins.find(a => a.email === email && a.password === password);
+  }
+
+  if (!adminUser) {
     return res.status(401).json({ message: 'Credenciales incorrectas' });
   }
 
   res.json({
     message: 'Login exitoso',
     admin: {
-      name: data.fullName,
-      email: data.email,
-      location: data.location,
-      companyName: data.companyName,
-      lat: data.lat,
-      lng: data.lng,
-      zone: data.zone
+      name: adminUser.fullName || adminUser.name, // Handle different field names if needed
+      email: adminUser.email,
+      location: adminUser.location,
+      companyName: adminUser.companyName,
+      lat: adminUser.lat,
+      lng: adminUser.lng,
+      zone: adminUser.zone
     }
   });
 });

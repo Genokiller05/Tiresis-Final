@@ -168,6 +168,11 @@ export class MapaComponent implements OnInit, OnDestroy {
           createMap(lat, lng, zoom, adminData);
         },
         error: () => {
+          if (localUser && localUser.lat && localUser.lng) {
+            lat = parseFloat(localUser.lat);
+            lng = parseFloat(localUser.lng);
+            zoom = 15;
+          }
           createMap(lat, lng, zoom, localUser);
         }
       });

@@ -22,15 +22,15 @@ export class AuthService {
   // Set internal state to true
   login() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('isLoggedIn', 'true');
+      sessionStorage.setItem('isLoggedIn', 'true');
     }
     this.loggedIn.next(true);
   }
 
   logout() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('currentUser');
+      sessionStorage.removeItem('isLoggedIn');
+      sessionStorage.removeItem('currentUser');
     }
     this.loggedIn.next(false);
   }
@@ -56,13 +56,13 @@ export class AuthService {
 
   setCurrentUser(user: any) {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
     }
   }
 
   getCurrentUser(): any {
     if (isPlatformBrowser(this.platformId)) {
-      const user = localStorage.getItem('currentUser');
+      const user = sessionStorage.getItem('currentUser');
       return user ? JSON.parse(user) : null;
     }
     return null;
@@ -70,7 +70,7 @@ export class AuthService {
 
   private hasToken(): boolean {
     if (isPlatformBrowser(this.platformId)) {
-      return !!localStorage.getItem('isLoggedIn');
+      return !!sessionStorage.getItem('isLoggedIn');
     }
     return false;
   }
