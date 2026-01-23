@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
-import { JsonStorageService } from '../../services/json-storage.service';
 import { AuthService } from '../../services/auth.service';
+import { ReportService } from '../../services/report.service';
 import { Subscription } from 'rxjs';
 import flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
@@ -60,8 +60,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private jsonStorageService: JsonStorageService, // Inyectar JsonStorageService
-    private authService: AuthService, // Inyectar AuthService
+    private reportService: ReportService,
+    private authService: AuthService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
@@ -117,8 +117,13 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  fetchReports() { // No async, ya que JsonStorageService es síncrono
-    this.allAlerts = this.jsonStorageService.getData('alerts') || [];
+  async fetchReports() {
+    try {
+      this.allAlerts = await this.reportService.getReports();
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      this.allAlerts = [];
+    }
     this.aplicarFiltros();
   }
 
@@ -190,16 +195,23 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     this.selectedStatus = '';
   }
 
-  public confirmStatusChange(): void { // No async
+  async confirmStatusChange() {
     if (this.alertToModify && this.selectedStatus) {
       this.alertToModify.estado = this.selectedStatus;
-      const allAlerts = this.jsonStorageService.getData('alerts');
-      const index = allAlerts.findIndex((a: any) => a.id === this.alertToModify.id);
-      if (index > -1) {
-        allAlerts[index] = this.alertToModify;
-        this.jsonStorageService.setData('alerts', allAlerts);
+
+      try {
+        await this.reportService.updateReport(this.alertToModify.id, { estado: this.selectedStatus });
+
+        // Update local state is handled by re-fetching or optimistic update. 
+        // Here we just modified the object reference, which is displayed.
+        // But better to fetch fresh data or update array carefully.
+        // The modifying of 'alertToModify' already updated the object in memory if it's the same ref.
+
+        this.aplicarFiltros();
+      } catch (error) {
+        console.error('Error updating report status:', error);
+        // Revert change if needed
       }
-      this.aplicarFiltros(); // Re-apply filters to update view if sorting/filtering is affected
     }
     this.hideStatusModal();
   }
@@ -222,15 +234,19 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     alerta.menuVisible = false;
   }
 
-  public confirmDelete(): void { // No async
+  async confirmDelete() {
     if (!this.alertToDelete) return;
 
-    let allAlerts = this.jsonStorageService.getData('alerts');
-    allAlerts = allAlerts.filter((a: any) => a.id !== this.alertToDelete.id);
-    this.jsonStorageService.setData('alerts', allAlerts);
+    try {
+      await this.reportService.deleteReport(this.alertToDelete.id);
 
-    // Volver a aplicar filtros para actualizar la vista
-    this.fetchReports(); // Recargar los reportes y aplicar filtros
+      // Remove from local array to update UI immediately
+      this.allAlerts = this.allAlerts.filter(a => a.id !== this.alertToDelete.id);
+
+      this.aplicarFiltros();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+    }
 
     this.hideDeleteModal();
   }

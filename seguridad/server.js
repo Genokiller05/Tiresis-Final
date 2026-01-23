@@ -3,18 +3,20 @@ const fs = require('fs');
 const path = require('path');
 const cors = require('cors');
 const multer = require('multer');
-const os = require('os');
+const { createClient } = require('@supabase/supabase-js');
+
+// Supabase Configuration
+const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oemhvcmtwcm53ZmJmZ21ycWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MzgyODUsImV4cCI6MjA3OTUxNDI4NX0.eXKbWsoHTcXqh5De5hk77Z1ftxJiaTDB3VwRPpe6Nos';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
 const port = 3000;
 
-// Path to the local guards JSON file
-const guardsFilePath = path.join(__dirname, 'data', 'guards.json');
-const adminsFilePath = path.join(__dirname, 'data', 'admins.json');
-const buildingsFilePath = path.join(__dirname, 'data', 'buildings.json');
-
-// Create a dedicated uploads directory in 'data' folder for persistence
+// Path to data for migration purposes only
+const dataDir = path.join(__dirname, 'data');
 const uploadsDir = path.join(__dirname, 'data', 'uploads');
+
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -22,16 +24,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Middleware
 app.use(cors());
 app.use(express.json());
-// Serve the uploads directory statically
 app.use('/uploads', express.static(uploadsDir));
-
-// ... (rest of code)
-
-// Multer Configuration is already defined above.
-// Reusing 'upload' middleware.
-
-
-// ... (rest of code)
 
 // --- Multer Configuration ---
 const storage = multer.diskStorage({
@@ -43,306 +36,291 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-
-
-// --- Helper functions for JSON file ---
-const getGuards = () => {
+// --- Helper for Migration ---
+const readJsonFile = (filename) => {
   try {
-    const data = fs.readFileSync(guardsFilePath, 'utf8');
-    return JSON.parse(data);
+    const filePath = path.join(dataDir, filename);
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    }
   } catch (err) {
-    console.error('Error reading guards file:', err);
-    return [];
+    console.error(`Error reading ${filename}:`, err);
   }
+  return [];
 };
 
-const saveGuards = (guards) => {
+// --- MIGRATION ENDPOINT ---
+app.post('/api/migrate', async (req, res) => {
   try {
-    fs.writeFileSync(guardsFilePath, JSON.stringify(guards, null, 2), 'utf8');
-    return true;
-  } catch (err) {
-    console.error('Error writing guards file:', err);
-    return false;
+    console.log('Starting migration...');
+    const summaries = {};
+
+    // 1. Admins
+    const admins = readJsonFile('admins.json');
+    if (admins.length > 0) {
+      // Remove 'password' if you want to enforce new passwords, or keep it.
+      // Note: Supabase Auth is better, but this populates the 'admins' table.
+      const { error } = await supabase.from('admins').upsert(admins, { onConflict: 'email' });
+      if (error) throw error;
+      summaries.admins = admins.length;
+    }
+
+    // 2. Guards
+    const guards = readJsonFile('guards.json');
+    if (guards.length > 0) {
+      const { error } = await supabase.from('guards').upsert(guards, { onConflict: 'idEmpleado' });
+      if (error) throw error;
+      summaries.guards = guards.length;
+    }
+
+    // 3. Cameras
+    const cameras = readJsonFile('cameras.json');
+    if (cameras.length > 0) {
+      const { error } = await supabase.from('cameras').upsert(cameras, { onConflict: 'id' });
+      if (error) throw error;
+      summaries.cameras = cameras.length;
+    }
+
+    // 4. Reports
+    const reports = readJsonFile('reports.json');
+    if (reports.length > 0) {
+      const { error } = await supabase.from('reports').upsert(reports, { onConflict: 'id' });
+      if (error) throw error;
+      summaries.reports = reports.length;
+    }
+
+    // 5. Buildings
+    const buildings = readJsonFile('buildings.json');
+    if (buildings.length > 0) {
+      const { error } = await supabase.from('buildings').upsert(buildings, { onConflict: 'id' });
+      if (error) throw error;
+      summaries.buildings = buildings.length;
+    }
+
+    // 6. Entries/Exits
+    const entries = readJsonFile('entries_exits.json');
+    if (entries.length > 0) {
+      const { error } = await supabase.from('entries_exits').upsert(entries, { onConflict: 'id' });
+      if (error) throw error;
+      summaries.entries = entries.length;
+    }
+
+    res.json({ message: 'Migration successful', details: summaries });
+  } catch (error) {
+    console.error('Migration failed:', error);
+    res.status(500).json({ message: 'Migration failed', error: error.message });
   }
-};
-
-const getAdmins = () => {
-  try {
-    const data = fs.readFileSync(adminsFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading admins file:', err);
-    return [];
-  }
-};
-
-const saveAdmins = (admins) => {
-  try {
-    fs.writeFileSync(adminsFilePath, JSON.stringify(admins, null, 2), 'utf8');
-    return true;
-  } catch (err) {
-    console.error('Error writing admins file:', err);
-    return false;
-  }
-};
+});
 
 
+// --- MIGRATION CHECK ---
+// Auto-migrate on start if DB seems empty (Optional - simpler to let user trigger it via endpoint)
 
-// --- API Endpoints ---
+// --- API Endpoints Refactored for Supabase ---
 
-// POST: Upload a guard's photo
+// POST: Upload photo (Keeps local storage for now, returns URL)
 app.post('/api/upload', upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se subió ningún archivo.' });
-
-  // Use exact same format as the frontend expects
   const fileUrl = `/uploads/${req.file.filename}`;
   res.status(200).json({ url: fileUrl, message: 'Archivo subido correctamente.' });
 });
 
-// GET: Obtener todos los guardias
-app.get('/api/guards', (req, res) => {
-  res.json(getGuards());
+// --- Guards ---
+app.get('/api/guards', async (req, res) => {
+  const { data, error } = await supabase.from('guards').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
-// GET: Obtener admin por email
-app.get('/api/admins/:email', (req, res) => {
-  const admins = getAdmins();
-  const admin = admins.find(a => a.email === req.params.email);
-  if (admin) {
-    res.json(admin);
-  } else {
-    res.status(404).json({ message: 'Admin no encontrado.' });
-  }
+app.get('/api/guards/:idEmpleado', async (req, res) => {
+  const { data, error } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).single();
+  if (error) return res.status(404).json({ message: 'Guardia no encontrado' });
+  res.json(data);
 });
 
-// GET: Obtener un guardia por ID
-app.get('/api/guards/:idEmpleado', (req, res) => {
-  const guards = getGuards();
-  const guard = guards.find(g => g.idEmpleado === req.params.idEmpleado);
-  if (guard) {
-    res.json(guard);
-  } else {
-    res.status(404).json({ message: 'Guardia no encontrado.' });
-  }
-});
-
-// POST: Registrar un nuevo guardia
-app.post('/api/guards', (req, res) => {
+app.post('/api/guards', async (req, res) => {
   const newGuard = req.body;
-  if (!newGuard || !newGuard.nombre || !newGuard.idEmpleado) {
-    return res.status(400).json({ message: 'Faltan datos del nuevo guardia.' });
-  }
-  const guards = getGuards();
-  guards.push(newGuard);
-  if (saveGuards(guards)) {
-    res.status(201).json({ message: 'Guardia registrado correctamente.', guard: newGuard });
-  } else {
-    res.status(500).json({ message: 'Error al guardar en el archivo JSON.' });
-  }
+  if (!newGuard.idEmpleado || !newGuard.nombre) return res.status(400).json({ message: 'Datos incompletos' });
+
+  const { data, error } = await supabase.from('guards').insert([newGuard]).select();
+  if (error) return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
+  res.status(201).json({ message: 'Guardia registrado', guard: data[0] });
 });
 
-// PATCH: Actualizar un guardia
-app.patch('/api/guards/:idEmpleado', (req, res) => {
-  const guards = getGuards();
-  const index = guards.findIndex(g => g.idEmpleado === req.params.idEmpleado);
-
-  if (index !== -1) {
-    guards[index] = { ...guards[index], ...req.body };
-    if (saveGuards(guards)) {
-      res.status(200).json(guards[index]);
-    } else {
-      res.status(500).json({ message: 'Error al actualizar el archivo JSON.' });
-    }
-  } else {
-    res.status(404).json({ message: 'Guardia no encontrado.' });
-  }
+app.patch('/api/guards/:idEmpleado', async (req, res) => {
+  const { data, error } = await supabase.from('guards').update(req.body).eq('idEmpleado', req.params.idEmpleado).select();
+  if (error) return res.status(500).json({ message: 'Error actualizando guardia', error: error.message });
+  res.json(data[0]);
 });
 
-// DELETE: Eliminar un guardia por ID
-app.delete('/api/guards/:idEmpleado', (req, res) => {
-  const guards = getGuards();
-  const filteredGuards = guards.filter(g => g.idEmpleado !== req.params.idEmpleado);
-  if (guards.length !== filteredGuards.length) {
-    if (saveGuards(filteredGuards)) {
-      res.status(200).json({ message: 'Guardia eliminado correctamente.' });
-    } else {
-      res.status(500).json({ message: 'Error al eliminar del archivo JSON.' });
-    }
-  } else {
-    res.status(404).json({ message: 'Guardia no encontrado.' });
-  }
+app.delete('/api/guards/:idEmpleado', async (req, res) => {
+  const { error } = await supabase.from('guards').delete().eq('idEmpleado', req.params.idEmpleado);
+  if (error) return res.status(500).json({ message: 'Error eliminando guardia', error: error.message });
+  res.json({ message: 'Guardia eliminado correctamente' });
 });
 
-// POST: Registrar un nuevo administrador
-app.post('/api/register-admin', (req, res) => {
+// --- Admins ---
+app.get('/api/admins/:email', async (req, res) => {
+  const { data, error } = await supabase.from('admins').select('*').eq('email', req.params.email).single();
+  if (error) return res.status(404).json({ message: 'Admin no encontrado' });
+  res.json(data);
+});
+
+app.post('/api/register-admin', async (req, res) => {
   const newAdmin = req.body;
-  // Added companyName to validation
-  if (!newAdmin || !newAdmin.fullName || !newAdmin.email || !newAdmin.password || !newAdmin.location || !newAdmin.companyName) {
-    return res.status(400).json({ message: 'Faltan datos obligatorios para el registro (incluyendo nombre de la compañía).' });
+  if (!newAdmin.email || !newAdmin.password || !newAdmin.companyName) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios' });
   }
 
-  // Validación básica de contraseña en servidor (RELJADA - Opcional)
-  if (!newAdmin.password) {
-    return res.status(400).json({ message: 'La contraseña es obligatoria.' });
+  // Check availability
+  const { data: existing } = await supabase.from('admins').select('email, companyName').or(`email.eq.${newAdmin.email},companyName.eq.${newAdmin.companyName}`);
+
+  if (existing && existing.length > 0) {
+    return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
   }
 
-  const admins = getAdmins();
+  const { data, error } = await supabase.from('admins').insert([newAdmin]).select();
+  if (error) return res.status(500).json({ message: 'Error registrando admin', error: error.message });
 
-  // Verificar si el email ya existe
-  if (admins.find(a => a.email === newAdmin.email)) {
-    return res.status(409).json({ message: 'El correo electrónico ya está registrado.' });
-  }
-
-  admins.push(newAdmin);
-
-  if (saveAdmins(admins)) {
-    res.status(201).json({
-      message: 'Administrador registrado correctamente.',
-      admin: {
-        name: newAdmin.fullName,
-        email: newAdmin.email,
-        companyName: newAdmin.companyName,
-        location: newAdmin.location
-      }
-    });
-  } else {
-    res.status(500).json({ message: 'Error al guardar el administrador.' });
-  }
+  res.status(201).json({ message: 'Administrador registrado', admin: data[0] });
 });
 
-// PATCH: Actualizar ubicación/datos del administrador (por email)
-app.patch('/api/admins/update', (req, res) => {
-  const { email, location, lat, lng, zone } = req.body;
-
-  if (!email) {
-    return res.status(400).json({ message: 'Email es requerido para actualizar.' });
-  }
-
-  const admins = getAdmins();
-  const index = admins.findIndex(a => a.email === email);
-
-  if (index !== -1) {
-    // Update fields if provided
-    if (location !== undefined) admins[index].location = location;
-    if (lat !== undefined) admins[index].lat = lat;
-    if (lng !== undefined) admins[index].lng = lng;
-    if (zone !== undefined) admins[index].zone = zone;
-
-    if (saveAdmins(admins)) {
-      res.status(200).json({ message: 'Administrador actualizado correctamente', admin: admins[index] });
-    } else {
-      res.status(500).json({ message: 'Error al actualizar el archivo JSON.' });
-    }
-  } else {
-    res.status(404).json({ message: 'Administrador no encontrado.' });
-  }
-});
-
-// POST: Login de administrador
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Credenciales incompletas.' });
+  // Simple password check (plaintext match as per previous logic)
+  const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
+
+  if (error || !data) {
+    return res.status(401).json({ message: 'Credenciales incorrectas' });
   }
 
-  // 1. Verificar credenciales por defecto (para testing)
-  // if (email === 'admin123@tiresis.com' && password === 'tiresis12345') {
-  //   return res.status(200).json({
-  //     message: 'Login exitoso (Default Admin)',
-  //     admin: {
-  //       fullName: 'Administrador Default',
-  //       email: email,
-  //       location: 'Oficina Central', // Ubicación dummy
-  //       companyName: 'Tiresis Security',
-  //       lat: 19.4326,
-  //       lng: -99.1332 // CDMX default
-  //     }
-  //   });
-  // }
-
-  const admins = getAdmins();
-  const admin = admins.find(a => a.email === email && a.password === password);
-
-  if (admin) {
-    // En un sistema real usaríamos JWT, aquí simulamos éxito
-    res.status(200).json({
-      message: 'Login exitoso',
-      admin: {
-        name: admin.fullName,
-        email: admin.email,
-        location: admin.location,
-        companyName: admin.companyName,
-        lat: admin.lat,
-        lng: admin.lng,
-        zone: admin.zone
-      }
-    });
-  } else {
-    res.status(401).json({ message: 'Credenciales incorrectas.' });
-  }
+  res.json({
+    message: 'Login exitoso',
+    admin: {
+      name: data.fullName,
+      email: data.email,
+      location: data.location,
+      companyName: data.companyName,
+      lat: data.lat,
+      lng: data.lng,
+      zone: data.zone
+    }
+  });
 });
 
+app.patch('/api/admins/update', async (req, res) => {
+  const { email, ...updates } = req.body;
+  if (!email) return res.status(400).json({ message: 'Email requerido' });
 
-
-// --- Buildings Management ---
-const getBuildings = () => {
-  try {
-    if (!fs.existsSync(buildingsFilePath)) return [];
-    const data = fs.readFileSync(buildingsFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error('Error reading buildings file:', err);
-    return [];
-  }
-};
-
-const saveBuildings = (buildings) => {
-  try {
-    fs.writeFileSync(buildingsFilePath, JSON.stringify(buildings, null, 2), 'utf8');
-    return true;
-  } catch (err) {
-    console.error('Error writing buildings file:', err);
-    return false;
-  }
-};
-
-app.get('/api/buildings', (req, res) => {
-  res.json(getBuildings());
+  const { data, error } = await supabase.from('admins').update(updates).eq('email', email).select();
+  if (error) return res.status(500).json({ message: 'Error actualizando admin', error: error.message });
+  res.json({ message: 'Administrador actualizado', admin: data[0] });
 });
 
-app.post('/api/buildings', (req, res) => {
-  const rawBuilding = req.body;
-  if (!rawBuilding || !rawBuilding.name || !rawBuilding.geometry) {
-    return res.status(400).json({ message: 'Missing building data' });
-  }
-
-  // Auto-generate ID if missing
-  const newBuilding = {
-    id: Date.now().toString(),
-    ...rawBuilding
-  };
-
-  const buildings = getBuildings();
-  buildings.push(newBuilding);
-
-  if (saveBuildings(buildings)) {
-    res.status(201).json({ message: 'Building saved', building: newBuilding });
-  } else {
-    res.status(500).json({ message: 'Error saving building' });
-  }
+// --- Cameras ---
+app.get('/api/cameras', async (req, res) => {
+  const { data, error } = await supabase.from('cameras').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
-app.delete('/api/buildings/:id', (req, res) => {
-  const buildings = getBuildings();
-  const filtered = buildings.filter(b => b.id !== req.params.id);
-  if (saveBuildings(filtered)) {
-    res.status(200).json({ message: 'Building deleted' });
-  } else {
-    res.status(500).json({ message: 'Error deleting building' });
-  }
+app.post('/api/cameras', async (req, res) => {
+  const { error } = await supabase.from('cameras').insert([req.body]);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: 'Cámara registrada', camera: req.body });
 });
 
+app.patch('/api/cameras/:id', async (req, res) => {
+  const { error } = await supabase.from('cameras').update(req.body).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ...req.body, id: req.params.id });
+});
+
+app.delete('/api/cameras/:id', async (req, res) => {
+  const { error } = await supabase.from('cameras').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Cámara eliminada' });
+});
+
+// --- Reports ---
+app.get('/api/reports', async (req, res) => {
+  const { data, error } = await supabase.from('reports').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/reports', async (req, res) => {
+  const report = { ...req.body };
+  if (!report.id) report.id = Date.now().toString(); // Fallback ID if not provided
+
+  const { error } = await supabase.from('reports').insert([report]);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: 'Reporte registrado', report });
+});
+
+app.patch('/api/reports/:id', async (req, res) => {
+  const { error } = await supabase.from('reports').update(req.body).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ...req.body });
+});
+
+app.delete('/api/reports/:id', async (req, res) => {
+  const { error } = await supabase.from('reports').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Reporte eliminado' });
+});
+
+// --- Buildings ---
+app.get('/api/buildings', async (req, res) => {
+  const { data, error } = await supabase.from('buildings').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/buildings', async (req, res) => {
+  const building = { ...req.body };
+  if (!building.id) building.id = Date.now().toString();
+
+  const { error } = await supabase.from('buildings').insert([building]);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: 'Edificio guardado', building });
+});
+
+app.delete('/api/buildings/:id', async (req, res) => {
+  const { error } = await supabase.from('buildings').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Edificio eliminado' });
+});
+
+// --- Entries/Exits ---
+app.get('/api/entries-exits', async (req, res) => {
+  const { data, error } = await supabase.from('entries_exits').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.post('/api/entries-exits', async (req, res) => {
+  const entry = { ...req.body };
+  if (!entry.id) entry.id = 'EE' + Date.now().toString();
+
+  const { error } = await supabase.from('entries_exits').insert([entry]);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: 'Registro guardado', entry });
+});
+
+app.patch('/api/entries-exits/:id', async (req, res) => {
+  const { error } = await supabase.from('entries_exits').update(req.body).eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(req.body);
+});
+
+app.delete('/api/entries-exits/:id', async (req, res) => {
+  const { error } = await supabase.from('entries_exits').delete().eq('id', req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Registro eliminado' });
+});
 
 app.listen(port, () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
+  console.log('Use POST /api/migrate to seed Supabase with local JSON data.');
 });

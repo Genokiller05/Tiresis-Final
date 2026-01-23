@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { CameraService } from '../../services/camera.service';
 
 interface Camera {
   id: string;
@@ -34,18 +35,18 @@ export class CamarasComponent implements OnInit {
   // Menu Dropdown
   public activeMenuId: string | null = null;
 
-  constructor() { }
+  constructor(private cameraService: CameraService) { }
 
   ngOnInit(): void {
-    this.cargarDatosPrueba();
+    this.cargarDatos();
   }
 
-  cargarDatosPrueba() {
-    this.cameras = [
-      { id: 'CAM-001', ip: '192.168.1.101', marca: 'Hikvision', modelo: 'DS-2CD2043G0-I', activa: true, area: 'Entrada Principal', alertas: 2 },
-      { id: 'CAM-002', ip: '192.168.1.102', marca: 'Dahua', modelo: 'IPC-HFW2431S-S', activa: true, area: 'Estacionamiento', alertas: 0 },
-      { id: 'CAM-003', ip: '192.168.1.103', marca: 'Axis', modelo: 'M1135-E', activa: false, area: 'Pasillo Central', alertas: 5 }
-    ];
+  async cargarDatos() {
+    try {
+      this.cameras = await this.cameraService.getCameras();
+    } catch (error) {
+      console.error('Error cargando cámaras:', error);
+    }
   }
 
   // Registration Modal
@@ -80,7 +81,7 @@ export class CamarasComponent implements OnInit {
     this.isRegisterModalVisible = false;
   }
 
-  registerCamera() {
+  async registerCamera() {
     // Basic validation
     if (!this.newCamera.ip || !this.newCamera.marca || !this.newCamera.modelo || !this.newCamera.area) {
       alert('Por favor complete todos los campos');
@@ -89,6 +90,7 @@ export class CamarasComponent implements OnInit {
 
     // Auto-generate ID
     const nextId = this.generateNextId();
+
 
     const cameraToAdd: Camera = {
       id: nextId,
@@ -100,8 +102,14 @@ export class CamarasComponent implements OnInit {
       alertas: 0
     };
 
-    this.cameras.push(cameraToAdd);
-    this.hideRegisterModal();
+    try {
+      await this.cameraService.createCamera(cameraToAdd);
+      this.cameras.push(cameraToAdd); // Optimistic update or reload
+      this.hideRegisterModal();
+    } catch (error) {
+      console.error('Error creando cámara:', error);
+      alert('Error al crear la cámara');
+    }
   }
 
   private generateNextId(): string {
@@ -139,17 +147,30 @@ export class CamarasComponent implements OnInit {
     this.selectedCamera = null;
   }
 
-  saveDetails() {
+  async saveDetails() {
     if (!this.selectedCamera) return;
 
+
     // Update local object
-    this.selectedCamera.marca = this.editForm.marca;
-    this.selectedCamera.modelo = this.editForm.modelo;
-    this.selectedCamera.area = this.editForm.area;
+    const updates = {
+      marca: this.editForm.marca,
+      modelo: this.editForm.modelo,
+      area: this.editForm.area
+    };
 
-    // In a real app, you would call a service here
+    try {
+      await this.cameraService.updateCamera(this.selectedCamera.id, updates);
 
-    this.hideDetailsModal();
+      // Update local state
+      this.selectedCamera.marca = updates.marca;
+      this.selectedCamera.modelo = updates.modelo;
+      this.selectedCamera.area = updates.area;
+
+      this.hideDetailsModal();
+    } catch (error) {
+      console.error('Error actualizando cámara:', error);
+      alert('Error al actualizar la cámara');
+    }
   }
 
   requestDelete(camera: Camera) {
@@ -163,10 +184,16 @@ export class CamarasComponent implements OnInit {
     this.selectedCamera = null;
   }
 
-  confirmDelete() {
+  async confirmDelete() {
     if (!this.selectedCamera) return;
 
-    this.cameras = this.cameras.filter(c => c.id !== this.selectedCamera!.id);
-    this.hideDeleteModal();
+    try {
+      await this.cameraService.deleteCamera(this.selectedCamera.id);
+      this.cameras = this.cameras.filter(c => c.id !== this.selectedCamera!.id);
+      this.hideDeleteModal();
+    } catch (error) {
+      console.error('Error eliminando cámara:', error);
+      alert('Error al eliminar la cámara');
+    }
   }
 }

@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 
-import { addReport } from './services/dataService';
+import { createReport as addReport } from './services/dataService';
 
 // --- Tipado de navegación ---
 type RootStackParamList = {
@@ -74,32 +74,42 @@ const NewReportScreen = () => {
     }
   };
 
-  const handleSubmitReport = () => {
+  const handleSubmitReport = async () => {
     if (!incidentType || !description) {
       Alert.alert(t('new_report.error_title'), t('new_report.error_message'));
       return;
     }
 
-    const newReport = {
-      type: incidentType,
-      date: new Date().toLocaleString(),
-      status: 'Enviado' as const,
-      summary: description,
-      evidence: evidence || undefined,
-    };
+    try {
+      const newReport = {
+        fechaHora: new Date().toISOString(),
+        tipo: incidentType,
+        origen: 'App Guardia', // Hardcoded source for now
+        sitioArea: 'Patrullaje General', // Default area
+        estado: 'Pendiente',
+        detalles: {
+          descripcion: description,
+          evidencia: evidence || null,
+          resumen: description // Legacy support if needed
+        }
+      };
 
-    addReport(newReport);
+      await addReport(newReport); // This now calls createReport in dataService
 
-    Alert.alert(
-      t('new_report.success_title'),
-      t('new_report.success_message'),
-      [
-        {
-          text: 'OK',
-          onPress: () => navigation.navigate('MainTabs', { screen: 'Reports' }),
-        },
-      ]
-    );
+      Alert.alert(
+        t('new_report.success_title'),
+        t('new_report.success_message'),
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('MainTabs', { screen: 'Reports' }),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'No se pudo enviar el reporte.');
+    }
   };
 
   const evidenceSelectedText = evidence
@@ -150,7 +160,7 @@ const NewReportScreen = () => {
                 <Text style={styles.evidenceSelectedText}>{evidenceSelectedText}</Text>
               )}
             </Pressable>
-            
+
             <TouchableOpacity style={styles.sendReportButton} onPress={handleSubmitReport}>
               <Text style={styles.sendReportButtonText}>{t('new_report.send_button')}</Text>
             </TouchableOpacity>

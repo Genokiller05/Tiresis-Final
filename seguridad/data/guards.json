@@ -44,7 +44,9 @@
         "descripcion": "Fin de turno"
       }
     ],
-    "foto": "/uploads/photo-1768328033115-138739819.png"
+    "foto": "/uploads/photo-1768328033115-138739819.png",
+    "lat": 20.939367141963956,
+    "lng": -89.61420714855194
   },
   {
     "idEmpleado": "00098765",

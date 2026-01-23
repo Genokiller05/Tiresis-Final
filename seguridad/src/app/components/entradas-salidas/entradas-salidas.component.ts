@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
 
+import { EntryExitService } from '../../services/entry-exit.service';
+
 @Component({
   selector: 'app-entradas-salidas',
   standalone: true,
@@ -35,11 +37,22 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
   public selectedRegistro: any = null;
   public registroToModify: any = null; // For the form
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) { }
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private entryExitService: EntryExitService
+  ) { }
 
   ngOnInit(): void {
-    this.cargarDatosPrueba();
-    this.filtrar();
+    this.cargarDatos();
+  }
+
+  async cargarDatos() {
+    try {
+      this.registros = await this.entryExitService.getEntriesExits();
+      this.filtrar(); // Re-apply filters after loading
+    } catch (error) {
+      console.error('Error cargando registros:', error);
+    }
   }
 
   ngAfterViewInit() {
@@ -93,24 +106,8 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
     }
   }
 
-  cargarDatosPrueba() {
-    this.registros = [
-      // 3 Residentes
-      { id: 1, nombre: 'Juan Pérez', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-18T10:30', destino: 'Apto 101' },
-      { id: 2, nombre: 'Ana López', tipo: 'Residente', accion: 'Salida', fecha: '2025-01-18T08:15', destino: 'Gimnasio' },
-      { id: 3, nombre: 'Carlos Ruiz', tipo: 'Residente', accion: 'Entrada', fecha: '2025-01-17T19:00', destino: 'Apto 205' },
+  // cargarDatosPrueba removed
 
-      // 3 Personal
-      { id: 4, nombre: 'María González', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T07:00', destino: 'Limpieza' },
-      { id: 5, nombre: 'Pedro Ramírez', tipo: 'Personal', accion: 'Salida', fecha: '2025-01-18T16:00', destino: 'Mantenimiento' },
-      { id: 6, nombre: 'Luisa Fernández', tipo: 'Personal', accion: 'Entrada', fecha: '2025-01-18T09:00', destino: 'Administración' },
-
-      // 3 Paquetería
-      { id: 7, nombre: 'Amazon Delivery', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-18T11:45', destino: 'Recepción' },
-      { id: 8, nombre: 'DHL Express', tipo: 'Paquetería', accion: 'Salida', fecha: '2025-01-18T12:00', destino: 'Salida General' },
-      { id: 9, nombre: 'FedEx', tipo: 'Paquetería', accion: 'Entrada', fecha: '2025-01-17T15:30', destino: 'Apto 302' },
-    ];
-  }
 
   filtrar(): void {
     this.registrosFiltrados = this.registros.filter(registro => {
@@ -173,14 +170,18 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
     registro.menuVisible = false;
   }
 
-  confirmEdit(): void {
+  async confirmEdit() {
     if (this.selectedRegistro && this.registroToModify) {
-      // Update original object properties
-      Object.assign(this.selectedRegistro, this.registroToModify);
+      try {
+        await this.entryExitService.updateEntryExit(this.selectedRegistro.id, this.registroToModify);
 
-      // Refresh filter in case filtered properties changed
-      // (Though in a real app coupled with backend, we might reload data)
-      this.filtrar();
+        // Update original object properties locally to reflect changes immediately
+        Object.assign(this.selectedRegistro, this.registroToModify);
+
+        this.filtrar();
+      } catch (error) {
+        console.error('Error actualizando registro:', error);
+      }
     }
     this.closeModifyModal();
   }
@@ -198,10 +199,15 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
     registro.menuVisible = false;
   }
 
-  confirmDelete(): void {
+  async confirmDelete() {
     if (this.selectedRegistro) {
-      this.registros = this.registros.filter(r => r.id !== this.selectedRegistro.id);
-      this.filtrar();
+      try {
+        await this.entryExitService.deleteEntryExit(this.selectedRegistro.id);
+        this.registros = this.registros.filter(r => r.id !== this.selectedRegistro.id);
+        this.filtrar();
+      } catch (error) {
+        console.error('Error eliminando registro:', error);
+      }
     }
     this.closeDeleteModal();
   }

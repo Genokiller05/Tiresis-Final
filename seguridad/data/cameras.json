@@ -1,0 +1,20 @@
+[
+    {
+        "id": "CAM-001",
+        "ip": "192.168.1.101",
+        "marca": "Hikvision",
+        "modelo": "DS-2CD2043G0-I",
+        "activa": true,
+        "area": "Entrada Principal",
+        "alertas": 2
+    },
+    {
+        "id": "CAM-002",
+        "ip": "192.168.1.102",
+        "marca": "Dahua",
+        "modelo": "IPC-HFW2431S-S",
+        "activa": true,
+        "area": "Estacionamiento",
+        "alertas": 0
+    }
+]

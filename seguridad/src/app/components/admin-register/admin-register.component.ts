@@ -52,6 +52,33 @@ import { LocationService } from '../../services/location.service';
                      class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
             </div>
 
+            <!-- Password -->
+            <div>
+              <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
+              <div class="relative">
+                <input [type]="showPassword ? 'text' : 'password'" id="password" name="password" [(ngModel)]="adminData.password" required
+                       class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
+                <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
+                  <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+                </button>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Solo se permiten letras (mayúsculas o minúsculas) y números. No se permiten símbolos.
+              </p>
+            </div>
+
+            <!-- Confirm Password -->
+            <div>
+              <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Contraseña</label>
+              <div class="relative">
+                  <input [type]="showPassword ? 'text' : 'password'" id="confirmPassword" name="confirmPassword" [(ngModel)]="confirmPassword" required
+                         class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
+                  <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
+                    <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
+                  </button>
+              </div>
+            </div>
+
             <!-- Company Name / Residence -->
             <div>
               <label for="companyName" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre de la Compañía / Residencia</label>
@@ -87,33 +114,6 @@ import { LocationService } from '../../services/location.service';
               <!-- Street -->
               <input type="text" [(ngModel)]="street" name="street" required placeholder="Calle, Número, Colonia"
                      class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500">
-            </div>
-
-            <!-- Password -->
-            <div>
-              <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contraseña</label>
-              <div class="relative">
-                <input [type]="showPassword ? 'text' : 'password'" id="password" name="password" [(ngModel)]="adminData.password" required
-                       class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
-                <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
-                  <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
-                </button>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">
-                Solo se permiten letras (mayúsculas o minúsculas) y números. No se permiten símbolos.
-              </p>
-            </div>
-
-            <!-- Confirm Password -->
-            <div>
-              <label for="confirmPassword" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmar Contraseña</label>
-              <div class="relative">
-                  <input [type]="showPassword ? 'text' : 'password'" id="confirmPassword" name="confirmPassword" [(ngModel)]="confirmPassword" required
-                         class="w-full px-4 py-2 mt-1 text-gray-900 bg-gray-200 border border-gray-300 rounded-md dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:border-purple-500 focus:ring-purple-500 pr-10">
-                  <button type="button" (click)="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none">
-                    <span class="material-icons">{{ showPassword ? 'visibility_off' : 'visibility' }}</span>
-                  </button>
-              </div>
             </div>
 
             <!-- Error Message -->

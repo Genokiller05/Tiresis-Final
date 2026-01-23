@@ -1,0 +1,18 @@
+[
+    {
+        "id": "1",
+        "fechaHora": "2026-01-15T10:00:00.000Z",
+        "origen": "IA",
+        "tipo": "Movimiento Sospechoso",
+        "sitioArea": "Entrada principal",
+        "estado": "Pendiente",
+        "detalles": {
+            "camara": {
+                "numero": 1,
+                "id": "cam001",
+                "ip": "192.168.1.100"
+            },
+            "descripcion": "Detectado movimiento inusual cerca de la puerta principal."
+        }
+    }
+]

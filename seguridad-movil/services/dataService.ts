@@ -3,13 +3,13 @@ import { supabase } from '../lib/supabase';
 import type { Site, Report, ReportInsert } from '../types/supabase';
 
 /**
- * Fetches all sites from the database.
+ * Fetches all sites (buildings) from the database.
  * 
  * @returns A promise that resolves to an array of sites.
  */
 export const fetchSites = async (): Promise<Site[]> => {
   const { data, error } = await supabase
-    .from('sites')
+    .from('buildings') // Fetch from 'buildings' table
     .select('*');
 
   if (error) {
@@ -17,6 +17,7 @@ export const fetchSites = async (): Promise<Site[]> => {
     throw new Error(error.message);
   }
 
+  // Map fields if necessary, but 'id' and 'name' should match
   return data || [];
 };
 
@@ -31,7 +32,7 @@ export const createReport = async (reportData: ReportInsert): Promise<Report> =>
     .from('reports')
     .insert([reportData])
     .select()
-    .single(); // .single() is used to get a single object back instead of an array
+    .single();
 
   if (error) {
     console.error('Error creating report:', error);
@@ -41,7 +42,24 @@ export const createReport = async (reportData: ReportInsert): Promise<Report> =>
   return data;
 };
 
-// You can add more functions here to interact with other tables like:
-// - fetchShifts()
-// - getProfile(userId)
-// - etc.
+/**
+ * Updates the status of a guard.
+ * 
+ * @param idEmpleado - The ID of the guard.
+ * @param status - The new status (e.g., 'En servicio', 'Fuera de servicio').
+ */
+export const updateGuardStatus = async (idEmpleado: string, status: string): Promise<any> => {
+  const { data, error } = await supabase
+    .from('guards')
+    .update({ estado: status })
+    .eq('idEmpleado', idEmpleado)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating guard status:', error);
+    throw new Error(error.message);
+  }
+
+  return data;
+};

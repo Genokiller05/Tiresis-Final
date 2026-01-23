@@ -4,12 +4,15 @@ import {
   View,
   Text,
   Pressable,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
+import { updateGuardStatus } from './services/dataService';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -26,7 +29,18 @@ const ProfileScreen = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { colors } = useTheme();
   const { t } = useI18n();
+
+
   const styles = createStyles(colors);
+
+  const updateStatus = async (id: string, status: string) => {
+    try {
+      await updateGuardStatus(id, status);
+      Alert.alert('Éxito', `Estado actualizado a: ${status}`);
+    } catch (error) {
+      Alert.alert('Error', 'Fallo al actualizar estado en Supabase');
+    }
+  };
 
   const handleGoBackToHome = () => {
     navigation.navigate('MainTabs', { screen: 'Home' });
@@ -64,6 +78,35 @@ const ProfileScreen = () => {
               <Text style={styles.infoValue}>carlos.r@seguridadpro.com</Text>
             </View>
           </View>
+
+          <TouchableOpacity
+            style={[styles.statusButton, { backgroundColor: '#3b82f6' }]}
+            onPress={async () => {
+              try {
+                // Hardcoded ID for testing (matches one in DB if possible, or '00012345' from guards.json)
+                // Using '00012345' (Juan Perez) as test subject or '00054321'
+                const testId = '00012345';
+                const newStatus = 'En servicio'; // Toggle logic could be better but sticking to simple set for now
+                // Ideally check current status first. For this demo, let's just set to 'En servicio' button and 'Fuera' button
+                // or just a toggle.
+
+                // Let's make it a Toggle with Alert options
+                Alert.alert(
+                  'Cambiar Estado',
+                  'Selecciona tu nuevo estado:',
+                  [
+                    { text: 'En servicio', onPress: () => updateStatus(testId, 'En servicio') },
+                    { text: 'Fuera de servicio', onPress: () => updateStatus(testId, 'Fuera de servicio') },
+                    { text: 'Cancelar', style: 'cancel' }
+                  ]
+                );
+              } catch (e) {
+                Alert.alert('Error', 'No se pudo cambiar el estado');
+              }
+            }}
+          >
+            <Text style={styles.statusButtonText}>Cambiar Estado (Demo)</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -152,6 +195,17 @@ const createStyles = (colors: any) =>
       fontSize: 16,
       color: colors.text,
       fontWeight: '500',
+    },
+    statusButton: {
+      padding: 15,
+      borderRadius: 12,
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    statusButtonText: {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: 16,
     },
   });
 
