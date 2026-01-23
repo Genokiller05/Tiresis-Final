@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator'; // Added ImageManipulator
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 
@@ -66,11 +67,22 @@ const NewReportScreen = () => {
 
     const pickerResult = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 1,
+      quality: 1, // Reverted to original, without allowsEditing
     });
 
     if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-      setEvidence(pickerResult.assets[0].uri);
+      const imageUri = pickerResult.assets[0].uri;
+
+      // Use ImageManipulator for cropping
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [{ crop: { originX: 0, originY: 0, width: pickerResult.assets[0].width, height: pickerResult.assets[0].height } }], // Initial crop to full image
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+      );
+      
+      if (!manipulatedImage.cancelled) {
+        setEvidence(manipulatedImage.uri);
+      }
     }
   };
 
