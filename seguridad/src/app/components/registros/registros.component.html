@@ -18,9 +18,12 @@
           <form (ngSubmit)="onSubmit()" class="space-y-6">
             <!-- Image Uploader -->
             <div class="flex flex-col items-center">
-              <label for="image-input" class="w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                <div [style.backgroundImage]="'url(' + imagePreview + ')'" class="w-full h-full rounded-full bg-cover bg-center flex items-center justify-center text-gray-400 dark:text-gray-500">
-                  <span *ngIf="!imagePreview" class="material-symbols-outlined" style="font-size: 48px;">photo_camera</span>
+              <label for="image-input"
+                class="w-32 h-32 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                <div [style.backgroundImage]="'url(' + imagePreview + ')'"
+                  class="w-full h-full rounded-full bg-cover bg-center flex items-center justify-center text-gray-400 dark:text-gray-500">
+                  <span *ngIf="!imagePreview" class="material-symbols-outlined"
+                    style="font-size: 48px;">photo_camera</span>
                 </div>
               </label>
               <span class="mt-4 text-sm text-gray-600 dark:text-gray-400">{{ uiText.uploadImageLabel }}</span>
@@ -31,18 +34,44 @@
             <!-- Form Fields -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="md:col-span-2">
-                <label for="nombre-completo" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{ uiText.fullNameLabel }}</label>
-                <input id="nombre-completo" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500" [placeholder]="uiText.fullNamePlaceholder" type="text" [(ngModel)]="nombre" name="nombre-completo"/>
+                <label for="nombre-completo" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{
+                  uiText.fullNameLabel }}</label>
+                <input id="nombre-completo"
+                  class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500"
+                  [placeholder]="uiText.fullNamePlaceholder" type="text" [(ngModel)]="nombre" name="nombre-completo" />
                 <small class="text-red-500 dark:text-red-400 text-xs mt-1 h-4">{{ fieldErrors['nombre'] }}</small>
               </div>
               <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{ uiText.emailLabel }}</label>
-                <input id="email" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500" [placeholder]="uiText.emailPlaceholder" type="email" [(ngModel)]="email" name="email"/>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{
+                  uiText.emailLabel }}</label>
+                <input id="email"
+                  class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500"
+                  [placeholder]="uiText.emailPlaceholder" type="email" [(ngModel)]="email" name="email" />
                 <small class="text-red-500 dark:text-red-400 text-xs mt-1 h-4">{{ fieldErrors['email'] }}</small>
               </div>
+
               <div>
-                <label for="area" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{ uiText.areaLabel }}</label>
-                <select id="area" class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500" [(ngModel)]="area" name="area">
+                <label for="telefono"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Teléfono</label>
+                <input id="telefono"
+                  class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Número de teléfono" type="tel" [(ngModel)]="telefono" name="telefono" />
+                <small class="text-red-500 dark:text-red-400 text-xs mt-1 h-4">{{ fieldErrors['telefono'] }}</small>
+              </div>
+              <div class="md:col-span-2">
+                <label for="direccion"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Dirección</label>
+                <input id="direccion"
+                  class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500"
+                  placeholder="Dirección completa" type="text" [(ngModel)]="direccion" name="direccion" />
+                <!-- <small class="text-red-500 dark:text-red-400 text-xs mt-1 h-4">{{ fieldErrors['direccion'] }}</small> -->
+              </div>
+              <div>
+                <label for="area" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{
+                  uiText.areaLabel }}</label>
+                <select id="area"
+                  class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500"
+                  [(ngModel)]="area" name="area">
                   <option value="" disabled selected>{{ uiText.areaPlaceholder }}</option>
                   <option value="Edificio A">Edificio A</option>
                   <option value="Edificio B">Edificio B</option>
@@ -57,24 +86,31 @@
                 <small class="text-red-500 dark:text-red-400 text-xs mt-1 h-4">{{ fieldErrors['area'] }}</small>
               </div>
               <div class="md:col-span-2">
-                <label for="id-guardia" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{ uiText.guardIdLabel }}</label>
-                                  <input id="id-guardia" class="flex-grow w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100" type="text" [(ngModel)]="idGuardia" name="id-guardia"/>              </div>
+                <label for="id-guardia" class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">{{
+                  uiText.guardIdLabel }}</label>
+                <input id="id-guardia"
+                  class="flex-grow w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  type="text" [(ngModel)]="idGuardia" name="id-guardia" />
+              </div>
             </div>
-            
+
             <div class="pt-4">
-                <button class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors" type="submit">{{ uiText.registerButton }}</button>
+              <button
+                class="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                type="submit">{{ uiText.registerButton }}</button>
             </div>
           </form>
         </div>
-        
+
         <!-- Status message and summary -->
         <div *ngIf="statusMessage" [innerHTML]="statusMessage" class="status-message text-center mt-6"></div>
-        <div *ngIf="summaryCardData" class="summary-card mt-6 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-bold text-green-500 mb-4">{{ uiText.summaryTitle }}</h3>
-            <p><strong>{{ uiText.summaryName }}:</strong> {{ summaryCardData.nombre }}</p>
-            <p><strong>{{ uiText.summaryId }}:</strong> {{ summaryCardData.idEmpleado }}</p>
-            <p><strong>{{ uiText.summaryEmail }}:</strong> {{ summaryCardData.email }}</p>
-            <p><strong>{{ uiText.summaryArea }}:</strong> {{ summaryCardData.area }}</p>
+        <div *ngIf="summaryCardData"
+          class="summary-card mt-6 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-bold text-green-500 mb-4">{{ uiText.summaryTitle }}</h3>
+          <p><strong>{{ uiText.summaryName }}:</strong> {{ summaryCardData.nombre }}</p>
+          <p><strong>{{ uiText.summaryId }}:</strong> {{ summaryCardData.idEmpleado }}</p>
+          <p><strong>{{ uiText.summaryEmail }}:</strong> {{ summaryCardData.email }}</p>
+          <p><strong>{{ uiText.summaryArea }}:</strong> {{ summaryCardData.area }}</p>
         </div>
       </div>
     </main>

@@ -18,8 +18,10 @@ export class RegistrosComponent implements OnInit, OnDestroy {
 
   // Form model properties
   public nombre: string = '';
-  public email: string = ''; // El email no está en `profiles`, se asume que se usará para auth más adelante
-  public area: string = ''; // El área tampoco, se podría añadir a `profiles` o `site_memberships`
+  public email: string = '';
+  public area: string = '';
+  public telefono: string = '';
+  public direccion: string = '';
   public idGuardia: string = ''; // Mapeado a document_id
   public imagePreview: string | null = null;
   private selectedFile: File | null = null;
@@ -42,7 +44,7 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private translationService: TranslationService,
     private guardService: GuardService // Inyectar GuardService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     // Ya no se genera el ID aquí, la base de datos se encarga.
@@ -66,8 +68,8 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     if (!file) return;
 
     if (!isPlatformBrowser(this.platformId)) {
-        this.fieldErrors['photo'] = 'La carga de imágenes no está disponible en el servidor.';
-        return;
+      this.fieldErrors['photo'] = 'La carga de imágenes no está disponible en el servidor.';
+      return;
     }
 
     this.selectedFile = file; // Guardar el archivo para subirlo
@@ -94,11 +96,13 @@ export class RegistrosComponent implements OnInit, OnDestroy {
       this.fieldErrors['idGuardia'] = 'El ID de empleado es obligatorio.';
       isValid = false;
     }
-    // La foto ya no es obligatoria
-    // if (!this.selectedFile) {
-    //   this.fieldErrors['photo'] = 'Debe seleccionar una imagen.';
-    //   isValid = false;
-    // }
+
+    // Validaciones opcionales pero recomendadas
+    if (this.telefono && !/^[0-9]+$/.test(this.telefono)) {
+      this.fieldErrors['telefono'] = 'El teléfono solo debe contener números.';
+      isValid = false;
+    }
+
     return isValid;
   }
 
@@ -123,12 +127,16 @@ export class RegistrosComponent implements OnInit, OnDestroy {
         }
         photoUrl = await this.guardService.uploadPhoto(this.selectedFile);
       }
-      
+
       // 2. Construir el objeto del guardia
       const guardData = {
         full_name: this.nombre,
         document_id: this.idGuardia,
-        photo_url: photoUrl || undefined // Pasar undefined si no hay foto
+        email: this.email,
+        telefono: this.telefono,
+        direccion: this.direccion,
+        area: this.area, // Ahora sí se envía
+        photo_url: photoUrl || undefined
       };
 
       // 3. Llamar al servicio para crear el guardia en Supabase
@@ -150,6 +158,8 @@ export class RegistrosComponent implements OnInit, OnDestroy {
     this.nombre = '';
     this.email = '';
     this.area = '';
+    this.telefono = '';
+    this.direccion = '';
     this.idGuardia = '';
     this.imagePreview = null;
     this.selectedFile = null;

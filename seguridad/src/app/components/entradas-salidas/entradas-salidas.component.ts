@@ -43,7 +43,9 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
   ) { }
 
   ngOnInit(): void {
-    this.cargarDatos();
+    if (isPlatformBrowser(this.platformId)) {
+      this.cargarDatos();
+    }
   }
 
   async cargarDatos() {
@@ -112,7 +114,7 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
   filtrar(): void {
     this.registrosFiltrados = this.registros.filter(registro => {
       // Filtro de Fechas
-      const fechaRegistro = new Date(registro.fecha);
+      const fechaRegistro = new Date(registro.fechaHora);
       if (this.filtroDesde) {
         const desde = new Date(this.filtroDesde);
         // Start of day

@@ -35,14 +35,6 @@
     ]
   },
   {
-    "fullName": "Diego Alberto Solis Baas",
-    "email": "aldinalv62@gmail.com",
-    "password": "Diego123",
-    "location": "calle 17 x 10 y 12 Kanasín, Mérida, Yucatán, México",
-    "lat": 20.93963690133021,
-    "lng": -89.61698055267335
-  },
-  {
     "fullName": "Briana ",
     "email": "jehielixool@gmail.com",
     "password": "briana14.@",
@@ -98,9 +90,9 @@
     "email": "emiliopena777@gmail.com",
     "password": "12345678",
     "companyName": "Residencial Torremolinos",
-    "lat": 20.9152278,
-    "lng": -89.5425702,
-    "location": "Kanasín, Yucatán, 97370, México"
+    "lat": 20.9365,
+    "lng": -89.5580,
+    "location": "C. 17 119, Centro, 97370 Kanasín, Yuc."
   },
   {
     "fullName": "chob",

@@ -6,8 +6,8 @@ const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 
 // Supabase Configuration
-const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oemhvcmtwcm53ZmJmZ21ycWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MzgyODUsImV4cCI6MjA3OTUxNDI4NX0.eXKbWsoHTcXqh5De5hk77Z1ftxJiaTDB3VwRPpe6Nos';
+const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
+const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
@@ -139,12 +139,36 @@ app.get('/api/guards/:idEmpleado', async (req, res) => {
 });
 
 app.post('/api/guards', async (req, res) => {
-  const newGuard = req.body;
-  if (!newGuard.idEmpleado || !newGuard.nombre) return res.status(400).json({ message: 'Datos incompletos' });
+  // Extract fields used by frontend (GuardService/RegistrosComponent)
+  const { full_name, document_id, photo_url, email, telefono, direccion } = req.body;
 
-  const { data, error } = await supabase.from('guards').insert([newGuard]).select();
-  if (error) return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
-  res.status(201).json({ message: 'Guardia registrado', guard: data[0] });
+  // Validate required fields
+  if (!document_id || !full_name) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
+  }
+
+  // Map to DB columns
+  const newGuard = {
+    idEmpleado: document_id,
+    nombre: full_name,
+    foto: photo_url,
+    email,
+    telefono,
+    direccion,
+    // fechaContratacion default is now() in DB
+  };
+
+  const { data, error } = await supabase
+    .from('guards')
+    .insert([newGuard])
+    .select();
+
+  if (error) {
+    console.error("Supabase Guard Insert Error:", error);
+    return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
+  }
+
+  res.status(201).json({ message: 'Guardia registrado con éxito', guard: data[0] });
 });
 
 app.patch('/api/guards/:idEmpleado', async (req, res) => {
@@ -182,22 +206,54 @@ app.get('/api/admins/:email', async (req, res) => {
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  const newAdmin = req.body;
-  if (!newAdmin.email || !newAdmin.password || !newAdmin.companyName) {
-    return res.status(400).json({ message: 'Faltan datos obligatorios' });
+  const { fullName, email, password, companyName, location, lat, lng, zone } = req.body;
+
+  // 1. Validation
+  if (!email || !password || !companyName || !fullName) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, Email, Contraseña, Compañía).' });
   }
 
-  // Check availability
-  const { data: existing } = await supabase.from('admins').select('email, companyName').or(`email.eq.${newAdmin.email},companyName.eq.${newAdmin.companyName}`);
+  try {
+    // 2. Check for existing user (to provide a clear error message)
+    const { data: existing } = await supabase
+      .from('admins')
+      .select('email, "companyName"') // Quote companyName to be safe if case-sensitive
+      .or(`email.eq.${email}, "companyName".eq.${companyName}`);
 
-  if (existing && existing.length > 0) {
-    return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
+    if (existing && existing.length > 0) {
+      return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
+    }
+
+    // 3. Prepare payload with explicit fields
+    const newAdmin = {
+      fullName,
+      email,
+      password, // In a real app, hash this!
+      companyName,
+      location,
+      lat,
+      lng,
+      zone: zone || [] // Ensure zone is at least an empty array
+    };
+
+    // 4. Insert
+    const { data, error } = await supabase
+      .from('admins')
+      .insert([newAdmin])
+      .select();
+
+    if (error) {
+      console.error("Supabase Insert Error:", error);
+      // Return the specific error message to the client for easier debugging
+      return res.status(500).json({ message: 'Error de base de datos', details: error.message });
+    }
+
+    res.status(201).json({ message: 'Administrador registrado con éxito', admin: data[0] });
+
+  } catch (err) {
+    console.error("Server Error:", err);
+    res.status(500).json({ message: 'Error interno del servidor', details: err.message });
   }
-
-  const { data, error } = await supabase.from('admins').insert([newAdmin]).select();
-  if (error) return res.status(500).json({ message: 'Error registrando admin', error: error.message });
-
-  res.status(201).json({ message: 'Administrador registrado', admin: data[0] });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -353,5 +409,4 @@ app.delete('/api/entries-exits/:id', async (req, res) => {
 
 app.listen(port, () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
-  console.log('Use POST /api/migrate to seed Supabase with local JSON data.');
 });
