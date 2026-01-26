@@ -61,6 +61,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private loadGuards() {
+    if (!isPlatformBrowser(this.platformId)) return;
     this.http.get<any[]>('http://localhost:3000/api/guards').subscribe({
       next: (data) => {
         this.guards = data;
@@ -186,6 +187,7 @@ export class MapaComponent implements OnInit, OnDestroy {
 
 
   private loadBuildingsInZone() {
+    if (!isPlatformBrowser(this.platformId)) return;
     if (!this.adminZoneCoords || this.adminZoneCoords.length < 3) return;
 
     // Clear previous buildings

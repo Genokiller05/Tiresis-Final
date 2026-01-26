@@ -12,8 +12,8 @@ const Stripe = require('stripe');
 const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
 
 // Supabase Configuration
-const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oemhvcmtwcm53ZmJmZ21ycWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MzgyODUsImV4cCI6MjA3OTUxNDI4NX0.eXKbWsoHTcXqh5De5hk77Z1ftxJiaTDB3VwRPpe6Nos';
+const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
+const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();
@@ -154,12 +154,36 @@ app.get('/api/guards/:idEmpleado', async (req, res) => {
 });
 
 app.post('/api/guards', async (req, res) => {
-  const newGuard = req.body;
-  if (!newGuard.idEmpleado || !newGuard.nombre) return res.status(400).json({ message: 'Datos incompletos' });
+  // Extract fields used by frontend (GuardService/RegistrosComponent)
+  const { full_name, document_id, photo_url, email, telefono, direccion } = req.body;
 
-  const { data, error } = await supabase.from('guards').insert([newGuard]).select();
-  if (error) return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
-  res.status(201).json({ message: 'Guardia registrado', guard: data[0] });
+  // Validate required fields
+  if (!document_id || !full_name) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
+  }
+
+  // Map to DB columns
+  const newGuard = {
+    idEmpleado: document_id,
+    nombre: full_name,
+    foto: photo_url,
+    email,
+    telefono,
+    direccion,
+    // fechaContratacion default is now() in DB
+  };
+
+  const { data, error } = await supabase
+    .from('guards')
+    .insert([newGuard])
+    .select();
+
+  if (error) {
+    console.error("Supabase Guard Insert Error:", error);
+    return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
+  }
+
+  res.status(201).json({ message: 'Guardia registrado con éxito', guard: data[0] });
 });
 
 app.patch('/api/guards/:idEmpleado', async (req, res) => {
@@ -197,11 +221,12 @@ app.get('/api/admins/:email', async (req, res) => {
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  const newUser = req.body;
+  const { fullName, email, password, companyName, location, lat, lng, zone } = req.body;
+  const newUser = { ...req.body }; // Keep full object for local storage compatibility
 
-  // Auto-generate password if not provided
+  // 1. Auto-generate password if not provided
   let generatedPassword = null;
-  if (!newUser.password) {
+  if (!password && !newUser.password) {
     generatedPassword = Math.random().toString(36).slice(-8);
     newUser.password = generatedPassword;
   }
@@ -222,8 +247,18 @@ app.post('/api/register-admin', async (req, res) => {
     } catch (e) { console.error("Error writing email log:", e); }
   };
 
-  // 1. Try Supabase
+  // 2. Try Supabase
   try {
+    // Check for existing (Remote logic improvement)
+    const { data: existing } = await supabase
+      .from('admins')
+      .select('email, "companyName"')
+      .or(`email.eq.${newUser.email}, "companyName".eq.${newUser.companyName}`);
+
+    if (existing && existing.length > 0) {
+      return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
+    }
+
     const { data, error } = await supabase.from('admins').insert([newUser]).select();
     if (!error && data) {
       logEmail(newUser, generatedPassword || newUser.password);
@@ -233,7 +268,7 @@ app.post('/api/register-admin', async (req, res) => {
     console.warn('Supabase register failed, falling back to local:', err);
   }
 
-  // 2. Fallback local
+  // 3. Fallback local
   // Save to local DB
   const admins = readJsonFile('admins.json');
   if (admins.find(a => a.email === newUser.email)) {
@@ -482,5 +517,4 @@ app.post(
 
 app.listen(port, () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
-  console.log('Use POST /api/migrate to seed Supabase with local JSON data.');
 });

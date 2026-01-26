@@ -66,7 +66,9 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   ) { }
 
   async ngOnInit(): Promise<void> {
-    this.fetchReports(); // Llamar a fetchReports sin await
+    if (isPlatformBrowser(this.platformId)) {
+      this.fetchReports();
+    }
     this.langSubscription = this.translationService.uiText.subscribe(translations => {
       this.uiText = translations?.alertas || {};
     });
