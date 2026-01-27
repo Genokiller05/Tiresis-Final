@@ -84,7 +84,7 @@ const NewReportScreen = () => {
       const newReport = {
         fechaHora: new Date().toISOString(),
         tipo: incidentType,
-        origen: 'App Guardia', // Hardcoded source for now
+        origen: 'Guardia', // Matches web app filter 'Guardia'
         sitioArea: 'Patrullaje General', // Default area
         estado: 'Pendiente',
         detalles: {
