@@ -12,8 +12,8 @@ const Stripe = require('stripe');
 const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
 
 // Supabase Configuration
-const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1oemhvcmtwcm53ZmJmZ21ycWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM5MzgyODUsImV4cCI6MjA3OTUxNDI4NX0.eXKbWsoHTcXqh5De5hk77Z1ftxJiaTDB3VwRPpe6Nos';
+const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
+const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const app = express();

@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 
-import { createReport as addReport } from './services/dataService';
+import { createReport as addReport, uploadEntryEvidence } from './services/dataService';
 
 // --- Tipado de navegación ---
 type RootStackParamList = {
@@ -81,20 +81,29 @@ const NewReportScreen = () => {
     }
 
     try {
+      let evidenceUrl = null;
+
+      if (evidence) {
+        evidenceUrl = await uploadEntryEvidence(evidence);
+        if (!evidenceUrl) {
+          Alert.alert('Advertencia', 'No se pudo subir la evidencia. Se enviará el reporte sin foto.');
+        }
+      }
+
       const newReport = {
         fechaHora: new Date().toISOString(),
         tipo: incidentType,
-        origen: 'Guardia', // Matches web app filter 'Guardia'
-        sitioArea: 'Patrullaje General', // Default area
+        origen: 'Guardia',
+        sitioArea: 'Patrullaje General',
         estado: 'Pendiente',
         detalles: {
           descripcion: description,
-          evidencia: evidence || null,
-          resumen: description // Legacy support if needed
+          evidencia: evidenceUrl,
+          resumen: description
         }
       };
 
-      await addReport(newReport); // This now calls createReport in dataService
+      await addReport(newReport);
 
       Alert.alert(
         t('new_report.success_title'),
