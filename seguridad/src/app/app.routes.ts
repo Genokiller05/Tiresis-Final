@@ -15,8 +15,9 @@ import { AdminRegisterComponent } from './components/admin-register/admin-regist
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
     { path: 'register', component: AdminRegisterComponent },
+    { path: '', redirectTo: 'register', pathMatch: 'full' },
     {
-        path: '',
+        path: 'dashboard', // Moved Layout to explicit path
         component: LayoutComponent,
         canActivate: [authGuard],
         children: [
@@ -30,5 +31,5 @@ export const routes: Routes = [
             { path: 'camaras', component: CamarasComponent }
         ]
     },
-    { path: '**', redirectTo: 'login' }
+    { path: '**', redirectTo: 'register' }
 ];

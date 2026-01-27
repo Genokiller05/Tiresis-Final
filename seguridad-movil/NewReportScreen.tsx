@@ -96,7 +96,7 @@ const NewReportScreen = () => {
       const newReport = {
         fechaHora: new Date().toISOString(),
         tipo: incidentType,
-        origen: 'App Guardia', // Hardcoded source for now
+        origen: 'Guardia', // Matches web app filter 'Guardia'
         sitioArea: 'Patrullaje General', // Default area
         estado: 'Pendiente',
         detalles: {
@@ -157,7 +157,7 @@ const NewReportScreen = () => {
               style={styles.textArea}
               placeholder={t('new_report.add_details')}
               placeholderTextColor={colors.subtext}
-              multiline={true}
+              multiline
               numberOfLines={4}
               value={description}
               onChangeText={setDescription}
@@ -183,7 +183,7 @@ const NewReportScreen = () => {
       {/* Modal para seleccionar Tipo de Incidente */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={isIncidentModalVisible}
         onRequestClose={() => setIncidentModalVisible(false)}
       >

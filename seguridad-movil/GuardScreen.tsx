@@ -401,7 +401,7 @@ const GuardScreen = () => {
       {/* --- PREMIUM MODAL --- */}
       <Modal
         animationType="fade"
-        transparent={true}
+        transparent
         visible={isViewModalVisible}
         onRequestClose={() => setViewModalVisible(false)}
       >
@@ -464,7 +464,7 @@ const GuardScreen = () => {
           */}
           {!isLandscape && (
             <View style={styles.controlsPanel}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center', gap: 20, paddingHorizontal: 10 }}>
+              <ScrollView horizontal contentContainerStyle={{ alignItems: 'center', gap: 20, paddingHorizontal: 10 }}>
                 {/* 
                    PTZ REMOVED AS REQUESTED
                 */}

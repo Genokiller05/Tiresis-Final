@@ -19,8 +19,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
+import { createEntryExit, uploadEntryEvidence } from './services/dataService';
 
 const { width } = Dimensions.get('window');
+
+// Simple UUID generator for React Native if crypto is not available
+const generateUUID = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
 
 // --- Tipos para la navegación ---
 type RegistrationRouteParams = {
@@ -96,14 +105,43 @@ const RegistrationScreen = () => {
         }
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!name || !evidenceUri) {
             Alert.alert('Faltan Datos', 'El nombre y la fotografía (INE/Rostro) son obligatorios.');
             return;
         }
-        // Aquí iría la lógica de guardado en base de datos
-        Alert.alert('Registro Exitoso', 'La entrada ha sido registrada correctamente.');
-        navigation.goBack();
+
+        try {
+            // Upload Evidence first
+            let evidenceUrl = null;
+            if (evidenceUri) {
+                evidenceUrl = await uploadEntryEvidence(evidenceUri);
+            }
+
+            const description = type === 'visit'
+                ? `Visita a: ${purpose}`
+                : `${type === 'delivery' ? 'Paquetería' : 'Trabajador'}: ${company} - ${purpose}`;
+
+            const entryData = {
+                id: generateUUID(),
+                fechaHora: new Date().toISOString(),
+                tipo: 'Entrada', // Currently hardcoded to Entrada as this is a registration screen
+                descripcion: `Nombre: ${name}. ${description}`,
+                detalles: {
+                    evidence_url: evidenceUrl,
+                    notes: purpose, // Saving purpose/company in details for easier access
+                    company: company
+                }
+            };
+
+            await createEntryExit(entryData);
+
+            Alert.alert('Registro Exitoso', 'La entrada ha sido registrada correctamente.');
+            navigation.goBack();
+        } catch (error) {
+            console.error(error);
+            Alert.alert('Error', 'No se pudo registrar la entrada.');
+        }
     };
 
     return (
@@ -128,7 +166,7 @@ const RegistrationScreen = () => {
                         <View style={{ width: 24 }} />
                     </View>
 
-                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
 
                         {/* Header Card */}
                         <View style={[styles.infoCard, { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255,255,255,0.7)', borderColor: config.color }]}>

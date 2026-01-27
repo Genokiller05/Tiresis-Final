@@ -19,24 +19,33 @@ export class AuthService {
     this.isLoggedIn$ = this.loggedIn.asObservable();
   }
 
+  hasToken(): boolean {
+    if (isPlatformBrowser(this.platformId)) {
+      return sessionStorage.getItem('isLoggedIn') === 'true';
+    }
+    return false;
+  }
+
   // Set internal state to true
   login() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('isLoggedIn', 'true');
+      sessionStorage.setItem('isLoggedIn', 'true');
     }
     this.loggedIn.next(true);
   }
 
   logout() {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('currentUser');
+      sessionStorage.removeItem('isLoggedIn');
+      sessionStorage.removeItem('currentUser');
     }
     this.loggedIn.next(false);
   }
 
   isLoggedIn(): boolean {
-    return this.loggedIn.getValue();
+    // Check subject first, but fallback to storage if false (handle refresh)
+    if (this.loggedIn.getValue()) return true;
+    return this.hasToken();
   }
 
   registerAdmin(adminData: any): Observable<any> {
@@ -56,22 +65,16 @@ export class AuthService {
 
   setCurrentUser(user: any) {
     if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      sessionStorage.setItem('currentUser', JSON.stringify(user));
     }
   }
 
   getCurrentUser(): any {
     if (isPlatformBrowser(this.platformId)) {
-      const user = localStorage.getItem('currentUser');
+      const user = sessionStorage.getItem('currentUser');
       return user ? JSON.parse(user) : null;
     }
     return null;
   }
 
-  private hasToken(): boolean {
-    if (isPlatformBrowser(this.platformId)) {
-      return !!localStorage.getItem('isLoggedIn');
-    }
-    return false;
-  }
 }

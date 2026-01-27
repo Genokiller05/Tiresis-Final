@@ -34,11 +34,9 @@
               "node_modules/leaflet-draw/dist/leaflet.draw.css",
               "src/styles.css"
             ],
-            "server": "src/main.server.ts",
-            "outputMode": "server",
-            "ssr": {
-              "entry": "src/server.ts"
-            }
+            "index": "src/index.html",
+            "ssr": false,
+            "prerender": false
           },
           "configurations": {
             "production": {

@@ -12,13 +12,17 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
-import { getAllReports, Report as ReportData } from './services/dataService'; 
+<<<<<<< Updated upstream
+import { getAllReports, Report as ReportData } from './services/dataService';
+=======
+import { fetchReports, Report } from './services/dataService';
+>>>>>>> Stashed changes
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
   NewReportScreen: undefined;
   MainTabs: undefined;
-  ReportDetail: { reportId: number };
+  ReportDetail: { reportId: string }; // Changed to string to match Supabase ID
 };
 
 type ReportsScreenNavigationProp = NativeStackNavigationProp<
@@ -30,41 +34,89 @@ const ReportsScreen = () => {
   const { colors } = useTheme();
   const { t } = useI18n();
   const styles = createStyles(colors);
-  const [reports, setReports] = useState<ReportData[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
 
   useFocusEffect(
     useCallback(() => {
-      const allReports = getAllReports();
-      setReports(allReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      const loadReports = async () => {
+        try {
+<<<<<<< Updated upstream
+          const allReports = await getAllReports();
+          setReports(allReports);
+        } catch (error) {
+          console.error('Error loading reports:', error);
+        }
+      };
+=======
+          const allReports = await fetchReports();
+          // Assuming 'fechaHora' or 'created_at' is used for sorting. The original used 'timestamp' which is not in Report type.
+          // Using created_at for sorting.
+          setReports(allReports.sort((a, b) => {
+            const dateA = new Date(a.created_at || 0).getTime();
+            const dateB = new Date(b.created_at || 0).getTime();
+            return dateB - dateA;
+          }));
+        } catch (error) {
+          console.error("Error loading reports", error);
+        }
+      };
+
+>>>>>>> Stashed changes
+      loadReports();
     }, [])
   );
 
-  const statusColors: Record<ReportData['status'], string> = {
+  const statusColors: Record<string, string> = {
+<<<<<<< Updated upstream
+    Pendiente: '#F59E0B',
+    'En Revisión': '#3B82F6',
+=======
     Enviado: colors.accent,
     'En Revisión': '#F59E0B',
+>>>>>>> Stashed changes
     Resuelto: '#10B981',
+    // Add default fallbacks
   };
 
-  const statusTranslations = {
-    Enviado: t('reports.status_sent'),
+  const statusTranslations: Record<string, string> = {
+<<<<<<< Updated upstream
+    Pendiente: t('reports.status_sent'),
     'En Revisión': t('reports.status_in_review'),
     Resuelto: t('reports.status_resolved'),
   };
 
   const renderReportItem = ({ item }: { item: ReportData }) => (
+    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: Number(item.id) })}>
+=======
+    Enviado: t('reports.status_sent') || 'Enviado',
+    'En Revisión': t('reports.status_in_review') || 'En Revisión',
+    Resuelto: t('reports.status_resolved') || 'Resuelto',
+  };
+
+  const renderReportItem = ({ item }: { item: Report }) => (
     <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: item.id })}>
+>>>>>>> Stashed changes
       <View style={styles.reportIconContainer}>
         <Text style={styles.reportIcon}>📋</Text>
       </View>
       <View style={styles.reportTextContainer}>
-        <Text style={styles.reportType}>{item.type}</Text>
-        <Text style={styles.reportSummary}>{item.summary}</Text>
-        <Text style={styles.reportDate}>{item.date}</Text>
+        <Text style={styles.reportType}>{item.tipo}</Text>
+<<<<<<< Updated upstream
+        <Text style={styles.reportSummary}>{item.detalles?.descripcion || item.detalles?.resumen || 'Sin descripción'}</Text>
+        <Text style={styles.reportDate}>{new Date(item.fechaHora).toLocaleString()}</Text>
       </View>
       <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: statusColors[item.status] }]} />
-        <Text style={[styles.statusText, { color: statusColors[item.status] }]}>
-          {statusTranslations[item.status]}
+        <View style={[styles.statusDot, { backgroundColor: statusColors[item.estado] || '#94a3b8' }]} />
+        <Text style={[styles.statusText, { color: statusColors[item.estado] || '#94a3b8' }]}>
+=======
+        <Text style={styles.reportSummary}>{item.estado} - {item.origen}</Text>
+        <Text style={styles.reportDate}>{new Date(item.fechaHora).toLocaleDateString()}</Text>
+      </View>
+      <View style={styles.statusContainer}>
+        <View style={[styles.statusDot, { backgroundColor: statusColors[item.estado] || 'gray' }]} />
+        <Text style={[styles.statusText, { color: statusColors[item.estado] || 'gray' }]}>
+>>>>>>> Stashed changes
+          {statusTranslations[item.estado] || item.estado}
         </Text>
       </View>
     </Pressable>

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://uklohjdookcdibmogivq.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_6dJSMP-j-Caj3KnLrgN2EQ_ud8MOqUp';
+const SUPABASE_URL = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
 
 @Injectable({
   providedIn: 'root'

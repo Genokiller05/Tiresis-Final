@@ -7,47 +7,48 @@
   </div>
 
   <!-- Navigation -->
+  <!-- Navigation -->
   <nav class="flex flex-col w-full px-2 space-y-4">
 
     <!-- Alertas -->
-    <a title="Alertas" href="#" (click)="navigateTo($event, '/alertas')"
+    <a title="Alertas" href="#" (click)="navigateTo($event, '/dashboard/alertas')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200 group relative"
-      [ngClass]="isActive('/alertas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/alertas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">notifications_active</span>
     </a>
 
     <!-- Registros -->
-    <a title="Registros" href="#" (click)="navigateTo($event, '/registros')"
+    <a title="Registros" href="#" (click)="navigateTo($event, '/dashboard/registros')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/registros') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/registros') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">assignment_ind</span>
     </a>
 
     <!-- Buscar Guardias (Home) -->
-    <a title="Buscar Personal" href="#" (click)="navigateTo($event, '/home')"
+    <a title="Buscar Personal" href="#" (click)="navigateTo($event, '/dashboard/home')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/home') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/home') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">person_search</span>
     </a>
 
     <!-- Mapa -->
-    <a title="Mapa" href="#" (click)="navigateTo($event, '/mapa')"
+    <a title="Mapa" href="#" (click)="navigateTo($event, '/dashboard/mapa')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/mapa') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/mapa') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">map</span>
     </a>
 
     <!-- Entradas/Salidas -->
-    <a title="Entradas y Salidas" href="#" (click)="navigateTo($event, '/entradas-salidas')"
+    <a title="Entradas y Salidas" href="#" (click)="navigateTo($event, '/dashboard/entradas-salidas')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/entradas-salidas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/entradas-salidas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">swap_horiz</span>
     </a>
 
     <!-- Cámaras -->
-    <a title="Cámaras" href="#" (click)="navigateTo($event, '/camaras')"
+    <a title="Cámaras" href="#" (click)="navigateTo($event, '/dashboard/camaras')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/camaras') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/camaras') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">videocam</span>
     </a>
 
@@ -55,9 +56,9 @@
 
   <!-- Bottom: Profile/Settings Link (Optional, using current user logic if exists or just static for now) -->
   <div class="mt-auto mb-6">
-    <a title="Perfil Admin" href="#" (click)="navigateTo($event, '/admin-profile')"
+    <a title="Perfil Admin" href="#" (click)="navigateTo($event, '/dashboard/admin-profile')"
       class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/admin-profile') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
+      [ngClass]="isActive('/dashboard/admin-profile') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
       <span class="material-icons text-2xl">settings</span>
     </a>
   </div>

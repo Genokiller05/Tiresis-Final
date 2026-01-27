@@ -1,6 +1,8 @@
-// src/services/dataService.ts
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabaseClient';
 import type { Site, Report, ReportInsert } from '../types/supabase';
+
+// Re-export types for convenience
+export type { Report };
 
 /**
  * Fetches all sites (buildings) from the database.
@@ -17,7 +19,6 @@ export const fetchSites = async (): Promise<Site[]> => {
     throw new Error(error.message);
   }
 
-  // Map fields if necessary, but 'id' and 'name' should match
   return data || [];
 };
 
@@ -36,6 +37,46 @@ export const createReport = async (reportData: ReportInsert): Promise<Report> =>
 
   if (error) {
     console.error('Error creating report:', error);
+    throw new Error(error.message);
+  }
+
+  return data;
+};
+
+/**
+ * Fetches all reports from the database.
+ * 
+ * @returns A promise that resolves to an array of reports.
+ */
+export const fetchReports = async (): Promise<Report[]> => {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching reports:', error);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+};
+
+/**
+ * Creates a new entry/exit record in the database.
+ * 
+ * @param entryData - The data for the new entry/exit.
+ * @returns A promise that resolves to the newly created record.
+ */
+export const createEntryExit = async (entryData: any): Promise<any> => {
+  const { data, error } = await supabase
+    .from('entries_exits')
+    .insert([entryData])
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating entry/exit:', error);
     throw new Error(error.message);
   }
 
@@ -62,4 +103,64 @@ export const updateGuardStatus = async (idEmpleado: string, status: string): Pro
   }
 
   return data;
+};
+
+/**
+ * Fetches all reports from the database.
+ * 
+ * @returns A promise that resolves to an array of reports.
+ */
+export const getAllReports = async (): Promise<Report[]> => {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('fechaHora', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching reports:', error);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+};
+
+/**
+ * Uploads an evidence image to Supabase Storage.
+ * 
+ * @param uri - The local URI of the image.
+ * @returns The public URL of the uploaded image.
+ */
+export const uploadEntryEvidence = async (uri: string): Promise<string | null> => {
+  try {
+    const filename = `evidence/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+
+    // Create a FormData object to upload the file
+    const formData = new FormData();
+    formData.append('file', {
+      uri,
+      name: 'evidence.jpg',
+      type: 'image/jpeg',
+    } as any);
+
+    const { data, error } = await supabase.storage
+      .from('evidence') // Ensure this bucket exists in Supabase
+      .upload(filename, formData, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      console.error('Error uploading evidence:', error);
+      return null;
+    }
+
+    const { data: publicData } = supabase.storage
+      .from('evidence')
+      .getPublicUrl(filename);
+
+    return publicData.publicUrl;
+  } catch (error) {
+    console.error('Upload exception:', error);
+    return null;
+  }
 };

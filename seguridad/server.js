@@ -4,6 +4,12 @@ const path = require('path');
 const cors = require('cors');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
+const Stripe = require('stripe');
+
+// --- STRIPE CONFIGURATION ---
+// IMPORTANT: Replace this with your actual Stripe Secret Key (sk_test_...)
+// You can also use process.env.STRIPE_SECRET_KEY if using dotenv
+const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
 
 // Supabase Configuration
 const supabaseUrl = 'https://mhzhorkprnwfbfgmrqaa.supabase.co';
@@ -47,6 +53,15 @@ const readJsonFile = (filename) => {
     console.error(`Error reading ${filename}:`, err);
   }
   return [];
+};
+
+const writeJsonFile = (filename, data) => {
+  try {
+    const filePath = path.join(dataDir, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    console.error(`Error writing ${filename}:`, err);
+  }
 };
 
 // --- MIGRATION ENDPOINT ---
@@ -139,12 +154,36 @@ app.get('/api/guards/:idEmpleado', async (req, res) => {
 });
 
 app.post('/api/guards', async (req, res) => {
-  const newGuard = req.body;
-  if (!newGuard.idEmpleado || !newGuard.nombre) return res.status(400).json({ message: 'Datos incompletos' });
+  // Extract fields used by frontend (GuardService/RegistrosComponent)
+  const { full_name, document_id, photo_url, email, telefono, direccion } = req.body;
 
-  const { data, error } = await supabase.from('guards').insert([newGuard]).select();
-  if (error) return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
-  res.status(201).json({ message: 'Guardia registrado', guard: data[0] });
+  // Validate required fields
+  if (!document_id || !full_name) {
+    return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
+  }
+
+  // Map to DB columns
+  const newGuard = {
+    idEmpleado: document_id,
+    nombre: full_name,
+    foto: photo_url,
+    email,
+    telefono,
+    direccion,
+    // fechaContratacion default is now() in DB
+  };
+
+  const { data, error } = await supabase
+    .from('guards')
+    .insert([newGuard])
+    .select();
+
+  if (error) {
+    console.error("Supabase Guard Insert Error:", error);
+    return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
+  }
+
+  res.status(201).json({ message: 'Guardia registrado con éxito', guard: data[0] });
 });
 
 app.patch('/api/guards/:idEmpleado', async (req, res) => {
@@ -161,49 +200,125 @@ app.delete('/api/guards/:idEmpleado', async (req, res) => {
 
 // --- Admins ---
 app.get('/api/admins/:email', async (req, res) => {
-  const { data, error } = await supabase.from('admins').select('*').eq('email', req.params.email).single();
-  if (error) return res.status(404).json({ message: 'Admin no encontrado' });
-  res.json(data);
+  let adminUser = null;
+
+  try {
+    const { data, error } = await supabase.from('admins').select('*').eq('email', req.params.email).single();
+    if (!error && data) {
+      adminUser = data;
+    }
+  } catch (err) {
+    console.warn('Supabase admin fetch failed, trying local:', err);
+  }
+
+  if (!adminUser) {
+    const admins = readJsonFile('admins.json');
+    adminUser = admins.find(a => a.email === req.params.email);
+  }
+
+  if (!adminUser) return res.status(404).json({ message: 'Admin no encontrado' });
+  res.json(adminUser);
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  const newAdmin = req.body;
-  if (!newAdmin.email || !newAdmin.password || !newAdmin.companyName) {
-    return res.status(400).json({ message: 'Faltan datos obligatorios' });
+  const { fullName, email, password, companyName, location, lat, lng, zone } = req.body;
+  const newUser = { ...req.body }; // Keep full object for local storage compatibility
+
+  // 1. Auto-generate password if not provided
+  let generatedPassword = null;
+  if (!password && !newUser.password) {
+    generatedPassword = Math.random().toString(36).slice(-8);
+    newUser.password = generatedPassword;
   }
 
-  // Check availability
-  const { data: existing } = await supabase.from('admins').select('email, companyName').or(`email.eq.${newAdmin.email},companyName.eq.${newAdmin.companyName}`);
+  // Helper to log email
+  const logEmail = (user, pass) => {
+    try {
+      const emails = readJsonFile('emails.json');
+      emails.push({
+        to: user.email,
+        subject: 'Bienvenido a TIRESIS - Credenciales de Acceso',
+        body: `Hola ${user.fullName}, tu contraseña es: ${pass}`,
+        password: pass,
+        date: new Date().toISOString()
+      });
+      writeJsonFile('emails.json', emails);
+      console.log(`[EMAIL SAVED] To emails.json for ${user.email}`);
+    } catch (e) { console.error("Error writing email log:", e); }
+  };
 
-  if (existing && existing.length > 0) {
-    return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
+  // 2. Try Supabase
+  try {
+    // Check for existing (Remote logic improvement)
+    const { data: existing } = await supabase
+      .from('admins')
+      .select('email, "companyName"')
+      .or(`email.eq.${newUser.email}, "companyName".eq.${newUser.companyName}`);
+
+    if (existing && existing.length > 0) {
+      return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
+    }
+
+    const { data, error } = await supabase.from('admins').insert([newUser]).select();
+    if (!error && data) {
+      logEmail(newUser, generatedPassword || newUser.password);
+      return res.status(201).json({ message: 'Admin registrado en Supabase', user: data[0], password: generatedPassword || newUser.password });
+    }
+  } catch (err) {
+    console.warn('Supabase register failed, falling back to local:', err);
   }
 
-  const { data, error } = await supabase.from('admins').insert([newAdmin]).select();
-  if (error) return res.status(500).json({ message: 'Error registrando admin', error: error.message });
+  // 3. Fallback local
+  // Save to local DB
+  const admins = readJsonFile('admins.json');
+  if (admins.find(a => a.email === newUser.email)) {
+    return res.status(400).json({ message: 'El correo ya está registrado (Local)' });
+  }
 
-  res.status(201).json({ message: 'Administrador registrado', admin: data[0] });
+  admins.push(newUser);
+  writeJsonFile('admins.json', admins);
+
+  const finalPass = generatedPassword || newUser.password;
+  logEmail(newUser, finalPass);
+
+  res.status(201).json({ message: 'Admin registrado localmente', user: newUser, password: finalPass });
 });
 
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  // Simple password check (plaintext match as per previous logic)
-  const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
 
-  if (error || !data) {
+  let adminUser = null;
+
+  // 1. Try Supabase
+  try {
+    const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
+    if (!error && data) {
+      adminUser = data;
+    }
+  } catch (err) {
+    console.warn('Supabase login check failed, trying local:', err);
+  }
+
+  // 2. Fallback to Local JSON if not found in Supabase
+  if (!adminUser) {
+    const admins = readJsonFile('admins.json');
+    adminUser = admins.find(a => a.email === email && a.password === password);
+  }
+
+  if (!adminUser) {
     return res.status(401).json({ message: 'Credenciales incorrectas' });
   }
 
   res.json({
     message: 'Login exitoso',
     admin: {
-      name: data.fullName,
-      email: data.email,
-      location: data.location,
-      companyName: data.companyName,
-      lat: data.lat,
-      lng: data.lng,
-      zone: data.zone
+      name: adminUser.fullName || adminUser.name, // Handle different field names if needed
+      email: adminUser.email,
+      location: adminUser.location,
+      companyName: adminUser.companyName,
+      lat: adminUser.lat,
+      lng: adminUser.lng,
+      zone: adminUser.zone
     }
   });
 });
@@ -320,7 +435,86 @@ app.delete('/api/entries-exits/:id', async (req, res) => {
   res.json({ message: 'Registro eliminado' });
 });
 
+// --- STRIPE ENDPOINTS ---
+
+/**
+ * Endpoint para crear una sesión de Checkout con OXXO.
+ */
+app.post("/api/stripe/checkout/oxxo", async (req, res) => {
+  try {
+    const { amountMXN, email } = req.body;
+
+    // Crear sesión de Checkout
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["oxxo"],
+      customer_email: email,
+      line_items: [
+        {
+          price_data: {
+            currency: "mxn",
+            product_data: { name: "Pago OXXO (prueba)" },
+            unit_amount: Math.round(Number(amountMXN) * 100), // Stripe in cents
+          },
+          quantity: 1,
+        },
+      ],
+      // URLs de retorno
+      success_url: "http://localhost:4200/#/register?payment=success&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "http://localhost:4200/#/register?payment=cancelled",
+    });
+
+    return res.json({ ok: true, url: session.url, sessionId: session.id });
+  } catch (err) {
+    console.error("Stripe Error:", err.message);
+    // Return mock URL if key is invalid/missing (Test Mode Fallback)
+    if (err.message.includes("api_key") || err.message.includes("Invalid API Key")) {
+      return res.json({
+        ok: true,
+        url: "http://localhost:4200/#/register?payment=mock_success", // Mock redirect for testing UI without key
+        sessionId: "mock_session_id"
+      });
+    }
+    return res.status(400).json({ ok: false, message: err.message });
+  }
+});
+
+/**
+ * Webhook de Stripe
+ */
+app.post(
+  "/api/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const sig = req.headers["stripe-signature"];
+    const webhookSecret = "whsec_PLACEHOLDER"; // Replace with actual webhook secret
+
+    let event;
+    try {
+      // In production, verify signature. In dev without valid secret, we might skip or warn.
+      if (webhookSecret === "whsec_PLACEHOLDER") {
+        event = req.body; // Bypass verification if secret is not set (INSECURE - DEV ONLY)
+      } else {
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      }
+    } catch (err) {
+      return res.status(400).send(`Webhook signature error: ${err.message}`);
+    }
+
+    switch (event.type) {
+      case "checkout.session.async_payment_succeeded":
+        console.log("💰 OXXO Payment Succeeded:", event.data.object);
+        // Here you would find the user by email and setting them to active
+        break;
+      case "checkout.session.async_payment_failed":
+        console.log("❌ OXXO Payment Failed", event.data.object);
+        break;
+    }
+
+    res.json({ received: true });
+  }
+);
+
 app.listen(port, () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
-  console.log('Use POST /api/migrate to seed Supabase with local JSON data.');
 });
