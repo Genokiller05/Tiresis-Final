@@ -128,7 +128,7 @@ const RegistrationScreen = () => {
                         <View style={{ width: 24 }} />
                     </View>
 
-                    <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <ScrollView contentContainerStyle={styles.scrollContent}>
 
                         {/* Header Card */}
                         <View style={[styles.infoCard, { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255,255,255,0.7)', borderColor: config.color }]}>

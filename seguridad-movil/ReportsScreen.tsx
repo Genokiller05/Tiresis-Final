@@ -12,7 +12,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
-import { getAllReports, Report as ReportData } from './services/dataService'; 
+import { getAllReports, Report as ReportData } from './services/dataService';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -34,37 +34,44 @@ const ReportsScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      const allReports = getAllReports();
-      setReports(allReports.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      const loadReports = async () => {
+        try {
+          const allReports = await getAllReports();
+          setReports(allReports);
+        } catch (error) {
+          console.error('Error loading reports:', error);
+        }
+      };
+      loadReports();
     }, [])
   );
 
-  const statusColors: Record<ReportData['status'], string> = {
-    Enviado: colors.accent,
-    'En Revisión': '#F59E0B',
+  const statusColors: Record<string, string> = {
+    Pendiente: '#F59E0B',
+    'En Revisión': '#3B82F6',
     Resuelto: '#10B981',
   };
 
-  const statusTranslations = {
-    Enviado: t('reports.status_sent'),
+  const statusTranslations: Record<string, string> = {
+    Pendiente: t('reports.status_sent'),
     'En Revisión': t('reports.status_in_review'),
     Resuelto: t('reports.status_resolved'),
   };
 
   const renderReportItem = ({ item }: { item: ReportData }) => (
-    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: item.id })}>
+    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: Number(item.id) })}>
       <View style={styles.reportIconContainer}>
         <Text style={styles.reportIcon}>📋</Text>
       </View>
       <View style={styles.reportTextContainer}>
-        <Text style={styles.reportType}>{item.type}</Text>
-        <Text style={styles.reportSummary}>{item.summary}</Text>
-        <Text style={styles.reportDate}>{item.date}</Text>
+        <Text style={styles.reportType}>{item.tipo}</Text>
+        <Text style={styles.reportSummary}>{item.detalles?.descripcion || item.detalles?.resumen || 'Sin descripción'}</Text>
+        <Text style={styles.reportDate}>{new Date(item.fechaHora).toLocaleString()}</Text>
       </View>
       <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: statusColors[item.status] }]} />
-        <Text style={[styles.statusText, { color: statusColors[item.status] }]}>
-          {statusTranslations[item.status]}
+        <View style={[styles.statusDot, { backgroundColor: statusColors[item.estado] || '#94a3b8' }]} />
+        <Text style={[styles.statusText, { color: statusColors[item.estado] || '#94a3b8' }]}>
+          {statusTranslations[item.estado] || item.estado}
         </Text>
       </View>
     </Pressable>

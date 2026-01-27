@@ -17,17 +17,19 @@ export interface Site {
 
 /**
  * Interface for the 'reports' table.
+ * Column names match the SQL schema with quoted identifiers.
  */
 export interface Report {
   id: string; // text
-  fechaHora: string; // timestamptz
+  fechaHora: string; // timestamptz (quoted as "fechaHora" in DB)
   origen: string; // text
   tipo: string; // text
-  sitioArea: string; // text
+  sitioArea: string; // text (quoted as "sitioArea" in DB)
   estado: string; // text
   detalles: any; // jsonb
   created_at?: string; // timestamptz
 }
 
-export type ReportInsert = Report;
+export type ReportInsert = Omit<Report, 'id' | 'created_at'>;
+
 

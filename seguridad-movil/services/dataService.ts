@@ -2,6 +2,9 @@
 import { supabase } from '../lib/supabase';
 import type { Site, Report, ReportInsert } from '../types/supabase';
 
+// Re-export types for convenience
+export type { Report };
+
 /**
  * Fetches all sites (buildings) from the database.
  * 
@@ -63,3 +66,23 @@ export const updateGuardStatus = async (idEmpleado: string, status: string): Pro
 
   return data;
 };
+
+/**
+ * Fetches all reports from the database.
+ * 
+ * @returns A promise that resolves to an array of reports.
+ */
+export const getAllReports = async (): Promise<Report[]> => {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .order('fechaHora', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching reports:', error);
+    throw new Error(error.message);
+  }
+
+  return data || [];
+};
+

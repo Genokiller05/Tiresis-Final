@@ -24,6 +24,7 @@ import { useI18n } from './theme/I18nContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { supabase } from './lib/supabase';
 
 type RootStackParamList = {
   LoginScreen: undefined;
@@ -39,11 +40,8 @@ const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
-  const [email, setEmail] = useState('prueba@segcdmx.com');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
   const [isEmailFocused, setIsEmailFocused] = useState(false);
-  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Animation Values
@@ -86,21 +84,36 @@ const LoginScreen = () => {
   }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert(t('login.error_title'), 'Por favor completa todos los campos');
+    if (!email) {
+      Alert.alert(t('login.error_title'), 'Por favor ingresa tu correo electrónico');
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      if (email === 'prueba@segcdmx.com' && password === '123456') {
+
+    try {
+      const { data, error } = await supabase
+        .from('guards')
+        .select('*')
+        .eq('email', email.trim().toLowerCase()) // Normalize email
+        .single();
+
+      if (error || !data) {
         setIsLoading(false);
-        navigation.replace('MainTabs', { screen: 'Home' });
-      } else {
-        setIsLoading(false);
-        Alert.alert(t('login.error_title'), t('login.error_message'));
+        Alert.alert('Error de acceso', 'Correo no encontrado. Verifica que esté registrado.');
+        return;
       }
-    }, 1000);
+
+      // Success
+      setIsLoading(false);
+      // Optional: Store user session here if needed
+      navigation.replace('MainTabs', { screen: 'Home' });
+
+    } catch (err) {
+      setIsLoading(false);
+      Alert.alert('Error', 'Ocurrió un error al intentar iniciar sesión.');
+      console.error(err);
+    }
   };
 
   return (
@@ -108,7 +121,7 @@ const LoginScreen = () => {
       <View style={styles.container}>
         <StatusBar
           barStyle="light-content"
-          translucent={true}
+          translucent
           backgroundColor="transparent"
         />
 
@@ -203,43 +216,11 @@ const LoginScreen = () => {
                     </View>
                   </View>
 
-                  <View style={styles.inputWrapper}>
-                    <Text style={[styles.label, { color: isDarkMode ? '#cbd5e1' : '#475569' }]}>Contraseña</Text>
-                    <View style={[
-                      styles.inputContainer,
-                      {
-                        borderColor: isPasswordFocused ? colors.accent : (isDarkMode ? '#334155' : '#cbd5e1'),
-                        backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : '#f8fafc',
-                        shadowOpacity: isPasswordFocused ? 0.2 : 0,
-                        shadowColor: colors.accent
-                      }
-                    ]}>
-                      <Ionicons name="lock-closed-outline" size={20} color={isPasswordFocused ? colors.accent : '#94a3b8'} style={{ marginRight: 10 }} />
-                      <TextInput
-                        style={[styles.input, { color: isDarkMode ? '#fff' : '#0f172a' }]}
-                        placeholder="••••••••"
-                        placeholderTextColor="#94a3b8"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                        onFocus={() => setIsPasswordFocused(true)}
-                        onBlur={() => setIsPasswordFocused(false)}
-                      />
-                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                        <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#94a3b8" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity>
-                    <Text style={[styles.forgotPassword, { color: colors.accent }]}>¿Olvidaste tu contraseña?</Text>
-                  </TouchableOpacity>
-
                   {/* Main Action Action */}
                   <TouchableOpacity
                     onPress={handleLogin}
                     disabled={isLoading}
-                    style={[styles.loginButton, { shadowColor: colors.accent }]}
+                    style={[styles.loginButton, { shadowColor: colors.accent, marginTop: 10 }]}
                   >
                     <LinearGradient
                       colors={[colors.accent, '#3b82f6']}
@@ -250,7 +231,7 @@ const LoginScreen = () => {
                       {isLoading ? (
                         <View />
                       ) : (
-                        <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
+                        <Text style={styles.loginButtonText}>Ingresar</Text>
                       )}
 
                     </LinearGradient>
@@ -260,7 +241,7 @@ const LoginScreen = () => {
               </View>
 
               <View style={styles.footer}>
-                <Text style={{ color: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12 }}>Version 2.0.0 • Secure Build</Text>
+                <Text style={{ color: isDarkMode ? '#64748b' : '#94a3b8', fontSize: 12 }}>Version 2.1.0 • Access Control</Text>
               </View>
 
             </Animated.View>
@@ -366,10 +347,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 30,
+    display: 'none', // Hidden
   },
   loginButton: {
     width: '100%',
