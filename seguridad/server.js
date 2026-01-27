@@ -6,6 +6,8 @@ const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 const Stripe = require('stripe');
 
+const nodemailer = require('nodemailer');
+
 // --- STRIPE CONFIGURATION ---
 // IMPORTANT: Replace this with your actual Stripe Secret Key (sk_test_...)
 // You can also use process.env.STRIPE_SECRET_KEY if using dotenv
@@ -221,19 +223,31 @@ app.get('/api/admins/:email', async (req, res) => {
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  const { fullName, email, password, companyName, location, lat, lng, zone } = req.body;
-  const newUser = { ...req.body }; // Keep full object for local storage compatibility
+  // Explicitly map fields to match Supabase schema and avoid "column not found" errors
+  const newUser = {
+    fullName: req.body.fullName,
+    email: req.body.email,
+    password: req.body.password,
+    companyName: req.body.companyName,
+    location: req.body.location || req.body.street, // Handle legacy 'street' field
+    lat: req.body.lat,
+    lng: req.body.lng,
+    zone: req.body.zone
+  };
 
   // 1. Auto-generate password if not provided
   let generatedPassword = null;
-  if (!password && !newUser.password) {
+  if (!newUser.password) {
     generatedPassword = Math.random().toString(36).slice(-8);
     newUser.password = generatedPassword;
   }
 
-  // Helper to log email
-  const logEmail = (user, pass) => {
+  // Helper to "send" email (Simulated via JSON log)
+  const sendEmail = async (user, pass) => {
     try {
+      console.log(`[SIMULATION] Enviando correo a ${user.email} con contraseña: ${pass}`);
+
+      // Save to local JSON to simulate sending
       const emails = readJsonFile('emails.json');
       emails.push({
         to: user.email,
@@ -243,13 +257,18 @@ app.post('/api/register-admin', async (req, res) => {
         date: new Date().toISOString()
       });
       writeJsonFile('emails.json', emails);
-      console.log(`[EMAIL SAVED] To emails.json for ${user.email}`);
-    } catch (e) { console.error("Error writing email log:", e); }
+      console.log(`[EMAIL SAVED] Correo guardado en emails.json para ${user.email}`);
+
+    } catch (e) {
+      console.error("Error logging email:", e);
+    }
   };
 
-  // 2. Try Supabase
+
+
+  // 2. Register in Supabase
   try {
-    // Check for existing (Remote logic improvement)
+    // Check for existing user
     const { data: existing } = await supabase
       .from('admins')
       .select('email, "companyName"')
@@ -260,28 +279,20 @@ app.post('/api/register-admin', async (req, res) => {
     }
 
     const { data, error } = await supabase.from('admins').insert([newUser]).select();
-    if (!error && data) {
-      logEmail(newUser, generatedPassword || newUser.password);
-      return res.status(201).json({ message: 'Admin registrado en Supabase', user: data[0], password: generatedPassword || newUser.password });
+
+    if (error) {
+      console.error("Supabase Error:", error);
+      throw error;
+    }
+
+    if (data) {
+      sendEmail(newUser, generatedPassword || newUser.password);
+      return res.status(201).json({ message: 'Admin registrado exitosamente en Base de Datos', user: data[0], password: generatedPassword || newUser.password });
     }
   } catch (err) {
-    console.warn('Supabase register failed, falling back to local:', err);
+    console.error('Registration failed:', err);
+    return res.status(500).json({ message: 'Error registrando administrador en la base de datos.', error: err.message });
   }
-
-  // 3. Fallback local
-  // Save to local DB
-  const admins = readJsonFile('admins.json');
-  if (admins.find(a => a.email === newUser.email)) {
-    return res.status(400).json({ message: 'El correo ya está registrado (Local)' });
-  }
-
-  admins.push(newUser);
-  writeJsonFile('admins.json', admins);
-
-  const finalPass = generatedPassword || newUser.password;
-  logEmail(newUser, finalPass);
-
-  res.status(201).json({ message: 'Admin registrado localmente', user: newUser, password: finalPass });
 });
 
 app.post('/api/login', async (req, res) => {

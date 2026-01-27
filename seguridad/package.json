@@ -42,6 +42,7 @@
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.13",
     "rxjs": "~7.8.0",
     "stripe": "^20.2.0",
     "tslib": "^2.3.0",
