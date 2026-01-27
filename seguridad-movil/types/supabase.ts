@@ -33,3 +33,14 @@ export interface Report {
 export type ReportInsert = Omit<Report, 'id' | 'created_at'>;
 
 
+
+export interface Guard {
+  idEmpleado: string; // "00012345"
+  nombre: string;     // "Juan Pérez López"
+  email: string;
+  area?: string;      // "Entrada principal – Edificio A"
+  foto?: string;
+  estado?: string;
+  created_at?: string;
+  fechaContratacion?: string;
+}
