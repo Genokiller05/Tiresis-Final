@@ -119,6 +119,7 @@ const AppNavigator = () => {
 
 
 import { I18nProvider } from './theme/I18nContext';
+import { UserProvider } from './context/UserContext';
 
 // --- Componente principal de la aplicación con el Stack Navigator ---
 const App = () => {
@@ -127,7 +128,9 @@ const App = () => {
       {/* Envolvemos toda la navegación con el ThemeProvider */}
       <ThemeProvider>
         <I18nProvider>
-          <AppNavigator />
+          <UserProvider>
+            <AppNavigator />
+          </UserProvider>
         </I18nProvider>
       </ThemeProvider>
     </SafeAreaProvider>

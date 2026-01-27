@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
+import { useUser } from './context/UserContext';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -31,6 +32,7 @@ const SettingsScreen = () => {
   const navigation = useNavigation<SettingsScreenNavigationProp>();
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const { t, language, setLanguage } = useI18n();
+  const { user, logout } = useUser();
 
   const handleLanguageChange = () => {
     const newLanguage = language === 'es' ? 'en' : 'es';
@@ -42,6 +44,7 @@ const SettingsScreen = () => {
   };
 
   const handleLogout = () => {
+    logout();
     navigation.reset({
       index: 0,
       routes: [{ name: 'LoginScreen' }],
@@ -103,6 +106,48 @@ const SettingsScreen = () => {
             <Text style={[styles.headerTitle, dynamicStyles.headerTitle]}>{t('settings.title')}</Text>
             <View style={{ width: 24 }} />
           </View>
+
+          {user && (
+            <View style={[styles.profileCard, { backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.5)' : '#f1f5f9' }]}>
+              <View style={[styles.avatarContainer, { backgroundColor: colors.accent }]}>
+                <Text style={styles.avatarText}>
+                  {user.nombre ? user.nombre[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : 'G')}
+                </Text>
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={[styles.profileName, { color: colors.text }]}>
+                  {user.nombre || 'Guardia'}
+                </Text>
+                <Text style={[styles.profileEmail, { color: colors.subtext }]}>
+                  {user.email}
+                </Text>
+
+                {user.area && (
+                  <View style={styles.userInfoRow}>
+                    <Text style={[styles.userInfoLabel, { color: colors.subtext }]}>{t('settings.area')}:</Text>
+                    <Text style={[styles.userInfoValue, { color: colors.text }]}>
+                      {user.area}
+                    </Text>
+                  </View>
+                )}
+
+                <View style={[styles.userInfoRow, { marginTop: 4 }]}>
+                  <Text style={[styles.userInfoLabel, { color: colors.subtext }]}>ID:</Text>
+                  <Text style={[styles.userInfoValue, { color: colors.text }]}>
+                    {user.idEmpleado || 'N/A'}
+                  </Text>
+                </View>
+                {user.fechaContratacion && (
+                  <View style={styles.userInfoRow}>
+                    <Text style={[styles.userInfoLabel, { color: colors.subtext }]}>{t('settings.member_since')}:</Text>
+                    <Text style={[styles.userInfoValue, { color: colors.text }]}>
+                      {new Date(user.fechaContratacion).toLocaleDateString()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
 
           <View style={styles.optionsList}>
             <TouchableOpacity style={[styles.optionRow, dynamicStyles.optionRow]} onPress={handleLanguageChange}>
@@ -222,6 +267,56 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 24,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  profileRole: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  userInfoRow: {
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  userInfoLabel: {
+    fontSize: 12,
+    marginRight: 6,
+    fontWeight: '600',
+  },
+  userInfoValue: {
+    fontSize: 12,
   },
 });
 

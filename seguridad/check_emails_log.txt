@@ -1,0 +1,7 @@
+--- Verificando Emails ---
+✅ ENCONTRADO: aldinalv6@gmail.com
+   Password: diego123
+   Nombre: Diego Alberto Solis Baas
+✅ ENCONTRADO: aldinalv62@gmail.com
+   Password: vzekkebi
+   Nombre: Diego Alberto Solis Baas

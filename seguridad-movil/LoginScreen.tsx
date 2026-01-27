@@ -25,6 +25,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { supabase } from './lib/supabase';
+import { useUser } from './context/UserContext';
 
 type RootStackParamList = {
   LoginScreen: undefined;
@@ -40,6 +41,7 @@ const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
+  const { login } = useUser();
   const [email, setEmail] = useState('');
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +87,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!email) {
-      Alert.alert(t('login.error_title'), 'Por favor ingresa tu correo electrónico');
+      Alert.alert(t('login.error_title'), t('login.enter_email'));
       return;
     }
 
@@ -100,18 +102,19 @@ const LoginScreen = () => {
 
       if (error || !data) {
         setIsLoading(false);
-        Alert.alert('Error de acceso', 'Correo no encontrado. Verifica que esté registrado.');
+        Alert.alert(t('login.access_error'), t('login.email_not_found'));
         return;
       }
 
       // Success
+      login(data as any); // Cast to Guard if needed, or better, type the select
       setIsLoading(false);
       // Optional: Store user session here if needed
       navigation.replace('MainTabs', { screen: 'Home' });
 
     } catch (err) {
       setIsLoading(false);
-      Alert.alert('Error', 'Ocurrió un error al intentar iniciar sesión.');
+      Alert.alert(t('login.error_title'), t('login.generic_error'));
       console.error(err);
     }
   };
@@ -178,7 +181,7 @@ const LoginScreen = () => {
                   />
                 </Animated.View>
                 <Text style={[styles.title, { color: isDarkMode ? '#f8fafc' : '#1e293b' }]}>TIRESIS</Text>
-                <Text style={[styles.subtitle, { color: '#fbbf24', letterSpacing: 1.5, fontSize: 12, fontWeight: '600' }]}>VIGILANCIA INTELIGENTE</Text>
+                <Text style={[styles.subtitle, { color: '#fbbf24', letterSpacing: 1.5, fontSize: 12, fontWeight: '600' }]}>{t('login.subtitle')}</Text>
               </View>
 
               {/* Glassmorphism Card with Subtle Gold Border */}
@@ -191,7 +194,7 @@ const LoginScreen = () => {
 
                   {/* Inputs */}
                   <View style={styles.inputWrapper}>
-                    <Text style={[styles.label, { color: isDarkMode ? '#cbd5e1' : '#475569' }]}>Correo Electrónico</Text>
+                    <Text style={[styles.label, { color: isDarkMode ? '#cbd5e1' : '#475569' }]}>{t('login.email_label')}</Text>
                     <View style={[
                       styles.inputContainer,
                       {
@@ -204,7 +207,7 @@ const LoginScreen = () => {
                       <Ionicons name="mail-outline" size={20} color={isEmailFocused ? colors.accent : '#94a3b8'} style={{ marginRight: 10 }} />
                       <TextInput
                         style={[styles.input, { color: isDarkMode ? '#fff' : '#0f172a' }]}
-                        placeholder="usuario@tiresis.com"
+                        placeholder={t('login.email_placeholder')}
                         placeholderTextColor="#94a3b8"
                         value={email}
                         onChangeText={setEmail}
@@ -231,7 +234,7 @@ const LoginScreen = () => {
                       {isLoading ? (
                         <View />
                       ) : (
-                        <Text style={styles.loginButtonText}>Ingresar</Text>
+                        <Text style={styles.loginButtonText}>{t('login.button')}</Text>
                       )}
 
                     </LinearGradient>

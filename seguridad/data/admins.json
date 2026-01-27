@@ -12,5 +12,12 @@
     "companyName": "Gatos ",
     "street": "calle 5 por centro ",
     "password": "f121p4eh"
+  },
+  {
+    "fullName": "Diego Alberto Solis Baas",
+    "email": "aldinalv62@gmail.com",
+    "companyName": "Residencial Torremolinos",
+    "street": "C. 12-A 86, La Finca, 97370 Kanasín, Yuc.",
+    "password": "diego123"
   }
 ]

@@ -45,9 +45,12 @@ const HomeScreen = () => {
         <View style={styles.header}>
           <View>
             <Text style={[styles.greeting, { color: colors.subtext }]}>{t('home.guard_button')}</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Panel de Control</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('home.dashboard_title')}</Text>
           </View>
-          <TouchableOpacity style={[styles.profileButton, { borderColor: colors.accent }]}>
+          <TouchableOpacity
+            style={[styles.profileButton, { borderColor: colors.accent }]}
+            onPress={() => navigation.navigate('SettingsScreen')}
+          >
             <Ionicons name="person" size={20} color={colors.accent} />
           </TouchableOpacity>
         </View>
@@ -55,7 +58,7 @@ const HomeScreen = () => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
 
           {/* Quick Actions Grid - Bento Layout */}
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Registrar Actividad</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('home.register_activity')}</Text>
 
           <View style={styles.grid}>
 
@@ -73,8 +76,8 @@ const HomeScreen = () => {
                   <Ionicons name="people" size={32} color="#fbbf24" />
                 </View>
                 <View style={styles.textContainer}>
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>Nueva Visita</Text>
-                  <Text style={[styles.cardTag, { color: colors.accent }]}>+ REGISTRAR</Text>
+                  <Text style={[styles.cardTitle, { color: colors.text }]}>{t('home.new_visit')}</Text>
+                  <Text style={[styles.cardTag, { color: colors.accent }]}>{t('home.register_action')}</Text>
                 </View>
                 <View style={[styles.arrowCircle, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                   <Ionicons name="arrow-forward" size={18} color={colors.text} />
@@ -99,8 +102,8 @@ const HomeScreen = () => {
                     <Ionicons name="cube-outline" size={24} color="#60a5fa" />
                   </View>
                   <View>
-                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>Paquetería</Text>
-                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>Amazon, DHL...</Text>
+                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.delivery')}</Text>
+                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.delivery_desc')}</Text>
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -119,8 +122,8 @@ const HomeScreen = () => {
                     <Ionicons name="hammer-outline" size={24} color="#fb923c" />
                   </View>
                   <View>
-                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>Servicios</Text>
-                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>Mantenimiento</Text>
+                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.services')}</Text>
+                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.services_desc')}</Text>
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -140,8 +143,8 @@ const HomeScreen = () => {
                   <Ionicons name="alert-circle-outline" size={24} color="#f43f5e" />
                 </View>
                 <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={[styles.cardTitleSmall, { color: colors.text }]}>Reportar Incidente</Text>
-                  <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>Robo, Daños, Emergencia</Text>
+                  <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.report_incident')}</Text>
+                  <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.report_desc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.subtext} />
               </BlurView>

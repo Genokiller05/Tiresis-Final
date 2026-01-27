@@ -1,0 +1,9 @@
+--- INICIO MIGRACIÓN ---
+--- Iniciando Migración de Usuarios ---
+Encontrados 3 administradores en JSON local.
+Intentando insertar admins... 3
+✅ Admins migrados. Filas devueltas: 3
+Encontrados 7 guardias en JSON local.
+Intentando insertar guardias... 7
+✅ Guardias migrados. Filas: 7
+--- Migración Finalizada ---
