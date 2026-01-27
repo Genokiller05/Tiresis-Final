@@ -25,7 +25,7 @@ import { GeocodingService } from '../../services/geocoding.service';
              </div>
              <span class="text-2xl font-bold tracking-wider text-white">TIRESIS</span>
         </div>
-        <button *ngIf="step !== 'landing' && step !== 'success'" (click)="goToLogin()" class="text-gray-400 hover:text-white transition font-medium text-sm border border-transparent hover:border-white/10 px-4 py-2 rounded-lg">
+        <button (click)="goToLogin()" class="text-gray-400 hover:text-white transition font-medium text-sm border border-transparent hover:border-white/10 px-4 py-2 rounded-lg">
            Iniciar Sesión
         </button>
       </nav>
@@ -221,7 +221,7 @@ import { GeocodingService } from '../../services/geocoding.service';
 
              <button (click)="payWithOxxo()" [disabled]="isProcessingPayment" class="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold text-lg shadow-lg shadow-orange-500/20 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
                 <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                {{ isProcessingPayment ? 'Procesando...' : 'Generar Ficha de Pago' }}
+                {{ isProcessingPayment ? 'Procesando...' : 'Pagar' }}
              </button>
              
              <p class="text-center text-[10px] text-gray-600 mt-4">

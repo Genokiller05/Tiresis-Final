@@ -42,7 +42,7 @@ export class LoginComponent {
       next: (response) => {
         this.isLoading = false;
         this.authService.login(); // Mantener estado de sesión en frontend
-        this.router.navigate(['/alertas']);
+        this.router.navigate(['/dashboard/alertas']);
       },
       error: (err) => {
         this.isLoading = false;

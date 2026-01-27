@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "fullName": "ana ",
+    "email": "tareacanto73@gmail.com",
+    "companyName": "perro",
+    "street": "calle 3 por 4",
+    "password": "ng451khe"
+  },
+  {
+    "fullName": "brianita",
+    "email": "romerobriana528@gamil.com",
+    "companyName": "Gatos ",
+    "street": "calle 5 por centro ",
+    "password": "f121p4eh"
+  }
+]

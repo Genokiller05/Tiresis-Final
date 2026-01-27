@@ -19,6 +19,13 @@ export class AuthService {
     this.isLoggedIn$ = this.loggedIn.asObservable();
   }
 
+  hasToken(): boolean {
+    if (isPlatformBrowser(this.platformId)) {
+      return sessionStorage.getItem('isLoggedIn') === 'true';
+    }
+    return false;
+  }
+
   // Set internal state to true
   login() {
     if (isPlatformBrowser(this.platformId)) {
@@ -36,7 +43,9 @@ export class AuthService {
   }
 
   isLoggedIn(): boolean {
-    return this.loggedIn.getValue();
+    // Check subject first, but fallback to storage if false (handle refresh)
+    if (this.loggedIn.getValue()) return true;
+    return this.hasToken();
   }
 
   registerAdmin(adminData: any): Observable<any> {
@@ -68,10 +77,4 @@ export class AuthService {
     return null;
   }
 
-  private hasToken(): boolean {
-    if (isPlatformBrowser(this.platformId)) {
-      return !!sessionStorage.getItem('isLoggedIn');
-    }
-    return false;
-  }
 }

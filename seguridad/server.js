@@ -460,8 +460,8 @@ app.post("/api/stripe/checkout/oxxo", async (req, res) => {
         },
       ],
       // URLs de retorno
-      success_url: "http://localhost:4200/register?payment=success&session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://localhost:4200/register?payment=cancelled",
+      success_url: "http://localhost:4200/#/register?payment=success&session_id={CHECKOUT_SESSION_ID}",
+      cancel_url: "http://localhost:4200/#/register?payment=cancelled",
     });
 
     return res.json({ ok: true, url: session.url, sessionId: session.id });
@@ -471,7 +471,7 @@ app.post("/api/stripe/checkout/oxxo", async (req, res) => {
     if (err.message.includes("api_key") || err.message.includes("Invalid API Key")) {
       return res.json({
         ok: true,
-        url: "http://localhost:4200/register?payment=mock_success", // Mock redirect for testing UI without key
+        url: "http://localhost:4200/#/register?payment=mock_success", // Mock redirect for testing UI without key
         sessionId: "mock_session_id"
       });
     }
