@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as ImagePicker from 'expo-image-picker';
 import { createEntryExit, uploadEntryEvidence } from './services/dataService';
+import { useUser } from './context/UserContext';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +48,7 @@ const RegistrationScreen = () => {
     const route = useRoute<RegistrationScreenRouteProp>();
     const { type } = route.params;
     const { colors, isDarkMode } = useTheme();
+    const { user } = useUser();
 
     // Estados del formulario
     const [name, setName] = useState('');
@@ -111,11 +113,16 @@ const RegistrationScreen = () => {
             return;
         }
 
+        if (!user?.id) {
+            Alert.alert('Error', 'No se pudo obtener la información del usuario.');
+            return;
+        }
+
         try {
             // Upload Evidence first
-            let evidenceUrl = null;
+            let evidenceId = null;
             if (evidenceUri) {
-                evidenceUrl = await uploadEntryEvidence(evidenceUri);
+                evidenceId = await uploadEntryEvidence(evidenceUri, user.id);
             }
 
             const description = type === 'visit'
@@ -127,11 +134,7 @@ const RegistrationScreen = () => {
                 fechaHora: new Date().toISOString(),
                 tipo: 'Entrada', // Currently hardcoded to Entrada as this is a registration screen
                 descripcion: `Nombre: ${name}. ${description}`,
-                detalles: {
-                    evidence_url: evidenceUrl,
-                    notes: purpose, // Saving purpose/company in details for easier access
-                    company: company
-                }
+                idRelacionado: evidenceId,
             };
 
             await createEntryExit(entryData);

@@ -5,7 +5,7 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert, 
+  Alert,
   Modal,
   ScrollView,
   Pressable,
@@ -17,8 +17,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator'; // Added ImageManipulator
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
+import { useUser } from './context/UserContext';
 
-import { createReport as addReport, uploadEntryEvidence } from './services/dataService';
+import { createReport as addReport, uploadEntryEvidence, linkEvidenceToReport } from './services/dataService';
 
 // --- Tipado de navegación ---
 type RootStackParamList = {
@@ -34,6 +35,7 @@ const NewReportScreen = () => {
   const navigation = useNavigation<NewReportScreenNavigationProp>();
   const { colors } = useTheme();
   const { t } = useI18n();
+  const { user } = useUser();
   const styles = createStyles(colors);
 
   const incidentTypes = [
@@ -79,7 +81,7 @@ const NewReportScreen = () => {
         [{ crop: { originX: 0, originY: 0, width: pickerResult.assets[0].width, height: pickerResult.assets[0].height } }], // Initial crop to full image
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
       );
-      
+
       if (!manipulatedImage.cancelled) {
         setEvidence(manipulatedImage.uri);
       }
@@ -92,30 +94,34 @@ const NewReportScreen = () => {
       return;
     }
 
+    if (!user?.id) {
+      Alert.alert('Error', 'No se pudo obtener la información del usuario.');
+      return;
+    }
+
     try {
-      let evidenceUrl = null;
+      let evidenceId = null;
 
       if (evidence) {
-        evidenceUrl = await uploadEntryEvidence(evidence);
-        if (!evidenceUrl) {
+        evidenceId = await uploadEntryEvidence(evidence, user.id);
+        if (!evidenceId) {
           Alert.alert('Advertencia', 'No se pudo subir la evidencia. Se enviará el reporte sin foto.');
         }
       }
 
-      const newReport = {
-        fechaHora: new Date().toISOString(),
-        tipo: incidentType,
-        origen: 'Guardia',
-        sitioArea: 'Patrullaje General',
-        estado: 'Pendiente',
-        detalles: {
-          descripcion: description,
-          evidencia: evidenceUrl,
-          resumen: description
-        }
+      const newReportData = {
+        created_by_guard_id: user.id,
+        short_description: description,
+        report_type_id: 1, // Hardcoded for now, you should fetch this from the DB based on incidentType
+        status_id: 1, // Hardcoded for now, you should fetch this from the DB for 'Pendiente'
+        priority_id: 1, // Hardcoded for now, as a default priority
       };
 
-      await addReport(newReport);
+      const newReport = await addReport(newReportData as any);
+
+      if (newReport && evidenceId) {
+        await linkEvidenceToReport(newReport.id, evidenceId);
+      }
 
       Alert.alert(
         t('new_report.success_title'),

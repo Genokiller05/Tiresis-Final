@@ -125,12 +125,13 @@ export const getAllReports = async (): Promise<Report[]> => {
 };
 
 /**
- * Uploads an evidence image to Supabase Storage.
+ * Uploads an evidence image to Supabase Storage and creates an evidence record.
  * 
  * @param uri - The local URI of the image.
- * @returns The public URL of the uploaded image.
+ * @param userId - The ID of the user uploading the evidence.
+ * @returns The ID of the newly created evidence record.
  */
-export const uploadEntryEvidence = async (uri: string): Promise<string | null> => {
+export const uploadEntryEvidence = async (uri: string, userId: string): Promise<string | null> => {
   try {
     const filename = `evidence/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
@@ -142,25 +143,57 @@ export const uploadEntryEvidence = async (uri: string): Promise<string | null> =
       type: 'image/jpeg',
     } as any);
 
-    const { data, error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('evidence') // Ensure this bucket exists in Supabase
       .upload(filename, formData, {
         cacheControl: '3600',
         upsert: false,
       });
 
-    if (error) {
-      console.error('Error uploading evidence:', error);
+    if (uploadError) {
+      console.error('Error uploading evidence:', uploadError);
       return null;
     }
 
-    const { data: publicData } = supabase.storage
-      .from('evidence')
-      .getPublicUrl(filename);
+    // Create an evidence record in the database
+    const { data: evidenceData, error: evidenceError } = await supabase
+      .from('evidences')
+      .insert({
+        evidence_type_id: 1, // Assuming 1 is for 'image'
+        storage_path: filename,
+        created_by_user_id: userId,
+        mime_type: 'image/jpeg',
+      })
+      .select('id')
+      .single();
 
-    return publicData.publicUrl;
+    if (evidenceError) {
+      console.error('Error creating evidence record:', evidenceError);
+      return null;
+    }
+
+    return evidenceData.id;
   } catch (error) {
     console.error('Upload exception:', error);
     return null;
+  }
+};
+
+/**
+ * Links an evidence record to a report.
+ * 
+ * @param reportId - The ID of the report.
+ * @param evidenceId - The ID of the evidence.
+ */
+export const linkEvidenceToReport = async (reportId: string, evidenceId: string): Promise<void> => {
+  const { error } = await supabase
+    .from('report_evidences')
+    .insert({
+      report_id: reportId,
+      evidence_id: evidenceId,
+    });
+
+  if (error) {
+    console.error('Error linking evidence to report:', error);
   }
 };

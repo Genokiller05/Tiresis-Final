@@ -35,6 +35,7 @@ export type ReportInsert = Omit<Report, 'id' | 'created_at'>;
 
 
 export interface Guard {
+  id: string; // UUID
   idEmpleado: string; // "00012345"
   nombre: string;     // "Juan Pérez López"
   email: string;
