@@ -7,10 +7,10 @@ import { AuthService } from '../../services/auth.service';
 import { GeocodingService } from '../../services/geocoding.service';
 
 @Component({
-  selector: 'app-admin-register',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
+    selector: 'app-admin-register',
+    standalone: true,
+    imports: [CommonModule, FormsModule],
+    template: `
     <div class="min-h-screen bg-[#0a192f] text-gray-100 flex flex-col font-sans relative overflow-hidden">
       
       <!-- Background Effects (Subtle Blue Glows) -->
@@ -277,7 +277,7 @@ import { GeocodingService } from '../../services/geocoding.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .animate-fade-in-up { animation: fade-in-up 0.6s ease-out forwards; }
     .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
     @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -285,85 +285,95 @@ import { GeocodingService } from '../../services/geocoding.service';
   `]
 })
 export class AdminRegisterComponent implements OnInit {
-  step: 'landing' | 'info' | 'form' | 'payment' | 'success' = 'landing';
-  adminData: any = { fullName: '', email: '', companyName: '' };
-  street: string = '';
-  error = '';
-  isProcessingPayment = false;
-  isLoading = false;
-  generatedPassword = '';
-  displayEmail = '';
-  countdown = 10;
+    step: 'landing' | 'info' | 'form' | 'payment' | 'success' = 'landing';
+    adminData: any = { fullName: '', email: '', companyName: '' };
+    street: string = '';
+    error = '';
+    isProcessingPayment = false;
+    isLoading = false;
+    generatedPassword = '';
+    displayEmail = '';
+    countdown = 10;
 
-  constructor(
-    private router: Router,
-    private route: ActivatedRoute,
-    private authService: AuthService,
-    private http: HttpClient,
-    @Inject(PLATFORM_ID) private platformId: Object
-  ) { }
+    constructor(
+        private router: Router,
+        private route: ActivatedRoute,
+        private authService: AuthService,
+        private http: HttpClient,
+        @Inject(PLATFORM_ID) private platformId: Object
+    ) { }
 
 
-  ngOnInit() {
-    this.route.queryParams.subscribe(params => {
-      if (params['payment'] === 'success' || params['payment'] === 'mock_success') {
-        this.step = 'success';
-        this.finalizeRegistration();
-      }
-    });
-  }
-
-  goToLogin() { this.router.navigate(['/login']); }
-
-  goToPayment() {
-    if (!this.adminData.fullName || !this.adminData.email || !this.adminData.companyName || !this.street) {
-      this.error = "Completa todos los campos"; return;
+    ngOnInit() {
+        this.route.queryParams.subscribe(params => {
+            if (params['payment'] === 'success' || params['payment'] === 'mock_success') {
+                this.step = 'success';
+                this.finalizeRegistration();
+            }
+        });
     }
-    if (isPlatformBrowser(this.platformId)) {
-      sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
-    }
-    this.step = 'payment';
-  }
 
-  payWithOxxo() {
-    this.isProcessingPayment = true;
-    const paymentPayload = { amountMXN: 10, email: this.adminData.email };
-    this.http.post<any>('http://localhost:3000/api/stripe/checkout/oxxo', paymentPayload).subscribe({
-      next: (res) => {
-        if (res.ok && res.url) {
-          if (isPlatformBrowser(this.platformId)) window.location.href = res.url;
+    goToLogin() { this.router.navigate(['/login']); }
+
+    goToPayment() {
+        if (!this.adminData.fullName || !this.adminData.email || !this.adminData.companyName || !this.street) {
+            this.error = "Completa todos los campos"; return;
         }
-      },
-      error: (err) => { console.error(err); this.isProcessingPayment = false; }
-    });
-  }
-
-  finalizeRegistration() {
-    if (!isPlatformBrowser(this.platformId)) return;
-
-    const savedData = sessionStorage.getItem('tempAdminData');
-    if (!savedData) {
-      this.error = "No se encontraron datos de registro. Tu sesión puede haber expirado.";
-      return;
+        if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
+        }
+        this.step = 'payment';
     }
 
-    const userData = JSON.parse(savedData);
-    this.displayEmail = userData.email;
-    this.isLoading = true;
+    payWithOxxo() {
+        this.isProcessingPayment = true;
 
-    this.authService.registerAdmin(userData).subscribe({
-      next: (res: any) => {
-        this.isLoading = false;
-        this.generatedPassword = res.password;
-        sessionStorage.removeItem('tempAdminData');
-      },
-      error: (err) => {
-        console.error(err);
-        this.error = err.error?.message || "Error al crear la cuenta. Intenta con otro correo o contacta soporte.";
-        this.isLoading = false;
-      }
-    });
-  }
+        // REDUNDANCY: Save data again just to be sure before directing away
+        if (isPlatformBrowser(this.platformId)) {
+            sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
+        }
+
+        const paymentPayload = { amountMXN: 10, email: this.adminData.email };
+        this.http.post<any>('http://localhost:3000/api/stripe/checkout/oxxo', paymentPayload).subscribe({
+            next: (res) => {
+                if (res.ok && res.url) {
+                    if (isPlatformBrowser(this.platformId)) window.location.href = res.url;
+                }
+            },
+            error: (err) => { console.error(err); this.isProcessingPayment = false; }
+        });
+    }
+
+    finalizeRegistration() {
+        if (!isPlatformBrowser(this.platformId)) return;
+
+        const savedData = sessionStorage.getItem('tempAdminData');
+        if (!savedData) {
+            // If data is missing (e.g. refresh), redirect back to form or show clearer error
+            console.warn("No registration data found in sessionStorage");
+            this.error = "Sesión expirada o datos perdidos. Por favor intenta registrarte nuevamente.";
+            // Optional: Auto-redirect to form after a delay?
+            // setTimeout(() => this.step = 'form', 3000); 
+            return;
+        }
+
+        const userData = JSON.parse(savedData);
+        this.displayEmail = userData.email;
+        this.isLoading = true;
+
+        this.authService.registerAdmin(userData).subscribe({
+            next: (res: any) => {
+                this.isLoading = false;
+                this.generatedPassword = res.password;
+                sessionStorage.removeItem('tempAdminData');
+            },
+            error: (err) => {
+                console.error(err);
+                this.error = err.error?.message || "Error al crear la cuenta. Intenta con otro correo o contacta soporte.";
+                this.isLoading = false;
+            }
+        });
+    }
 
 
 }
