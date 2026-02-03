@@ -13,9 +13,15 @@ const nodemailer = require('nodemailer');
 // You can also use process.env.STRIPE_SECRET_KEY if using dotenv
 const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
 
+console.log('\n\n');
+console.log('=================================================');
+console.log('!!! SERVER STARTING IN LOCAL JSON MODE !!!');
+console.log('!!! SUPABASE DISCONNECTED - SAVING TO JSON !!!');
+console.log('=================================================\n\n');
+
 // Supabase Configuration
 const supabaseUrl = 'https://vlxfhhmruwafetcxtqti.supabase.co';
-const supabaseKey = 'sb_publishable_rbcmw3T7_laKcoo9LcW1eQ_CQb4Bv48';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZseGZoaG1ydXdhZmV0Y3h0cXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwNzY4MzgsImV4cCI6MjA4NTY1MjgzOH0.splkdHaqaoaeILuPvGDLZ-QkwytDQXGOBo1QJMLSf0w';
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZseGZoaG1ydXdhZmV0Y3h0cXRpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDA3NjgzOCwiZXhwIjoyMDg1NjUyODM4fQ.7vzVMIbQVCSVH8_3l5ejXHc55CR6Npf-O-f6tHk9b0Y';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -141,28 +147,7 @@ app.post('/api/migrate', async (req, res) => {
 // --- Auth Endpoints ---
 
 // POST: Login (Proxy to Supabase Auth)
-app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email y contraseña requeridos' });
-  }
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error('Login Error:', error.message);
-    return res.status(401).json({ message: 'Credenciales incorrectas', error: error.message });
-  }
-
-  // Check if profile exists and is active (Optional but good for security)
-  // const { data: profile } = await supabase.from('profiles').select('is_active').eq('id', data.user.id).single();
-  // if (profile && !profile.is_active) return res.status(403).json({ message: 'Usuario inactivo' });
-
-  res.json({ message: 'Login exitoso', session: data.session, user: data.user });
-});
+// [REMOVED DUPLICATE LOGIN ENDPOINT]
 
 // POST: Upload photo (Keeps local storage for now, returns URL)
 app.post('/api/upload', upload.single('photo'), (req, res) => {
@@ -173,12 +158,26 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 
 // --- Guards ---
 app.get('/api/guards', async (req, res) => {
+  // 1. Try Local JSON FIRST
+  try {
+    const guards = readJsonFile('guards.json');
+    if (guards.length > 0) return res.json(guards);
+  } catch (e) { console.error(e); }
+
+  // 2. Fallback to Supabase
   const { data, error } = await supabase.from('profiles').select('*').eq('role', 'guard');
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 app.get('/api/guards/:idEmpleado', async (req, res) => {
+  // 1. Try Local JSON FIRST
+  try {
+    const guards = readJsonFile('guards.json');
+    const guard = guards.find(g => g.document_id === req.params.idEmpleado);
+    if (guard) return res.json(guard);
+  } catch (e) { console.error(e); }
+
   const { data, error } = await supabase.from('profiles').select('*').eq('document_id', req.params.idEmpleado).eq('role', 'guard').single();
   if (error) return res.status(404).json({ message: 'Guardia no encontrado' });
   res.json(data);
@@ -191,43 +190,33 @@ app.post('/api/guards', async (req, res) => {
     return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
   }
 
-  // NOTE: Ideally this should create a Supabase Auth user first.
-  // For now, we insert directly into 'profiles' to match legacy behavior, 
-  // IF RLS enforces FK, this insert will FAIL without an existing auth user.
-  // Assuming for this fix we might need to create an auth user or assumed one exists.
-  // Let's reuse the admin register logic for consistency: Create Auth User -> Insert Profile.
-
   try {
     const tempPassword = Math.random().toString(36).slice(-8);
+    const userId = 'GUARD-LOCAL-' + Date.now();
 
-    // Use Admin Create User to bypass email confirmation
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: email || `guard_${document_id}@tiresis.local`,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        full_name: full_name,
-        document_id: document_id,
-        role: 'guard'
-      }
-    });
-
-    if (authError) throw new Error('Error creating auth user: ' + authError.message);
-    const userId = authData.user.id;
-
-    // Profile created by trigger. Construct response object.
+    // Construct response object & Local Record
     const newGuard = {
       id: userId,
       full_name: full_name,
       document_id: document_id,
+      email: email || `guard_${document_id}@tiresis.local`,
+      password: tempPassword,
       phone: telefono,
       role: 'guard',
-      is_active: true
+      is_active: true,
+      created_at: new Date().toISOString()
     };
 
-    // We don't manually insert into profiles anymore to avoid RLS errors
+    // Save to guards.json
+    const guards = readJsonFile('guards.json');
+    if (guards.find(g => g.document_id === document_id)) {
+      return res.status(400).json({ message: 'El guardia ya existe (Local).' });
+    }
+    guards.push(newGuard);
+    writeJsonFile('guards.json', guards);
+    console.log('[BE] Guard saved locally:', userId);
 
-    res.status(201).json({ message: 'Guardia registrado', guard: newGuard, password: tempPassword });
+    res.status(201).json({ message: 'Guardia registrado (Local)', guard: newGuard, password: tempPassword });
 
   } catch (err) {
     console.error("Guard Insert Error:", err);
@@ -270,7 +259,7 @@ app.get('/api/admins/:email', async (req, res) => {
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  console.log('[BE] Registering admin:', req.body.email);
+  console.log('[BE] Registering admin (LOCAL JSON MODE):', req.body.email);
 
   const newUser = {
     fullName: req.body.fullName,
@@ -291,41 +280,40 @@ app.post('/api/register-admin', async (req, res) => {
   }
 
   try {
-    // 2. Register in Supabase Auth using ADMIN client (Bypasses email confirmation)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: newUser.email,
-      password: newUser.password,
-      email_confirm: true, // Auto-confirm the user
-      user_metadata: {
-        full_name: newUser.fullName,
-        document_id: 'ADMIN-' + Date.now(),
-        role: 'admin'
-      }
-    });
+    // 2. LOCAL JSON STORAGE ONLY (Bypassing Supabase)
+    const userId = 'ADMIN-LOCAL-' + Date.now();
 
-    if (authError) {
-      console.error("Supabase Auth Error:", authError);
-      return res.status(400).json({ message: 'Error creando usuario: ' + authError.message });
-    }
-
-    if (!authData.user) {
-      return res.status(500).json({ message: 'No se pudo obtener el ID del usuario.' });
-    }
-
-    const userId = authData.user.id;
-    console.log('[BE] Auth user created (Auto-confirmed):', userId);
-
-    // Profile creation is handled by the DB Trigger 'handle_new_user' via metadata.
-    // We construct the profile object just for the response.
+    // Construct profile object
     const newProfile = {
       id: userId,
       full_name: newUser.fullName,
+      email: newUser.email,
+      password: newUser.password, // Storing plain text password locally as requested
+      companyName: newUser.companyName,
+      location: newUser.location,
+      lat: newUser.lat,
+      lng: newUser.lng,
+      zone: newUser.zone,
       document_id: 'ADMIN-' + Date.now(),
       role: 'admin',
-      is_active: true
+      is_active: true,
+      created_at: new Date().toISOString()
     };
 
-    // (Optional) Send simulated email logic remains here...
+    // Save to admins.json
+    const admins = readJsonFile('admins.json');
+
+    // Check if exists
+    if (admins.find(a => a.email === newUser.email)) {
+      return res.status(400).json({ message: 'El usuario ya existe (Local).' });
+    }
+
+    admins.push(newProfile);
+    writeJsonFile('admins.json', admins);
+
+    console.log('[BE] Admin saved locally:', userId);
+
+    // (Optional) Send simulated email logic
     try {
       const emails = readJsonFile('emails.json');
       emails.push({
@@ -339,7 +327,7 @@ app.post('/api/register-admin', async (req, res) => {
     } catch (e) { console.error("Error logging email:", e); }
 
     return res.status(201).json({
-      message: 'Admin registrado exitosamente',
+      message: 'Admin registrado exitosamente (Modo Local)',
       user: { ...newProfile, email: newUser.email },
       password: generatedPassword || newUser.password
     });
@@ -355,20 +343,38 @@ app.post('/api/login', async (req, res) => {
 
   let adminUser = null;
 
-  // 1. Try Supabase
+  // 1. Try Local JSON FIRST
   try {
-    const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
-    if (!error && data) {
-      adminUser = data;
+    const admins = readJsonFile('admins.json');
+    console.log(`[DEBUG] Login Attempt: ${email} / ${password}`);
+    // console.log('[DEBUG] Admins in DB:', admins.map(a => `${a.email}:${a.password}`)); 
+
+    adminUser = admins.find(a => a.email === email && a.password === password);
+
+    if (adminUser) console.log('[BE] Login: User found in local JSON');
+    else console.log('[DEBUG] User NOT found in local JSON');
+
+  } catch (e) { console.error(e); }
+
+  // 2. Fallback to Supabase if not found locally
+  if (!adminUser) {
+    try {
+      const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
+      if (!error && data) {
+        adminUser = data;
+        console.log('[BE] Login: User found in Supabase');
+      }
+    } catch (err) {
+      console.warn('Supabase login check failed:', err.message);
     }
-  } catch (err) {
-    console.warn('Supabase login check failed, trying local:', err);
   }
 
-  // 2. Fallback to Local JSON if not found in Supabase
+  // 3. Try Supabase Auth (Legacy/Standard) if still not found
   if (!adminUser) {
-    const admins = readJsonFile('admins.json');
-    adminUser = admins.find(a => a.email === email && a.password === password);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data.user) {
+      return res.json({ message: 'Login exitoso (Auth)', session: data.session, user: data.user });
+    }
   }
 
   if (!adminUser) {
@@ -378,13 +384,14 @@ app.post('/api/login', async (req, res) => {
   res.json({
     message: 'Login exitoso',
     admin: {
-      name: adminUser.fullName || adminUser.name, // Handle different field names if needed
+      name: adminUser.fullName || adminUser.full_name,
       email: adminUser.email,
       location: adminUser.location,
       companyName: adminUser.companyName,
       lat: adminUser.lat,
       lng: adminUser.lng,
-      zone: adminUser.zone
+      zone: adminUser.zone,
+      role: adminUser.role
     }
   });
 });
@@ -581,6 +588,16 @@ app.post(
   }
 );
 
-app.listen(port, () => {
+
+process.on('uncaughtException', (err) => {
+  fs.writeFileSync(path.join(__dirname, 'server_crash.log'), `Uncaught Exception: ${err.message}\n${err.stack}`);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  fs.writeFileSync(path.join(__dirname, 'server_crash.log'), `Unhandled Rejection: ${reason}`);
+});
+
+app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
 });
