@@ -14,9 +14,12 @@ const nodemailer = require('nodemailer');
 const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
 
 // Supabase Configuration
-const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
-const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
+const supabaseUrl = 'https://vlxfhhmruwafetcxtqti.supabase.co';
+const supabaseKey = 'sb_publishable_rbcmw3T7_laKcoo9LcW1eQ_CQb4Bv48';
+const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZseGZoaG1ydXdhZmV0Y3h0cXRpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDA3NjgzOCwiZXhwIjoyMDg1NjUyODM4fQ.7vzVMIbQVCSVH8_3l5ejXHc55CR6Npf-O-f6tHk9b0Y';
+
 const supabase = createClient(supabaseUrl, supabaseKey);
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
 const app = express();
 const port = 3000;
@@ -135,6 +138,32 @@ app.post('/api/migrate', async (req, res) => {
 
 // --- API Endpoints Refactored for Supabase ---
 
+// --- Auth Endpoints ---
+
+// POST: Login (Proxy to Supabase Auth)
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email y contraseña requeridos' });
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    console.error('Login Error:', error.message);
+    return res.status(401).json({ message: 'Credenciales incorrectas', error: error.message });
+  }
+
+  // Check if profile exists and is active (Optional but good for security)
+  // const { data: profile } = await supabase.from('profiles').select('is_active').eq('id', data.user.id).single();
+  // if (profile && !profile.is_active) return res.status(403).json({ message: 'Usuario inactivo' });
+
+  res.json({ message: 'Login exitoso', session: data.session, user: data.user });
+});
+
 // POST: Upload photo (Keeps local storage for now, returns URL)
 app.post('/api/upload', upload.single('photo'), (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se subió ningún archivo.' });
@@ -144,58 +173,76 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 
 // --- Guards ---
 app.get('/api/guards', async (req, res) => {
-  const { data, error } = await supabase.from('guards').select('*');
+  const { data, error } = await supabase.from('profiles').select('*').eq('role', 'guard');
   if (error) return res.status(500).json({ error: error.message });
   res.json(data);
 });
 
 app.get('/api/guards/:idEmpleado', async (req, res) => {
-  const { data, error } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).single();
+  const { data, error } = await supabase.from('profiles').select('*').eq('document_id', req.params.idEmpleado).eq('role', 'guard').single();
   if (error) return res.status(404).json({ message: 'Guardia no encontrado' });
   res.json(data);
 });
 
 app.post('/api/guards', async (req, res) => {
-  // Extract fields used by frontend (GuardService/RegistrosComponent)
   const { full_name, document_id, photo_url, email, telefono, direccion } = req.body;
 
-  // Validate required fields
   if (!document_id || !full_name) {
     return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
   }
 
-  // Map to DB columns
-  const newGuard = {
-    idEmpleado: document_id,
-    nombre: full_name,
-    foto: photo_url,
-    email,
-    telefono,
-    direccion,
-    // fechaContratacion default is now() in DB
-  };
+  // NOTE: Ideally this should create a Supabase Auth user first.
+  // For now, we insert directly into 'profiles' to match legacy behavior, 
+  // IF RLS enforces FK, this insert will FAIL without an existing auth user.
+  // Assuming for this fix we might need to create an auth user or assumed one exists.
+  // Let's reuse the admin register logic for consistency: Create Auth User -> Insert Profile.
 
-  const { data, error } = await supabase
-    .from('guards')
-    .insert([newGuard])
-    .select();
+  try {
+    const tempPassword = Math.random().toString(36).slice(-8);
 
-  if (error) {
-    console.error("Supabase Guard Insert Error:", error);
-    return res.status(500).json({ message: 'Error registrando guardia', error: error.message });
+    // Use Admin Create User to bypass email confirmation
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: email || `guard_${document_id}@tiresis.local`,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: full_name,
+        document_id: document_id,
+        role: 'guard'
+      }
+    });
+
+    if (authError) throw new Error('Error creating auth user: ' + authError.message);
+    const userId = authData.user.id;
+
+    // Profile created by trigger. Construct response object.
+    const newGuard = {
+      id: userId,
+      full_name: full_name,
+      document_id: document_id,
+      phone: telefono,
+      role: 'guard',
+      is_active: true
+    };
+
+    // We don't manually insert into profiles anymore to avoid RLS errors
+
+    res.status(201).json({ message: 'Guardia registrado', guard: newGuard, password: tempPassword });
+
+  } catch (err) {
+    console.error("Guard Insert Error:", err);
+    return res.status(500).json({ message: 'Error registrando guardia', error: err.message });
   }
-
-  res.status(201).json({ message: 'Guardia registrado con éxito', guard: data[0] });
 });
 
 app.patch('/api/guards/:idEmpleado', async (req, res) => {
-  const { data, error } = await supabase.from('guards').update(req.body).eq('idEmpleado', req.params.idEmpleado).select();
+  const { data, error } = await supabase.from('profiles').update(req.body).eq('document_id', req.params.idEmpleado).select();
   if (error) return res.status(500).json({ message: 'Error actualizando guardia', error: error.message });
   res.json(data[0]);
 });
 
 app.delete('/api/guards/:idEmpleado', async (req, res) => {
-  const { error } = await supabase.from('guards').delete().eq('idEmpleado', req.params.idEmpleado);
+  const { error } = await supabase.from('profiles').delete().eq('document_id', req.params.idEmpleado);
   if (error) return res.status(500).json({ message: 'Error eliminando guardia', error: error.message });
   res.json({ message: 'Guardia eliminado correctamente' });
 });
@@ -223,13 +270,14 @@ app.get('/api/admins/:email', async (req, res) => {
 });
 
 app.post('/api/register-admin', async (req, res) => {
-  // Explicitly map fields to match Supabase schema and avoid "column not found" errors
+  console.log('[BE] Registering admin:', req.body.email);
+
   const newUser = {
     fullName: req.body.fullName,
     email: req.body.email,
     password: req.body.password,
     companyName: req.body.companyName,
-    location: req.body.location || req.body.street, // Handle legacy 'street' field
+    location: req.body.location || req.body.street,
     lat: req.body.lat,
     lng: req.body.lng,
     zone: req.body.zone
@@ -242,56 +290,63 @@ app.post('/api/register-admin', async (req, res) => {
     newUser.password = generatedPassword;
   }
 
-  // Helper to "send" email (Simulated via JSON log)
-  const sendEmail = async (user, pass) => {
-    try {
-      console.log(`[SIMULATION] Enviando correo a ${user.email} con contraseña: ${pass}`);
+  try {
+    // 2. Register in Supabase Auth using ADMIN client (Bypasses email confirmation)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: newUser.email,
+      password: newUser.password,
+      email_confirm: true, // Auto-confirm the user
+      user_metadata: {
+        full_name: newUser.fullName,
+        document_id: 'ADMIN-' + Date.now(),
+        role: 'admin'
+      }
+    });
 
-      // Save to local JSON to simulate sending
+    if (authError) {
+      console.error("Supabase Auth Error:", authError);
+      return res.status(400).json({ message: 'Error creando usuario: ' + authError.message });
+    }
+
+    if (!authData.user) {
+      return res.status(500).json({ message: 'No se pudo obtener el ID del usuario.' });
+    }
+
+    const userId = authData.user.id;
+    console.log('[BE] Auth user created (Auto-confirmed):', userId);
+
+    // Profile creation is handled by the DB Trigger 'handle_new_user' via metadata.
+    // We construct the profile object just for the response.
+    const newProfile = {
+      id: userId,
+      full_name: newUser.fullName,
+      document_id: 'ADMIN-' + Date.now(),
+      role: 'admin',
+      is_active: true
+    };
+
+    // (Optional) Send simulated email logic remains here...
+    try {
       const emails = readJsonFile('emails.json');
       emails.push({
-        to: user.email,
+        to: newUser.email,
         subject: 'Bienvenido a TIRESIS - Credenciales de Acceso',
-        body: `Hola ${user.fullName}, tu contraseña es: ${pass}`,
-        password: pass,
+        body: `Hola ${newUser.fullName}, tu contraseña es: ${newUser.password}`,
+        password: newUser.password,
         date: new Date().toISOString()
       });
       writeJsonFile('emails.json', emails);
-      console.log(`[EMAIL SAVED] Correo guardado en emails.json para ${user.email}`);
+    } catch (e) { console.error("Error logging email:", e); }
 
-    } catch (e) {
-      console.error("Error logging email:", e);
-    }
-  };
+    return res.status(201).json({
+      message: 'Admin registrado exitosamente',
+      user: { ...newProfile, email: newUser.email },
+      password: generatedPassword || newUser.password
+    });
 
-
-
-  // 2. Register in Supabase
-  try {
-    // Check for existing user
-    const { data: existing } = await supabase
-      .from('admins')
-      .select('email, "companyName"')
-      .or(`email.eq.${newUser.email}, "companyName".eq.${newUser.companyName}`);
-
-    if (existing && existing.length > 0) {
-      return res.status(409).json({ message: 'El correo o la compañía ya están registrados.' });
-    }
-
-    const { data, error } = await supabase.from('admins').insert([newUser]).select();
-
-    if (error) {
-      console.error("Supabase Error:", error);
-      throw error;
-    }
-
-    if (data) {
-      sendEmail(newUser, generatedPassword || newUser.password);
-      return res.status(201).json({ message: 'Admin registrado exitosamente en Base de Datos', user: data[0], password: generatedPassword || newUser.password });
-    }
   } catch (err) {
-    console.error('Registration failed:', err);
-    return res.status(500).json({ message: 'Error registrando administrador en la base de datos.', error: err.message });
+    console.error('Registration Exception:', err);
+    return res.status(500).json({ message: 'Error interno del servidor.', error: err.message });
   }
 });
 
