@@ -1,4 +1,5 @@
- ERROR  Error creating entry/exit: {"code": "PGRST204", "details": null, "hint": null, "message": "Could not find the 'detalles' column of 'entries_exits' in the schema cache"}
- ERROR  [Error: Could not find the 'detalles' column of 'entries_exits' in the schema cache]
+ ERROR  Error uploading evidence: [StorageApiError: Bucket not found]
+ ERROR  Error creating report: {"code": "PGRST205", "details": null, "hint": "Perhaps you meant the table 'public.events'", "message": "Could not find the table 'public.reports' in the schema cache"}
+ ERROR  [Error: Could not find the table 'public.reports' in the schema cache]
 
- Ayudame a arreglar este error en la pantalla Registrar visita
+ Revisa este error y como lo podriamos arreglar
