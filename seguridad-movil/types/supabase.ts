@@ -20,17 +20,26 @@ export interface Site {
  * Column names match the SQL schema with quoted identifiers.
  */
 export interface Report {
-  id: string; // text
-  fechaHora: string; // timestamptz (quoted as "fechaHora" in DB)
-  origen: string; // text
-  tipo: string; // text
-  sitioArea: string; // text (quoted as "sitioArea" in DB)
-  estado: string; // text
-  detalles: any; // jsonb
-  created_at?: string; // timestamptz
+  id: string; // uuid
+  site_id: string; // uuid
+  shift_id?: string; // uuid
+  created_by_guard_id: string; // uuid
+  report_type_id: number; // int
+  status_id: number; // int
+  priority_id: number; // int
+  location_id?: string; // uuid
+  gps_lat?: number; // numeric
+  gps_lng?: number; // numeric
+  short_description: string; // text
+  created_at: string; // timestamptz
+  closed_at?: string; // timestamptz
+  // These are often joined in queries, but for raw insert/select they aren't there
+  // We might want to add optional joined fields for display if we use a view or join
+  report_type?: { name: string };
+  report_status?: { name: string };
 }
 
-export type ReportInsert = Omit<Report, 'id' | 'created_at'>;
+export type ReportInsert = Omit<Report, 'id' | 'created_at' | 'report_type' | 'report_status'>;
 
 
 

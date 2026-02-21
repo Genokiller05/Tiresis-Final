@@ -1,3 +1,13 @@
+-- !!! IMPORTANTE: EJECUTA ESTO EN EL EDITOR SQL DE SUPABASE !!!
+
+-- 1. LIMPIEZA DE TABLAS ANTIGUAS (Para evitar errores de conflicto)
+DROP TABLE IF EXISTS public.reports CASCADE;
+DROP TABLE IF EXISTS public.report_evidences CASCADE;
+DROP TABLE IF EXISTS public.report_closures CASCADE;
+DROP VIEW IF EXISTS public.active_guards_view;
+
+-- 2. CREACIÓN DEL NUEVO ESQUEMA (Contenido de seguridad/db)
+
 -- ==========================================
 -- TIRESIS / SIVIS - Esquema 3FN para Supabase
 -- ==========================================

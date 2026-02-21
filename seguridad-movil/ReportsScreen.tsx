@@ -12,7 +12,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
-import { getAllReports, Report as ReportData } from './services/dataService';
+import { fetchReports, Report as ReportData } from './services/dataService';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -36,49 +36,58 @@ const ReportsScreen = () => {
     useCallback(() => {
       const loadReports = async () => {
         try {
-          const allReports = await getAllReports();
-          setReports(allReports.sort((a, b) => {
-            const dateA = new Date(a.created_at || 0).getTime();
-            const dateB = new Date(b.created_at || 0).getTime();
+          const allReports = await fetchReports();
+          if (allReports.length > 0) {
+            console.log('Sample report keys:', Object.keys(allReports[0]));
+            // console.log('Sample report:', JSON.stringify(allReports[0], null, 2));
+          }
+          setReports(allReports.sort((a: any, b: any) => {
+            const dateA = new Date(a.created_at || a.fechaHora || 0).getTime();
+            const dateB = new Date(b.created_at || b.fechaHora || 0).getTime();
             return dateB - dateA;
           }));
         } catch (error) {
           console.error('Error loading reports:', error);
         }
       };
-
       loadReports();
     }, [])
   );
 
   const statusColors: Record<string, string> = {
-    Pendiente: '#F59E0B',
+    '1': '#F59E0B', // Pendiente
+    'Pendiente': '#F59E0B',
+    '2': '#3B82F6', // En Revisión
     'En Revisión': '#3B82F6',
-    Enviado: colors.accent,
-    Resuelto: '#10B981',
+    'Enviado': colors.accent,
+    '3': '#10B981', // Resuelto
+    'Resuelto': '#10B981',
   };
 
-  const statusTranslations: Record<string, string> = {
-    Pendiente: t('reports.status_sent') || 'Pendiente', // assuming Pendiente means Sent
-    Enviado: t('reports.status_sent') || 'Enviado',
+  const statusTranslations: Record<number | string, string> = {
+    1: t('reports.status_sent') || 'Pendiente',
+    'Pendiente': t('reports.status_sent') || 'Pendiente',
+    'Enviado': t('reports.status_sent') || 'Enviado',
+    2: t('reports.status_in_review') || 'En Revisión',
     'En Revisión': t('reports.status_in_review') || 'En Revisión',
-    Resuelto: t('reports.status_resolved') || 'Resuelto',
+    3: t('reports.status_resolved') || 'Resuelto',
+    'Resuelto': t('reports.status_resolved') || 'Resuelto',
   };
 
-  const renderReportItem = ({ item }: { item: ReportData }) => (
-    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: item.id.toString() })}>
+  const renderReportItem = ({ item }: { item: any }) => (
+    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: String(item.id) })}>
       <View style={styles.reportIconContainer}>
         <Text style={styles.reportIcon}>📋</Text>
       </View>
       <View style={styles.reportTextContainer}>
-        <Text style={styles.reportType}>{item.tipo}</Text>
-        <Text style={styles.reportSummary}>{item.detalles?.descripcion || item.detalles?.resumen || item.estado} - {item.origen || 'N/A'}</Text>
-        <Text style={styles.reportDate}>{new Date(item.fechaHora).toLocaleString()}</Text>
+        <Text style={styles.reportType}>{item.report_type?.name || item.tipo || 'Reporte'}</Text>
+        <Text style={styles.reportSummary}>{item.short_description || item.description || item.detalles?.descripcion || 'Sin descripción'}</Text>
+        <Text style={styles.reportDate}>{new Date(item.created_at || item.fechaHora).toLocaleString()}</Text>
       </View>
       <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: statusColors[item.estado] || '#94a3b8' }]} />
-        <Text style={[styles.statusText, { color: statusColors[item.estado] || '#94a3b8' }]}>
-          {statusTranslations[item.estado] || item.estado}
+        <View style={[styles.statusDot, { backgroundColor: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]} />
+        <Text style={[styles.statusText, { color: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]}>
+          {statusTranslations[item.status_id] || statusTranslations[item.estado] || item.estado || 'Pendiente'}
         </Text>
       </View>
     </Pressable>

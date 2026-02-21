@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,7 +19,16 @@ import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { useUser } from './context/UserContext';
 
-import { createReport as addReport, uploadEntryEvidence, linkEvidenceToReport } from './services/dataService';
+import {
+  createReport as addReport,
+  fetchReportTypes,
+  fetchReportStatuses,
+  fetchPriorities,
+  fetchSites,
+  uploadEntryEvidence,
+  linkEvidenceToReport
+} from './services/dataService';
+import { useUser } from './context/UserContext';
 
 // --- Tipado de navegación ---
 type RootStackParamList = {
@@ -37,21 +46,55 @@ const NewReportScreen = () => {
   const { t } = useI18n();
   const { user } = useUser();
   const styles = createStyles(colors);
+  const { user } = useUser();
 
+  // Hardcoded types as fallback/primary since DB table might be inaccessible
   const incidentTypes = [
-    'Intrusión detectada',
-    'Actividad sospechosa',
-    'Fallo de equipo (cámara, sensor, etc.)',
-    'Emergencia médica',
-    'Incendio',
-    'Vandalismo',
-    'Accidente',
+    { id: 1, name: 'Incidente', code: 'incident' },
+    { id: 2, name: 'Novedad', code: 'novelty' },
+    { id: 3, name: 'Rondín', code: 'patrol' },
+    { id: 4, name: 'Alerta recibida', code: 'received_alert' }
   ];
 
-  const [incidentType, setIncidentType] = useState<string | null>(null);
+  // We will still use state for statuses, priorities, and sites, but they will be fetched differently or default.
+  const [statuses, setStatuses] = useState<any[]>([]);
+  const [priorities, setPriorities] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
+
+  // Selected IDs
+  const [selectedType, setSelectedType] = useState<any | null>(null);
   const [isIncidentModalVisible, setIncidentModalVisible] = useState(false);
   const [description, setDescription] = useState('');
   const [evidence, setEvidence] = useState<string | null>(null);
+
+  // We skip fetching specific catalogs for now to avoid errors if tables are missing/hidden
+  // But we still try to fetch sites if possible, or use a default.
+  useEffect(() => {
+    // Optional: Fetch sites if needed, but keeping it simple to ensure it loads
+    const loadSites = async () => {
+      try {
+        // If fetchSites fails, we just don't have sites.
+        // We can proceed with a default ID if the DB allows.
+        const sitesData = await fetchSites();
+        setSites(sitesData || []);
+      } catch (e) { console.log('Sites fetch skipped/failed'); }
+    };
+    loadSites();
+
+    // Set default statuses and priorities if not fetched
+    // These are hardcoded as a fallback, similar to incidentTypes
+    setStatuses([
+      { id: 1, name: 'Pendiente', code: 'pending' },
+      { id: 2, name: 'En progreso', code: 'in_progress' },
+      { id: 3, name: 'Resuelto', code: 'resolved' },
+      { id: 4, name: 'Cerrado', code: 'closed' }
+    ]);
+    setPriorities([
+      { id: 1, name: 'Baja', code: 'low' },
+      { id: 2, name: 'Media', code: 'medium' },
+      { id: 3, name: 'Alta', code: 'high' }
+    ]);
+  }, []);
 
   const handleGoBackToHome = () => {
     navigation.navigate('MainTabs', { screen: 'Reports' });
@@ -89,7 +132,7 @@ const NewReportScreen = () => {
   };
 
   const handleSubmitReport = async () => {
-    if (!incidentType || !description) {
+    if (!selectedType || !description) {
       Alert.alert(t('new_report.error_title'), t('new_report.error_message'));
       return;
     }
@@ -109,12 +152,25 @@ const NewReportScreen = () => {
         }
       }
 
+      // Logic to resolve IDs
+      const pendingStatus = statuses.find(s => s.code === 'pending') || statuses[0];
+      const defaultPriority = priorities.find(p => p.code === 'medium') || priorities[0];
+
+      // Resolve Site ID: Use first available site if not assigned
+      const siteId = sites.length > 0 ? sites[0].id : null;
+
+      if (!siteId) {
+        Alert.alert('Error', 'No hay sitios disponibles para asignar el reporte.');
+        return;
+      }
+
       const newReportData = {
+        site_id: siteId,
         created_by_guard_id: user.id,
         short_description: description,
-        report_type_id: 1, // Hardcoded for now, you should fetch this from the DB based on incidentType
-        status_id: 1, // Hardcoded for now, you should fetch this from the DB for 'Pendiente'
-        priority_id: 1, // Hardcoded for now, as a default priority
+        report_type_id: selectedType?.id || 1,
+        status_id: pendingStatus?.id || 1,
+        priority_id: defaultPriority?.id || 1,
       };
 
       const newReport = await addReport(newReportData as any);
@@ -135,7 +191,7 @@ const NewReportScreen = () => {
       );
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'No se pudo enviar el reporte.');
+      Alert.alert('Error', 'No se pudo enviar el reporte: ' + (error as any).message);
     }
   };
 
@@ -162,7 +218,7 @@ const NewReportScreen = () => {
               onPress={() => setIncidentModalVisible(true)}
             >
               <Text style={styles.dropdownButtonText}>
-                {incidentType || t('new_report.select_incident_type')}
+                {selectedType ? selectedType.name : t('new_report.select_incident_type')}
               </Text>
               <Text style={styles.dropdownIcon}>▼</Text>
             </TouchableOpacity>
@@ -204,16 +260,16 @@ const NewReportScreen = () => {
       >
         <Pressable style={styles.modalOverlay} onPress={() => setIncidentModalVisible(false)}>
           <View style={styles.incidentModalContent}>
-            {incidentTypes.map((type, index) => (
+            {incidentTypes.map((type: any, index: number) => (
               <TouchableOpacity
                 key={index}
                 style={styles.incidentOption}
                 onPress={() => {
-                  setIncidentType(type);
+                  setSelectedType(type);
                   setIncidentModalVisible(false);
                 }}
               >
-                <Text style={styles.incidentOptionText}>{type}</Text>
+                <Text style={styles.incidentOptionText}>{type.name}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
