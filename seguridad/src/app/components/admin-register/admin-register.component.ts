@@ -52,7 +52,7 @@ import { GeocodingService } from '../../services/geocoding.service';
             </div>
         </div>
 
-        <!-- STEP 2: INFO (Reference Image 5 & 4 Style) -->
+        <!-- STEP 2: INFO -->
         <div *ngIf="step === 'info'" class="max-w-6xl w-full animate-fade-in p-4">
              <button (click)="step = 'landing'" class="mb-8 text-gray-400 hover:text-white flex items-center gap-2 transition">
                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -98,7 +98,7 @@ import { GeocodingService } from '../../services/geocoding.service';
                     </div>
                  </div>
                  
-                 <!-- Stats Cards (Right Column or Bottom) -->
+                 <!-- Stats Cards -->
                  <div class="grid sm:grid-cols-2 gap-4">
                      <div class="bg-[#112240] p-6 rounded-2xl border border-blue-500/20 hover:border-blue-500/40 transition group">
                          <div class="text-4xl font-bold text-blue-400 mb-2 group-hover:scale-105 transition-transform">30-60s</div>
@@ -125,9 +125,8 @@ import { GeocodingService } from '../../services/geocoding.service';
              </div>
         </div>
 
-        <!-- STEP 3: FORM (Clean & Dark) -->
+        <!-- STEP 3: FORM -->
         <div *ngIf="step === 'form'" class="w-full max-w-lg bg-[#0f203c] border border-blue-500/10 rounded-2xl shadow-2xl p-8 animate-fade-in relative overflow-hidden">
-             <!-- Decorative Top Border -->
              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
 
              <button (click)="step = 'landing'" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm">
@@ -174,12 +173,11 @@ import { GeocodingService } from '../../services/geocoding.service';
              </form>
         </div>
 
-        <!-- STEP 4: PAYMENT (Premium + Gold Accents) -->
+        <!-- STEP 4: PAYMENT -->
         <div *ngIf="step === 'payment'" class="w-full max-w-lg bg-[#0f203c] border border-blue-500/10 rounded-2xl shadow-2xl p-8 animate-fade-in relative overflow-hidden">
-             <!-- Decorative Gold Accent -->
              <div class="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full blur-[40px] pointer-events-none"></div>
 
-             <button (click)="step = 'form'" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm z-10 relative">
+             <button (click)="backFromPayment()" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm z-10 relative">
                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                  Volver
              </button>
@@ -201,45 +199,137 @@ import { GeocodingService } from '../../services/geocoding.service';
                 </div>
              </div>
 
-             <!-- Payment Method -->
-             <div class="space-y-4 mb-8">
-                 <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Método de Pago</p>
-                 <button (click)="payWithOxxo()" [disabled]="isProcessingPayment"
-                        class="w-full group relative flex items-center justify-between p-4 border border-gray-700 rounded-xl bg-[#0a192f] hover:border-yellow-500/50 hover:bg-yellow-500/5 transition cursor-pointer">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-white p-2 rounded-lg h-10 w-16 flex items-center justify-center">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Oxxo_Logo.svg" alt="OXXO" class="h-full object-contain">
+             <!-- SUB-STEP: SELECT METHOD -->
+             <div *ngIf="paymentSubStep === 'select'">
+                 <div class="space-y-3 mb-8">
+                     <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Método de Pago</p>
+                     
+                     <!-- Card option -->
+                     <button (click)="selectedMethod = 'card'" [disabled]="isProcessingPayment"
+                            class="w-full flex items-center justify-between p-4 border rounded-xl bg-[#0a192f] transition cursor-pointer"
+                            [ngClass]="selectedMethod === 'card' ? 'border-blue-500 bg-blue-500/5' : 'border-gray-700 hover:border-blue-500/50'">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-gradient-to-br from-blue-600 to-indigo-700 p-2 rounded-lg h-10 w-16 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                            </div>
+                            <div class="text-left">
+                                <span class="block font-bold" [ngClass]="selectedMethod === 'card' ? 'text-blue-400' : 'text-white'">Tarjeta de Crédito / Débito</span>
+                                <span class="text-xs text-gray-500">Visa, Mastercard, AMEX</span>
+                            </div>
                         </div>
-                        <div class="text-left">
-                            <span class="block font-bold text-white group-hover:text-yellow-400 transition">Pago en Efectivo OXXO</span>
-                            <span class="text-xs text-gray-500">Genera tu ficha y paga en tienda</span>
+                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                             [ngClass]="selectedMethod === 'card' ? 'border-blue-500 bg-blue-500' : 'border-gray-600'">
+                            <div *ngIf="selectedMethod === 'card'" class="w-2 h-2 bg-white rounded-full"></div>
                         </div>
-                    </div>
-                    <div class="w-5 h-5 rounded-full border border-gray-600 group-hover:border-yellow-500 group-hover:bg-yellow-500 transition shadow-[0_0_10px_rgba(234,179,8,0.3)]"></div>
-                </button>
+                    </button>
+
+                     <!-- OXXO option -->
+                     <button (click)="selectedMethod = 'oxxo'" [disabled]="isProcessingPayment"
+                            class="w-full flex items-center justify-between p-4 border rounded-xl bg-[#0a192f] transition cursor-pointer"
+                            [ngClass]="selectedMethod === 'oxxo' ? 'border-yellow-500 bg-yellow-500/5' : 'border-gray-700 hover:border-yellow-500/50'">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white p-2 rounded-lg h-10 w-16 flex items-center justify-center">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Oxxo_Logo.svg" alt="OXXO" class="h-full object-contain">
+                            </div>
+                            <div class="text-left">
+                                <span class="block font-bold" [ngClass]="selectedMethod === 'oxxo' ? 'text-yellow-400' : 'text-white'">Pago en Efectivo OXXO</span>
+                                <span class="text-xs text-gray-500">Genera tu ficha y paga en tienda</span>
+                            </div>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                             [ngClass]="selectedMethod === 'oxxo' ? 'border-yellow-500 bg-yellow-500' : 'border-gray-600'">
+                            <div *ngIf="selectedMethod === 'oxxo'" class="w-2 h-2 bg-white rounded-full"></div>
+                        </div>
+                    </button>
+                 </div>
+
+                 <button (click)="processPayment()" [disabled]="isProcessingPayment || !selectedMethod"
+                        class="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        [ngClass]="{
+                          'bg-gradient-to-r from-blue-600 to-indigo-600': selectedMethod === 'card',
+                          'bg-gradient-to-r from-yellow-600 to-amber-600': selectedMethod === 'oxxo',
+                          'bg-gray-600': !selectedMethod
+                        }">
+                    <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                    {{ isProcessingPayment ? 'Procesando...' : 'Continuar' }}
+                 </button>
              </div>
 
-             <button (click)="payWithOxxo()" [disabled]="isProcessingPayment" class="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 text-white font-bold text-lg shadow-lg shadow-orange-500/20 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
-                <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                {{ isProcessingPayment ? 'Procesando...' : 'Pagar' }}
-             </button>
-             
-             <p class="text-center text-[10px] text-gray-600 mt-4">
-                Transacción segura procesada por Stripe. Tus datos están protegidos.
+             <!-- SUB-STEP: CARD FORM (inline Stripe Elements) -->
+             <div *ngIf="paymentSubStep === 'card-form'">
+                 <p class="text-xs text-gray-500 font-bold uppercase tracking-wider mb-4">Ingresa los datos de tu tarjeta</p>
+                 <div class="bg-[#0a192f] border border-gray-700 rounded-xl p-6 mb-4">
+                     <div id="card-element" class="p-3 bg-white/5 rounded-lg border border-gray-600 min-h-[44px]"></div>
+                     <div *ngIf="cardError" class="mt-3 text-red-400 text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        {{ cardError }}
+                     </div>
+                 </div>
+                 <button (click)="confirmCardPayment()" [disabled]="isProcessingPayment"
+                        class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50">
+                    <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                    {{ isProcessingPayment ? 'Procesando pago...' : 'Pagar $10.00 MXN' }}
+                 </button>
+                 <p class="text-center text-[10px] text-gray-600 mt-4 flex items-center justify-center gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    Transacción segura con Stripe. Tus datos están protegidos.
+                </p>
+             </div>
+
+             <!-- SUB-STEP: OXXO VOUCHER (inline) -->
+             <div *ngIf="paymentSubStep === 'oxxo-voucher'">
+                 <div id="oxxo-voucher-content" class="bg-white rounded-xl p-6 mb-6 text-gray-900">
+                     <div class="flex items-center justify-between mb-4">
+                         <img src="https://upload.wikimedia.org/wikipedia/commons/6/66/Oxxo_Logo.svg" alt="OXXO" class="h-10">
+                         <span class="text-sm text-gray-500">Ficha de pago</span>
+                     </div>
+                     <div class="text-center mb-4">
+                         <p class="text-2xl font-bold text-gray-900">MXN $10.00</p>
+                         <p class="text-sm text-gray-500 mt-1">Vence el {{ oxxoExpiresAt }}</p>
+                     </div>
+                     <div class="border-t border-b border-gray-300 py-4 my-4 text-center">
+                         <div class="flex justify-center mb-2">
+                             <svg class="w-64 h-16" viewBox="0 0 256 64">
+                                 <rect *ngFor="let bar of barcodeBars; let i = index" [attr.x]="i * 2" y="0" [attr.width]="bar" height="56" fill="black"/>
+                             </svg>
+                         </div>
+                         <p class="text-lg font-mono font-bold tracking-[0.3em] text-gray-900">{{ oxxoReference }}</p>
+                     </div>
+                     <div class="text-left text-sm text-gray-700 space-y-2">
+                         <p class="font-bold">Instrucciones para pagar con OXXO:</p>
+                         <p>1. Entrega el vale al cajero para que escanee el código de barras.</p>
+                         <p>2. Proporciona el pago en efectivo al cajero.</p>
+                         <p>3. Una vez hecho el pago, guarda el recibo para tus registros.</p>
+                     </div>
+                 </div>
+                 <div class="flex gap-3">
+                     <button (click)="downloadOxxoVoucher()" class="flex-1 py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-amber-600 text-white font-bold shadow-lg transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Descargar Ficha
+                     </button>
+                     <button (click)="downloadOxxoVoucher()" class="px-4 py-3 rounded-xl border border-gray-600 hover:bg-white/5 text-gray-300 font-bold transition flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        Imprimir
+                     </button>
+                 </div>
+                 <p class="text-center text-xs text-gray-500 mt-4">Tu cuenta se activará cuando OXXO confirme el pago (1-24 hrs).</p>
+             </div>
+
+             <p *ngIf="paymentSubStep === 'select'" class="text-center text-[10px] text-gray-600 mt-4 flex items-center justify-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                Transacción segura. Tus datos están protegidos.
             </p>
         </div>
 
-        <!-- STEP 5: SUCCESS (Gold & Clean) -->
+        <!-- STEP 5: SUCCESS -->
         <div *ngIf="step === 'success'" class="w-full max-w-xl bg-[#0f203c] border border-green-500/20 rounded-2xl shadow-2xl p-10 text-center animate-fade-in relative overflow-hidden">
             <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-green-500 to-emerald-500 left-0"></div>
             
-            <!-- Success Icon (Only if no error) -->
             <div *ngIf="!error" class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/10 text-green-400 mb-6 ring-1 ring-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.2)]">
                 <svg *ngIf="!isLoading" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                 <div *ngIf="isLoading" class="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
 
-            <!-- Error Icon (If error) -->
             <div *ngIf="error" class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 text-red-400 mb-6 ring-1 ring-red-500/30">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </div>
@@ -254,11 +344,8 @@ import { GeocodingService } from '../../services/geocoding.service';
             <p *ngIf="error" class="text-red-300 mb-8">{{ error }}</p>
             
             <div *ngIf="generatedPassword" class="bg-[#0a192f] border border-gray-700 p-6 rounded-xl mb-6 relative group overflow-hidden">
-                <div class="absolute top-0 right-0 p-2 opacity-50"><svg class="w-12 h-12 text-gray-800" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path></svg></div>
-                
                 <p class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">Tu contraseña de acceso</p>
-                <div class="text-3xl font-mono text-white font-bold tracking-widest shadow-black drop-shadow-md select-all cursor-text">{{ generatedPassword }}</div>
-                
+                <div class="text-3xl font-mono text-white font-bold tracking-widest select-all cursor-text">{{ generatedPassword }}</div>
                 <div class="mt-4 pt-4 border-t border-gray-700/50 flex items-center justify-center gap-2 text-xs text-yellow-500">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                     <span>Se ha enviado una copia a tu correo: <b>{{displayEmail}}</b></span>
@@ -268,13 +355,10 @@ import { GeocodingService } from '../../services/geocoding.service';
             <button *ngIf="generatedPassword" (click)="goToLogin()" class="w-full px-8 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg transition">
                 Ir a Iniciar Sesión Ahora
             </button>
-
             <button *ngIf="error" (click)="step = 'form'" class="w-full px-8 py-4 rounded-xl bg-gray-700 hover:bg-gray-600 text-white font-bold text-lg shadow-lg transition">
                 Volver al Registro
             </button>
         </div>
-
-      </div>
     </div>
   `,
     styles: [`
@@ -286,74 +370,207 @@ import { GeocodingService } from '../../services/geocoding.service';
 })
 export class AdminRegisterComponent implements OnInit {
     step: 'landing' | 'info' | 'form' | 'payment' | 'success' = 'landing';
+    paymentSubStep: 'select' | 'card-form' | 'oxxo-voucher' = 'select';
     adminData: any = { fullName: '', email: '', companyName: '' };
     street: string = '';
     error = '';
+    cardError = '';
+    selectedMethod: 'card' | 'oxxo' | '' = 'card';
     isProcessingPayment = false;
     isLoading = false;
     generatedPassword = '';
     displayEmail = '';
     countdown = 10;
 
+    // Stripe
+    private stripeInstance: any = null;
+    private cardElement: any = null;
+    private clientSecret: string = '';
+
+    // OXXO voucher
+    oxxoReference: string = '';
+    oxxoExpiresAt: string = '';
+    barcodeBars: number[] = [];
+
     constructor(
         private router: Router,
         private route: ActivatedRoute,
         private authService: AuthService,
         private http: HttpClient,
+        private cdr: ChangeDetectorRef,
         @Inject(PLATFORM_ID) private platformId: Object
     ) { }
 
-
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
-            if (params['payment'] === 'success' || params['payment'] === 'mock_success') {
+            if (params['payment'] === 'success') {
                 this.step = 'success';
                 this.finalizeRegistration();
             }
         });
+        // Initialize Stripe.js
+        if (isPlatformBrowser(this.platformId)) {
+            this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
+                next: (res) => {
+                    if (res.publishableKey && (window as any).Stripe) {
+                        this.stripeInstance = (window as any).Stripe(res.publishableKey);
+                    }
+                },
+                error: () => console.warn('Could not load Stripe config')
+            });
+        }
     }
 
     goToLogin() { this.router.navigate(['/login']); }
+
+    backFromPayment() {
+        if (this.paymentSubStep !== 'select') {
+            this.paymentSubStep = 'select';
+            this.cardError = '';
+        } else {
+            this.step = 'form';
+        }
+    }
 
     goToPayment() {
         if (!this.adminData.fullName || !this.adminData.email || !this.adminData.companyName || !this.street) {
             this.error = "Completa todos los campos"; return;
         }
+        this.error = '';
         if (isPlatformBrowser(this.platformId)) {
             sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
         }
+        this.paymentSubStep = 'select';
         this.step = 'payment';
     }
 
-    payWithOxxo() {
+    processPayment() {
+        if (this.selectedMethod === 'card') this.initCardForm();
+        else if (this.selectedMethod === 'oxxo') this.initOxxoPayment();
+    }
+
+    // --- CARD: Inline Stripe Elements ---
+    initCardForm() {
         this.isProcessingPayment = true;
+        this.cardError = '';
+        const payload = { amountMXN: 10, email: this.adminData.email };
 
-        // REDUNDANCY: Save data again just to be sure before directing away
-        if (isPlatformBrowser(this.platformId)) {
-            sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
-        }
-
-        const paymentPayload = { amountMXN: 10, email: this.adminData.email };
-        this.http.post<any>('http://localhost:3000/api/stripe/checkout/oxxo', paymentPayload).subscribe({
+        this.http.post<any>('http://localhost:3000/api/stripe/create-payment-intent', payload).subscribe({
             next: (res) => {
-                if (res.ok && res.url) {
-                    if (isPlatformBrowser(this.platformId)) window.location.href = res.url;
-                }
+                this.clientSecret = res.clientSecret;
+                this.isProcessingPayment = false;
+                this.paymentSubStep = 'card-form';
+                this.cdr.detectChanges();
+                setTimeout(() => this.mountCardElement(), 150);
             },
-            error: (err) => { console.error(err); this.isProcessingPayment = false; }
+            error: (err) => {
+                this.isProcessingPayment = false;
+                this.cardError = err.error?.message || 'Error al preparar el pago';
+            }
         });
     }
 
+    mountCardElement() {
+        if (!this.stripeInstance) { this.cardError = 'Stripe no se ha cargado. Recarga la página.'; return; }
+        const elements = this.stripeInstance.elements();
+        this.cardElement = elements.create('card', {
+            style: {
+                base: { color: '#ffffff', fontFamily: 'Inter, sans-serif', fontSize: '16px', '::placeholder': { color: '#6b7280' } },
+                invalid: { color: '#ef4444' }
+            }
+        });
+        const container = document.getElementById('card-element');
+        if (container) { container.innerHTML = ''; this.cardElement.mount('#card-element'); }
+    }
+
+    async confirmCardPayment() {
+        if (!this.stripeInstance || !this.cardElement || !this.clientSecret) return;
+        this.isProcessingPayment = true;
+        this.cardError = '';
+
+        const { error, paymentIntent } = await this.stripeInstance.confirmCardPayment(this.clientSecret, {
+            payment_method: { card: this.cardElement }
+        });
+
+        if (error) {
+            this.cardError = error.message || 'Error al procesar el pago';
+            this.isProcessingPayment = false;
+            this.cdr.detectChanges();
+        } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+            this.isProcessingPayment = false;
+            this.step = 'success';
+            this.cdr.detectChanges();
+            this.finalizeRegistration();
+        }
+    }
+
+    // --- OXXO: Server-side confirmation, display voucher inline ---
+    initOxxoPayment() {
+        this.isProcessingPayment = true;
+        this.error = '';
+        const payload = { amountMXN: 10, email: this.adminData.email, name: this.adminData.fullName };
+
+        this.http.post<any>('http://localhost:3000/api/stripe/create-oxxo-payment', payload).subscribe({
+            next: (res) => {
+                this.isProcessingPayment = false;
+                // Backend ya confirmó el pago y devolvió datos del voucher
+                this.oxxoReference = res.reference || 'N/A';
+                const expDate = new Date(res.expiresAt * 1000);
+                this.oxxoExpiresAt = expDate.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+                this.generateBarcode();
+                this.paymentSubStep = 'oxxo-voucher';
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                this.isProcessingPayment = false;
+                this.error = err.error?.message || 'Error al crear pago OXXO';
+                this.cdr.detectChanges();
+            }
+        });
+    }
+
+    generateBarcode() {
+        this.barcodeBars = [];
+        for (let i = 0; i < 128; i++) {
+            this.barcodeBars.push(Math.random() > 0.5 ? 1.5 : 0.5);
+        }
+    }
+
+    downloadOxxoVoucher() {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+        printWindow.document.write(`
+            <html><head><title>Ficha OXXO - TIRESIS</title>
+            <style>body{font-family:Arial,sans-serif;padding:40px;max-width:500px;margin:0 auto;}
+            .title{text-align:center;font-size:22px;font-weight:bold;margin-bottom:20px;}
+            .ref{text-align:center;font-size:24px;font-weight:bold;letter-spacing:4px;margin:20px 0;padding:15px;border-top:2px solid #ccc;border-bottom:2px solid #ccc;}
+            .amount{text-align:center;font-size:28px;font-weight:bold;} .expires{text-align:center;color:#666;margin-bottom:20px;}
+            .instructions p{margin:8px 0;} hr{margin:20px 0;} .footer{text-align:center;color:#999;margin-top:30px;font-size:12px;}
+            </style></head><body>
+            <div class="title">OXXO - Ficha de Pago</div>
+            <div class="amount">MXN $10.00</div>
+            <div class="expires">Vence el ${this.oxxoExpiresAt}</div>
+            <div class="ref">${this.oxxoReference}</div>
+            <div class="instructions">
+                <p><b>Instrucciones:</b></p>
+                <p>1. Entrega el vale al cajero para que escanee el código.</p>
+                <p>2. Proporciona el pago en efectivo al cajero.</p>
+                <p>3. Guarda el recibo para tus registros.</p>
+            </div>
+            <div class="footer">TIRESIS - Sistema de Seguridad</div>
+            </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    // --- FINALIZE REGISTRATION ---
     finalizeRegistration() {
         if (!isPlatformBrowser(this.platformId)) return;
 
         const savedData = sessionStorage.getItem('tempAdminData');
         if (!savedData) {
-            // If data is missing (e.g. refresh), redirect back to form or show clearer error
-            console.warn("No registration data found in sessionStorage");
             this.error = "Sesión expirada o datos perdidos. Por favor intenta registrarte nuevamente.";
-            // Optional: Auto-redirect to form after a delay?
-            // setTimeout(() => this.step = 'form', 3000); 
             return;
         }
 
@@ -368,12 +585,9 @@ export class AdminRegisterComponent implements OnInit {
                 sessionStorage.removeItem('tempAdminData');
             },
             error: (err) => {
-                console.error(err);
                 this.error = err.error?.message || "Error al crear la cuenta. Intenta con otro correo o contacta soporte.";
                 this.isLoading = false;
             }
         });
     }
-
-
 }

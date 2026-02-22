@@ -44,5 +44,65 @@
     "role": "admin",
     "is_active": true,
     "created_at": "2026-02-03T19:37:52.824Z"
+  },
+  {
+    "id": "ADMIN-LOCAL-1770148645103",
+    "full_name": "juan perez",
+    "email": "juanperez@gmail.com",
+    "password": "y5ck8tha",
+    "companyName": "Mi gatos ",
+    "location": "calle 4 oriente ",
+    "document_id": "ADMIN-1770148645103",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-02-03T19:57:25.103Z"
+  },
+  {
+    "id": "ADMIN-LOCAL-1770148723108",
+    "full_name": "juan perez ",
+    "email": "juanperez@gmial.com",
+    "password": "i99tju1e",
+    "companyName": "mis gatos ",
+    "location": "calle 4 x 76A merida yucatan ",
+    "document_id": "ADMIN-1770148723108",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-02-03T19:58:43.108Z"
+  },
+  {
+    "id": "ADMIN-LOCAL-1771677267551",
+    "full_name": "ana ",
+    "email": "ana@gmail.com",
+    "password": "p11byx4g",
+    "companyName": "ANA ",
+    "location": "calle5",
+    "document_id": "ADMIN-1771677267551",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-02-21T12:34:27.551Z"
+  },
+  {
+    "id": "ADMIN-LOCAL-1771765265265",
+    "full_name": "JEHIELI ",
+    "email": "jehielixool@gmail.com",
+    "password": "2vrkqxpl",
+    "companyName": "regk",
+    "location": "dfk",
+    "document_id": "ADMIN-1771765265265",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-02-22T13:01:05.265Z"
+  },
+  {
+    "id": "ADMIN-LOCAL-1771769587693",
+    "full_name": "JEHIELI ",
+    "email": "jehielixool@gmial.com",
+    "password": "u9z6i3vs",
+    "companyName": "r",
+    "location": "r",
+    "document_id": "ADMIN-1771769587693",
+    "role": "admin",
+    "is_active": true,
+    "created_at": "2026-02-22T14:13:07.693Z"
   }
 ]

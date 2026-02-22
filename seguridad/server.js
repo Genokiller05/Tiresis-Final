@@ -5,13 +5,16 @@ const cors = require('cors');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 const Stripe = require('stripe');
+require('dotenv').config();
 
 const nodemailer = require('nodemailer');
 
 // --- STRIPE CONFIGURATION ---
-// IMPORTANT: Replace this with your actual Stripe Secret Key (sk_test_...)
-// You can also use process.env.STRIPE_SECRET_KEY if using dotenv
-const stripe = Stripe('sk_test_PLACEHOLDER_KEY_HERE');
+const stripeKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeKey) {
+  console.warn('⚠️  STRIPE_SECRET_KEY no configurada en .env - Los pagos no funcionarán');
+}
+const stripe = stripeKey ? Stripe(stripeKey) : null;
 
 console.log('\n\n');
 console.log('=================================================');
@@ -510,43 +513,98 @@ app.delete('/api/entries-exits/:id', async (req, res) => {
 // --- STRIPE ENDPOINTS ---
 
 /**
- * Endpoint para crear una sesión de Checkout con OXXO.
+ * Retorna la clave pública de Stripe al frontend para inicializar Stripe.js.
  */
-app.post("/api/stripe/checkout/oxxo", async (req, res) => {
+app.get("/api/stripe/config", (req, res) => {
+  res.json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '' });
+});
+
+/**
+ * Crea un PaymentIntent para pago con TARJETA (inline con Stripe Elements).
+ */
+app.post("/api/stripe/create-payment-intent", async (req, res) => {
+  if (!stripe) return res.status(500).json({ ok: false, message: 'Stripe no configurado. Agrega STRIPE_SECRET_KEY en .env' });
   try {
     const { amountMXN, email } = req.body;
 
-    // Crear sesión de Checkout
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["oxxo"],
-      customer_email: email,
-      line_items: [
-        {
-          price_data: {
-            currency: "mxn",
-            product_data: { name: "Pago OXXO (prueba)" },
-            unit_amount: Math.round(Number(amountMXN) * 100), // Stripe in cents
-          },
-          quantity: 1,
-        },
-      ],
-      // URLs de retorno
-      success_url: "http://localhost:4200/#/register?payment=success&session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://localhost:4200/#/register?payment=cancelled",
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(Number(amountMXN) * 100),
+      currency: "mxn",
+      payment_method_types: ["card"],
+      description: "TIRESIS - Activación Plan Premium Empresarial",
+      receipt_email: email,
     });
 
-    return res.json({ ok: true, url: session.url, sessionId: session.id });
+    return res.json({ ok: true, clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (err) {
-    console.error("Stripe Error:", err.message);
-    // Return mock URL if key is invalid/missing (Test Mode Fallback)
-    if (err.message.includes("api_key") || err.message.includes("Invalid API Key")) {
-      return res.json({
-        ok: true,
-        url: "http://localhost:4200/#/register?payment=mock_success", // Mock redirect for testing UI without key
-        sessionId: "mock_session_id"
-      });
-    }
+    console.error("Stripe PaymentIntent Error:", err.message);
+    return res.status(400).json({ ok: false, message: err.message });
+  }
+});
+
+/**
+ * Crea y confirma un PaymentIntent para pago OXXO (server-side).
+ * Devuelve los datos del voucher directamente al frontend.
+ */
+app.post("/api/stripe/create-oxxo-payment", async (req, res) => {
+  if (!stripe) return res.status(500).json({ ok: false, message: 'Stripe no configurado. Agrega STRIPE_SECRET_KEY en .env' });
+  try {
+    const { amountMXN, email, name } = req.body;
+
+    // Stripe OXXO requiere nombre y apellido con mínimo 2 caracteres cada uno
+    const billingName = (name && name.trim().includes(' ') && name.trim().length >= 5)
+      ? name.trim()
+      : "Cliente Tiresis";
+    const billingEmail = email && email.includes('@') ? email : "cliente@tiresis.com";
+
+    // Crear Y confirmar el PaymentIntent en un solo paso (server-side)
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(Number(amountMXN) * 100),
+      currency: "mxn",
+      payment_method_types: ["oxxo"],
+      payment_method_data: {
+        type: "oxxo",
+        billing_details: {
+          name: billingName,
+          email: billingEmail,
+        },
+      },
+      confirm: true,
+      description: "TIRESIS - Activación Plan Premium Empresarial",
+    });
+
+    // Extraer datos del voucher OXXO del next_action
+    const oxxoDetails = paymentIntent.next_action?.oxxo_display_details;
+    const voucherData = {
+      ok: true,
+      paymentIntentId: paymentIntent.id,
+      reference: oxxoDetails?.number || paymentIntent.id.slice(-14),
+      expiresAt: oxxoDetails?.expires_after || Math.floor(Date.now() / 1000) + (5 * 24 * 3600),
+      hostedVoucherUrl: oxxoDetails?.hosted_voucher_url || null,
+    };
+
+    console.log("OXXO Voucher generado:", voucherData.reference);
+    return res.json(voucherData);
+  } catch (err) {
+    console.error("Stripe OXXO Error:", err.message);
+    return res.status(400).json({ ok: false, message: err.message });
+  }
+});
+
+/**
+ * Verifica el estado de un PaymentIntent.
+ */
+app.get("/api/stripe/payment-status/:paymentIntentId", async (req, res) => {
+  if (!stripe) return res.status(500).json({ ok: false, message: 'Stripe no configurado' });
+  try {
+    const pi = await stripe.paymentIntents.retrieve(req.params.paymentIntentId);
+    return res.json({
+      ok: true,
+      status: pi.status,
+      amount: pi.amount,
+      currency: pi.currency
+    });
+  } catch (err) {
     return res.status(400).json({ ok: false, message: err.message });
   }
 });
@@ -559,7 +617,7 @@ app.post(
   express.raw({ type: "application/json" }),
   (req, res) => {
     const sig = req.headers["stripe-signature"];
-    const webhookSecret = "whsec_PLACEHOLDER"; // Replace with actual webhook secret
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_PLACEHOLDER";
 
     let event;
     try {
