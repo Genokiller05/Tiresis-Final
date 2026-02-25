@@ -129,9 +129,13 @@ const RegistrationScreen = () => {
                 ? `Visita a: ${purpose}`
                 : `${type === 'delivery' ? 'Paquetería' : 'Trabajador'}: ${company} - ${purpose}`;
 
+            // Adjust for local timezone to save correct readable time in DB
+            const now = new Date();
+            const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+
             const entryData = {
                 id: generateUUID(),
-                fechaHora: new Date().toISOString(),
+                fechaHora: localDate.toISOString(),
                 tipo: 'Entrada', // Currently hardcoded to Entrada as this is a registration screen
                 descripcion: `Nombre: ${name}. ${description}`,
                 idRelacionado: evidenceId,
