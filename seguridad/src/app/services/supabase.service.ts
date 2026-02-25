@@ -11,7 +11,13 @@ export class SupabaseService {
   private supabase: SupabaseClient;
 
   constructor() {
-    this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: false
+      }
+    });
   }
 
   get client(): SupabaseClient {

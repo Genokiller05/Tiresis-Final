@@ -10,11 +10,11 @@ async function checkColumn() {
     // Attempt to select the specific column
     const { data, error } = await supabase
         .from('reports')
-        .select('detalles')
+        .select('estado')
         .limit(1);
 
     if (error) {
-        console.error("❌ Error al seleccionar 'detalles':", error.message);
+        console.error("❌ Error al seleccionar 'estado':", error.message);
         console.error("Details:", JSON.stringify(error, null, 2));
     } else {
         console.log("✅ Columna 'detalles' seleccionable.");

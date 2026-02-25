@@ -107,6 +107,11 @@ const LoginScreen = () => {
       }
 
       // Success
+      console.log("Login data:", data);
+
+      // Temporary fix: If data does not have 'id' but has 'idEmpleado', maybe we can use that?
+      // Or maybe the 'guards' table uses a different PK.
+      // We will cast it for now, but the NewReportScreen check will catch if it's missing.
       login(data as any); // Cast to Guard if needed, or better, type the select
       setIsLoading(false);
       // Optional: Store user session here if needed

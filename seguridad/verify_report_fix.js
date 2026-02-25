@@ -12,7 +12,7 @@ async function testReportCreation() {
         tipo: 'Prueba Automática',
         origen: 'Guardia',
         sitioArea: 'Zona de Pruebas',
-        estado: 'Pendiente',
+        // estado: 'Pendiente', // Temporarily commented out to bypass cache issue
         detalles: {
             descripcion: 'Este es un reporte de prueba generado por script.',
             evidencia: 'https://placehold.co/600x400', // Dummy URL

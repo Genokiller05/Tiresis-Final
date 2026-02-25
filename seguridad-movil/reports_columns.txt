@@ -1,0 +1,1 @@
+Columns: id, site_id, shift_id, report_type_id, status_id, priority_id, location_id, gps_lat, gps_lng, short_description, created_at, closed_at, created_by_guard_id

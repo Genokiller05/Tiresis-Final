@@ -21,28 +21,67 @@ const ReportDetailScreen = () => {
   const { t } = useI18n();
   const styles = createStyles(colors);
 
-  const report = getReportById(route.params.reportId);
+  const [report, setReport] = React.useState<ReportData | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  if (!report) {
+  React.useEffect(() => {
+    const fetchReport = async () => {
+      setLoading(true);
+      const data = await getReportById(String(route.params.reportId));
+      setReport(data);
+      setLoading(false);
+    };
+    fetchReport();
+  }, [route.params.reportId]);
+
+  if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.container}>
-          <Text style={styles.errorText}>{t('report_detail.not_found')}</Text>
+          <Text style={styles.errorText}>Cargando reporte...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const statusColors: Record<ReportData['status'], string> = {
+  if (!report) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <Text style={styles.errorText}>Reporte no encontrado</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Fallback states since the schema changed
+  const displayStatus = report.status_id ? 'Notificado' : 'Pendiente';
+  const displayType = report.report_type_id ? 'Reporte del Sistema' : 'Incidente de Seguridad';
+  const displayDate = report.created_at ? new Date(report.created_at).toLocaleString() : 'Fecha desconocida';
+
+  // Using short_description as both summary, and parsing out evidence if appended
+  let descriptionText = report.short_description || 'Sin descripción detallada';
+  let evidenceUri = null;
+  const evidenceMatch = descriptionText.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
+  if (evidenceMatch && evidenceMatch[1]) {
+    evidenceUri = evidenceMatch[1];
+    descriptionText = descriptionText.replace(evidenceMatch[0], '').trim();
+  }
+
+  const statusColors: Record<string, string> = {
     Enviado: colors.accent,
     'En Revisión': '#F59E0B',
     Resuelto: '#10B981',
+    Pendiente: '#94a3b8',
+    Notificado: '#3B82F6'
   };
 
-  const statusTranslations = {
-    Enviado: t('reports.status_sent'),
-    'En Revisión': t('reports.status_in_review'),
-    Resuelto: t('reports.status_resolved'),
+  const statusTranslations: Record<string, string> = {
+    Enviado: 'Enviado',
+    'En Revisión': 'En revisión',
+    Resuelto: 'Resuelto',
+    Pendiente: 'Pendiente',
+    Notificado: 'Notificado'
   };
 
   return (
@@ -52,47 +91,47 @@ const ReportDetailScreen = () => {
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backIcon}>←</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>{t('report_detail.title')}</Text>
+          <Text style={styles.headerTitle}>Detalle del Reporte</Text>
           <View style={{ width: 24 }} />
         </View>
 
         <View style={styles.panel}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('report_detail.report_id')}</Text>
-            <Text style={styles.detailValue}>#{report.id}</Text>
+            <Text style={styles.detailLabel}>ID del Reporte</Text>
+            <Text style={styles.detailValue}>#{report.id.substring(0, 8)}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('report_detail.incident_type')}</Text>
-            <Text style={styles.detailValue}>{report.type}</Text>
+            <Text style={styles.detailLabel}>Tipo de Incidente</Text>
+            <Text style={styles.detailValue}>{displayType}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('report_detail.date')}</Text>
-            <Text style={styles.detailValue}>{report.date}</Text>
+            <Text style={styles.detailLabel}>Fecha</Text>
+            <Text style={styles.detailValue}>{displayDate}</Text>
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t('report_detail.status')}</Text>
+            <Text style={styles.detailLabel}>Estado</Text>
             <View style={styles.statusBadge}>
-              <View style={[styles.statusDot, { backgroundColor: statusColors[report.status] }]} />
-              <Text style={[styles.statusText, { color: statusColors[report.status] }]}>
-                {statusTranslations[report.status]}
+              <View style={[styles.statusDot, { backgroundColor: statusColors[displayStatus] || statusColors['Pendiente'] }]} />
+              <Text style={[styles.statusText, { color: statusColors[displayStatus] || statusColors['Pendiente'] }]}>
+                {statusTranslations[displayStatus] || displayStatus}
               </Text>
             </View>
           </View>
 
           <View style={styles.descriptionContainer}>
-            <Text style={styles.detailLabel}>{t('report_detail.summary')}</Text>
-            <Text style={styles.descriptionText}>{report.summary}</Text>
+            <Text style={styles.detailLabel}>Resumen</Text>
+            <Text style={styles.descriptionText}>{descriptionText}</Text>
           </View>
 
           <View style={styles.evidenceContainer}>
-            <Text style={styles.detailLabel}>{t('report_detail.evidence')}</Text>
-            {report.evidence ? (
-              <Image source={{ uri: report.evidence }} style={styles.evidenceImage} />
+            <Text style={styles.detailLabel}>Evidencia</Text>
+            {evidenceUri ? (
+              <Image source={{ uri: evidenceUri }} style={styles.evidenceImage} />
             ) : (
-              <Text style={styles.noEvidenceText}>{t('report_detail.no_evidence')}</Text>
+              <Text style={styles.noEvidenceText}>Sin evidencia adjunta</Text>
             )}
           </View>
 
@@ -205,7 +244,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.error,
     textAlign: 'center',
   },
-    container: {
+  container: {
     flex: 1,
     paddingHorizontal: 20,
   },

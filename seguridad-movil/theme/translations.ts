@@ -80,6 +80,10 @@ export const translations = {
     'new_report.sent_simulation': 'Reporte Enviado (Simulado)',
     'new_report.permission_required': 'Permiso requerido',
     'new_report.permission_message': 'Necesitamos permiso para acceder a tu cámara.',
+    'new_report.success_title': 'Éxito',
+    'new_report.success_message': 'Reporte enviado correctamente.',
+    'new_report.error_title': 'Error',
+    'new_report.error_message': 'Por favor completa todos los campos requeridos.',
   },
   en: {
     'login.title': 'Surveillance System',
@@ -156,6 +160,10 @@ export const translations = {
     'new_report.sent_simulation': 'Report Sent (Simulated)',
     'new_report.permission_required': 'Permission required',
     'new_report.permission_gallery': 'We need permission to access your gallery.',
+    'new_report.success_title': 'Success',
+    'new_report.success_message': 'Report sent successfully.',
+    'new_report.error_title': 'Error',
+    'new_report.error_message': 'Please fill in all required fields.',
   },
 };
 

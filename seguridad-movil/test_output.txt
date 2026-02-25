@@ -1,0 +1,16 @@
+=== 1. CHECKING ADMINS (READ) ===
+Found 4 admins. Sample: {
+  email: 'aldinalv6@gmail.com',
+  companyName: 'Residencial Torremolinos'
+}
+
+=== 2. CHECKING CAMERAS (READ) ===
+Found 0 cameras.
+
+=== 3. CHECKING CAMERAS (WRITE) ===
+Camera Write Error: {
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not find the 'activa' column of 'cameras' in the schema cache"
+}

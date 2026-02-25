@@ -28,8 +28,6 @@ import {
   uploadEntryEvidence,
   linkEvidenceToReport
 } from './services/dataService';
-import { useUser } from './context/UserContext';
-
 // --- Tipado de navegación ---
 type RootStackParamList = {
   MainTabs: { screen: 'Reports' };
@@ -42,11 +40,10 @@ type NewReportScreenNavigationProp = NativeStackNavigationProp<
 
 const NewReportScreen = () => {
   const navigation = useNavigation<NewReportScreenNavigationProp>();
+  const { user } = useUser();
   const { colors } = useTheme();
   const { t } = useI18n();
-  const { user } = useUser();
   const styles = createStyles(colors);
-  const { user } = useUser();
 
   // Hardcoded types as fallback/primary since DB table might be inaccessible
   const incidentTypes = [
@@ -110,24 +107,30 @@ const NewReportScreen = () => {
       return;
     }
 
-    const pickerResult = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 1, // Reverted to original, without allowsEditing
-    });
+    try {
+      const pickerResult = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 1,
+      });
 
-    if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-      const imageUri = pickerResult.assets[0].uri;
+      if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
+        const imageUri = pickerResult.assets[0].uri;
 
-      // Use ImageManipulator for cropping
-      const manipulatedImage = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [{ crop: { originX: 0, originY: 0, width: pickerResult.assets[0].width, height: pickerResult.assets[0].height } }], // Initial crop to full image
-        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
-      );
+        // Use ImageManipulator for cropping
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          imageUri,
+          [{ crop: { originX: 0, originY: 0, width: pickerResult.assets[0].width, height: pickerResult.assets[0].height } }], // Initial crop to full image
+          { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+        );
 
-      if (!manipulatedImage.cancelled) {
-        setEvidence(manipulatedImage.uri);
+        // handle different versions of ImageManipulator result
+        if (manipulatedImage.uri) {
+          setEvidence(manipulatedImage.uri);
+        }
       }
+    } catch (e) {
+      console.error("Camera error:", e);
+      Alert.alert("Error", "No se pudo abrir la cámara.");
     }
   };
 
@@ -137,8 +140,11 @@ const NewReportScreen = () => {
       return;
     }
 
-    if (!user?.id) {
-      Alert.alert('Error', 'No se pudo obtener la información del usuario.');
+    const guardId = user?.id || user?.idEmpleado;
+
+    if (!guardId) {
+      console.error("User context missing ID and idEmpleado:", user);
+      Alert.alert("Error", "No se ha identificado al usuario. Por favor cierre sesión e intente de nuevo.");
       return;
     }
 
@@ -146,7 +152,7 @@ const NewReportScreen = () => {
       let evidenceId = null;
 
       if (evidence) {
-        evidenceId = await uploadEntryEvidence(evidence, user.id);
+        evidenceId = await uploadEntryEvidence(evidence, guardId);
         if (!evidenceId) {
           Alert.alert('Advertencia', 'No se pudo subir la evidencia. Se enviará el reporte sin foto.');
         }
@@ -166,7 +172,7 @@ const NewReportScreen = () => {
 
       const newReportData = {
         site_id: siteId,
-        created_by_guard_id: user.id,
+        created_by_guard_id: guardId,
         short_description: description,
         report_type_id: selectedType?.id || 1,
         status_id: pendingStatus?.id || 1,

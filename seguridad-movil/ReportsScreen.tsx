@@ -12,13 +12,13 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
-import { fetchReports, Report as ReportData } from './services/dataService';
+import { getAllReports, Report as ReportData } from './services/dataService';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
   NewReportScreen: undefined;
   MainTabs: undefined;
-  ReportDetail: { reportId: string }; // Changed to string to match Supabase ID
+  ReportDetail: { reportId: string };
 };
 
 type ReportsScreenNavigationProp = NativeStackNavigationProp<
@@ -36,7 +36,7 @@ const ReportsScreen = () => {
     useCallback(() => {
       const loadReports = async () => {
         try {
-          const allReports = await fetchReports();
+          const allReports = await getAllReports();
           if (allReports.length > 0) {
             console.log('Sample report keys:', Object.keys(allReports[0]));
             // console.log('Sample report:', JSON.stringify(allReports[0], null, 2));
@@ -115,7 +115,6 @@ const ReportsScreen = () => {
     </SafeAreaView>
   );
 };
-
 
 // 4. Función que genera los estilos dinámicamente.
 // Ahora la pantalla y sus componentes se adaptan al tema claro/oscuro.

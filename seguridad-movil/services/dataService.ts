@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabaseClient';
 import type { Site, Report, ReportInsert } from '../types/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 
 // Re-export types for convenience
 export type { Report };
@@ -144,7 +146,7 @@ export const getAllReports = async (): Promise<Report[]> => {
   const { data, error } = await supabase
     .from('reports')
     .select('*')
-    .order('fechaHora', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching reports:', error);
@@ -165,17 +167,13 @@ export const uploadEntryEvidence = async (uri: string, userId: string): Promise<
   try {
     const filename = `evidence/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
-    // Create a FormData object to upload the file
-    const formData = new FormData();
-    formData.append('file', {
-      uri,
-      name: 'evidence.jpg',
-      type: 'image/jpeg',
-    } as any);
+    // Leer el archivo local a base64 usando expo-file-system
+    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
 
-    const { error: uploadError } = await supabase.storage
-      .from('evidence') // Ensure this bucket exists in Supabase
-      .upload(filename, formData, {
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('evidence') // Asegurarse que el bucket existe
+      .upload(filename, decode(base64), {
+        contentType: 'image/jpeg',
         cacheControl: '3600',
         upsert: false,
       });
@@ -210,6 +208,7 @@ export const uploadEntryEvidence = async (uri: string, userId: string): Promise<
 };
 
 /**
+/**
  * Links an evidence record to a report.
  * 
  * @param reportId - The ID of the report.
@@ -226,4 +225,25 @@ export const linkEvidenceToReport = async (reportId: string, evidenceId: string)
   if (error) {
     console.error('Error linking evidence to report:', error);
   }
+};
+
+/**
+ * Fetches a single report by ID from the database.
+ * 
+ * @param id - The ID of the report.
+ * @returns A promise that resolves to the report.
+ */
+export const getReportById = async (id: string): Promise<Report | null> => {
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching report by id:', error);
+    return null;
+  }
+
+  return data;
 };

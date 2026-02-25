@@ -2,5 +2,5 @@
   "code": "PGRST204",
   "details": null,
   "hint": null,
-  "message": "Could not find the 'estado' column of 'reports' in the schema cache"
+  "message": "Could not find the 'fechaHora' column of 'reports' in the schema cache"
 }

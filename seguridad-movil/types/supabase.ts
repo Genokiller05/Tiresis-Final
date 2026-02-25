@@ -21,18 +21,18 @@ export interface Site {
  */
 export interface Report {
   id: string; // uuid
-  site_id: string; // uuid
-  shift_id?: string; // uuid
-  created_by_guard_id: string; // uuid
-  report_type_id: number; // int
-  status_id: number; // int
-  priority_id: number; // int
-  location_id?: string; // uuid
-  gps_lat?: number; // numeric
-  gps_lng?: number; // numeric
-  short_description: string; // text
-  created_at: string; // timestamptz
-  closed_at?: string; // timestamptz
+  site_id?: string;
+  shift_id?: string;
+  report_type_id?: number;
+  status_id?: number;
+  priority_id?: number;
+  location_id?: string;
+  gps_lat?: number;
+  gps_lng?: number;
+  short_description?: string;
+  created_at?: string; // timestamptz
+  closed_at?: string;
+  created_by_guard_id?: string; // uuid
   // These are often joined in queries, but for raw insert/select they aren't there
   // We might want to add optional joined fields for display if we use a view or join
   report_type?: { name: string };
@@ -44,7 +44,7 @@ export type ReportInsert = Omit<Report, 'id' | 'created_at' | 'report_type' | 'r
 
 
 export interface Guard {
-  id: string; // UUID
+  id?: string; // UUID
   idEmpleado: string; // "00012345"
   nombre: string;     // "Juan Pérez López"
   email: string;

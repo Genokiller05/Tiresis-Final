@@ -26,7 +26,7 @@ export type RootStackParamList = {
   SettingsScreen: undefined;
   NewReportScreen: undefined;
   RegistrationScreen: { type: 'visit' | 'delivery' | 'worker' };
-  ReportDetail: { reportId: number };
+  ReportDetail: { reportId: string };
 };
 
 // --- Tipos para el Bottom Tab Navigator (MainTabs) ---
