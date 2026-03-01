@@ -92,5 +92,22 @@
     "foto": "/assets/images/guards/photo-1764540345535-321072179.png",
     "estado": "Fuera de servicio",
     "actividades": []
+  },
+  {
+    "id": "GUARD-LOCAL-1772328765803",
+    "full_name": "Uziel Sanguino ",
+    "document_id": "12345678",
+    "email": "uzielsanguino@gmail.com",
+    "password": "9r1unr7q",
+    "phone": "9996734168",
+    "role": "guard",
+    "is_active": true,
+    "created_at": "2026-03-01T01:32:45.803Z",
+    "nombre": "Uziel Sanguino ",
+    "area": "Edificio A",
+    "telefono": "9996734168",
+    "direccion": "qathq54u",
+    "estado": "En servicio",
+    "foto": "/uploads/photo-1772331333947-445361962.png"
   }
 ]

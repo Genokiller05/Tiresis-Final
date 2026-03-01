@@ -7,8 +7,9 @@ import { TranslationService } from '../../services/translation.service';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
 import { Subscription } from 'rxjs';
-import flatpickr from 'flatpickr';
+import * as flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
+import { ViewChild, ElementRef } from '@angular/core';
 
 @Component({
   selector: 'app-alertas',
@@ -22,6 +23,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public allAlerts: any[] = [];
 
   // Flatpickr instances
+  @ViewChild('filterDesdeInput') filterDesdeInput!: ElementRef;
+  @ViewChild('filterHastaInput') filterHastaInput!: ElementRef;
   private datePickerDesde: any;
   private datePickerHasta: any;
 
@@ -34,6 +37,10 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
   public isDeleteModalVisible: boolean = false;
   public alertToDelete: any = null;
+
+  // Dropdown States
+  public isTipoDropdownOpen: boolean = false;
+  public isModalStatusDropdownOpen: boolean = false;
 
   // Properties for status modification modal
   public isStatusModalVisible: boolean = false;
@@ -84,38 +91,39 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private initFlatpickr() {
-    const config = {
+    console.log('Inicializando Flatpickr en Alertas...');
+    const config: any = {
       enableTime: true,
       dateFormat: "Y-m-d H:i",
       locale: Spanish,
-      altInput: true,
-      altFormat: "d/m/Y H:i",
-      time_24hr: true
+      allowInput: true,
+      time_24hr: true,
+      disableMobile: true,
+      static: true,
     };
 
-    const desdeInput = document.getElementById('filter-desde');
-    const hastaInput = document.getElementById('filter-hasta');
-
-    if (desdeInput) {
-      this.datePickerDesde = flatpickr(desdeInput, {
+    if (this.filterDesdeInput) {
+      this.datePickerDesde = (flatpickr as any).default(this.filterDesdeInput.nativeElement, {
         ...config,
         defaultDate: this.filterDesde,
-        onChange: (selectedDates, dateStr) => {
+        onChange: (selectedDates: any, dateStr: string) => {
           this.filterDesde = dateStr;
           this.aplicarFiltros();
         }
       });
+      console.log('DatePicker Desde (Alertas) inicializado');
     }
 
-    if (hastaInput) {
-      this.datePickerHasta = flatpickr(hastaInput, {
+    if (this.filterHastaInput) {
+      this.datePickerHasta = (flatpickr as any).default(this.filterHastaInput.nativeElement, {
         ...config,
         defaultDate: this.filterHasta,
-        onChange: (selectedDates, dateStr) => {
+        onChange: (selectedDates: any, dateStr: string) => {
           this.filterHasta = dateStr;
           this.aplicarFiltros();
         }
       });
+      console.log('DatePicker Hasta (Alertas) inicializado');
     }
   }
 
@@ -162,6 +170,27 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public confirmLogout(): void {
     this.authService.logout(); // Usar el servicio de autenticación
     this.router.navigate(['/login']);
+  }
+
+  // --- Filter Dropdowns ---
+  public toggleTipoDropdown(): void {
+    this.isTipoDropdownOpen = !this.isTipoDropdownOpen;
+  }
+
+  public selectTipo(tipo: string): void {
+    this.filterTipo = tipo;
+    this.isTipoDropdownOpen = false;
+    this.aplicarFiltros();
+  }
+
+  // --- Modal Dropdowns ---
+  public toggleModalStatusDropdown(): void {
+    this.isModalStatusDropdownOpen = !this.isModalStatusDropdownOpen;
+  }
+
+  public selectModalStatus(status: string): void {
+    this.selectedStatus = status;
+    this.isModalStatusDropdownOpen = false;
   }
 
   // --- Actions Menu ---

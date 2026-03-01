@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import flatpickr from 'flatpickr';
+import * as flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
+import { ViewChild, ElementRef } from '@angular/core';
 
 import { EntryExitService } from '../../services/entry-exit.service';
 
@@ -25,6 +26,8 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
   public filtroAccion: string = 'Todos'; // Entrada, Salida
 
   // Flatpickr instances
+  @ViewChild('filterDesdeInput') filterDesdeInput!: ElementRef;
+  @ViewChild('filterHastaInput') filterHastaInput!: ElementRef;
   private datePickerDesde: any;
   private datePickerHasta: any;
 
@@ -35,7 +38,13 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
 
   // Selected Records
   public selectedRegistro: any = null;
-  public registroToModify: any = null; // For the form
+  public registroToModify: any = null;
+
+  // Dropdown States
+  public isTipoDropdownOpen: boolean = false;
+  public isAccionDropdownOpen: boolean = false;
+  public isModalTipoDropdownOpen: boolean = false;
+  public isModalAccionDropdownOpen: boolean = false;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -64,38 +73,38 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
   }
 
   private initFlatpickr() {
-    const config = {
-      enableTime: false, // Usually just date for filters, but can be true if needed
+    console.log('Inicializando Flatpickr...');
+    const config: any = {
+      enableTime: false,
       dateFormat: "Y-m-d",
       locale: Spanish,
-      altInput: true,
-      altFormat: "d/m/Y",
-      allowInput: true
+      allowInput: true,
+      disableMobile: true,
+      static: true, // Ayuda con el posicionamiento en contenedores con scrolling
     };
 
-    const desdeInput = document.getElementById('filterDesde');
-    const hastaInput = document.getElementById('filterHasta');
-
-    if (desdeInput) {
-      this.datePickerDesde = flatpickr(desdeInput, {
+    if (this.filterDesdeInput) {
+      this.datePickerDesde = (flatpickr as any).default(this.filterDesdeInput.nativeElement, {
         ...config,
         defaultDate: this.filtroDesde,
-        onChange: (selectedDates, dateStr) => {
+        onChange: (selectedDates: any, dateStr: string) => {
           this.filtroDesde = dateStr;
           this.filtrar();
         }
       });
+      console.log('DatePicker Desde inicializado');
     }
 
-    if (hastaInput) {
-      this.datePickerHasta = flatpickr(hastaInput, {
+    if (this.filterHastaInput) {
+      this.datePickerHasta = (flatpickr as any).default(this.filterHastaInput.nativeElement, {
         ...config,
         defaultDate: this.filtroHasta,
-        onChange: (selectedDates, dateStr) => {
+        onChange: (selectedDates: any, dateStr: string) => {
           this.filtroHasta = dateStr;
           this.filtrar();
         }
       });
+      console.log('DatePicker Hasta inicializado');
     }
   }
 
@@ -140,6 +149,54 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
 
       return true;
     });
+  }
+
+  // --- Filter Dropdowns ---
+  toggleTipoDropdown(): void {
+    this.isTipoDropdownOpen = !this.isTipoDropdownOpen;
+    this.isAccionDropdownOpen = false;
+  }
+
+  selectTipo(tipo: string): void {
+    this.filtroTipo = tipo;
+    this.isTipoDropdownOpen = false;
+    this.filtrar();
+  }
+
+  toggleAccionDropdown(): void {
+    this.isAccionDropdownOpen = !this.isAccionDropdownOpen;
+    this.isTipoDropdownOpen = false;
+  }
+
+  selectAccion(accion: string): void {
+    this.filtroAccion = accion;
+    this.isAccionDropdownOpen = false;
+    this.filtrar();
+  }
+
+  // --- Modal Dropdowns ---
+  toggleModalTipoDropdown(): void {
+    this.isModalTipoDropdownOpen = !this.isModalTipoDropdownOpen;
+    this.isModalAccionDropdownOpen = false;
+  }
+
+  selectModalTipo(tipo: string): void {
+    if (this.registroToModify) {
+      this.registroToModify.tipo = tipo;
+    }
+    this.isModalTipoDropdownOpen = false;
+  }
+
+  toggleModalAccionDropdown(): void {
+    this.isModalAccionDropdownOpen = !this.isModalAccionDropdownOpen;
+    this.isModalTipoDropdownOpen = false;
+  }
+
+  selectModalAccion(accion: string): void {
+    if (this.registroToModify) {
+      this.registroToModify.accion = accion;
+    }
+    this.isModalAccionDropdownOpen = false;
   }
 
   // --- Actions Menu ---

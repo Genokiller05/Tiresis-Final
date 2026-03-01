@@ -1,4 +1,319 @@
-/*
-  All component styles are now handled by Tailwind CSS utility classes
-  in the home.component.html file. This file is intentionally left empty.
-*/
+/* --- Tactical Premium Animations --- */
+@keyframes neon-pulse-cyan {
+
+  0%,
+  100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.2), inset 0 0 5px rgba(6, 182, 212, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.2);
+  }
+}
+
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.glow-cyan {
+  animation: neon-pulse-cyan 3s infinite;
+}
+
+.tactical-grid {
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.glass-card-premium {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(88, 28, 135, 0.1) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.tactical-border {
+  position: relative;
+}
+
+.tactical-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 15px;
+  height: 15px;
+  border-top: 2px solid #06b6d4;
+  border-left: 2px solid #06b6d4;
+  z-index: 10;
+}
+
+.tactical-border::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  border-bottom: 2px solid #a855f7;
+  border-right: 2px solid #a855f7;
+  z-index: 10;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  padding-top: 15px;
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 10px;
+}
+
+.animate-scan {
+  animation: scan-line 4s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 15s linear infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-slow 20s linear infinite reverse;
+}
+
+/* =============================================
+   BIOMETRIC FINGERPRINT SCANNER ANIMATION
+   ============================================= */
+
+/* --- Wrapper --- */
+.bio-scanner-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Glow Rings --- */
+.bio-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(112, 0, 255, 0.25);
+  animation: bio-ring-pulse 3s ease-out infinite;
+}
+
+.bio-ring-1 {
+  width: 100%;
+  height: 100%;
+  animation-delay: 0s;
+}
+
+.bio-ring-2 {
+  width: 130%;
+  height: 130%;
+  animation-delay: 1s;
+  border-color: rgba(45, 91, 255, 0.15);
+}
+
+.bio-ring-3 {
+  width: 160%;
+  height: 160%;
+  animation-delay: 2s;
+  border-color: rgba(112, 0, 255, 0.08);
+}
+
+@keyframes bio-ring-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+}
+
+/* --- Fingerprint Container (clip & scan) --- */
+.bio-fp-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+/* --- Scan line sweep --- */
+.bio-scan-line {
+  position: absolute;
+  top: 0;
+  left: -10%;
+  width: 120%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(112, 0, 255, 0.9), rgba(45, 91, 255, 0.9), transparent);
+  box-shadow: 0 0 18px 4px rgba(112, 0, 255, 0.5);
+  animation: bio-scan-sweep 2.4s ease-in-out infinite;
+  z-index: 10;
+}
+
+@keyframes bio-scan-sweep {
+  0% {
+    top: -2%;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    top: 102%;
+    opacity: 0;
+  }
+}
+
+/* --- SVG Fingerprint --- */
+.bio-fp-svg {
+  width: 160px;
+  height: 160px;
+  color: rgba(139, 92, 246, 0.8);
+  /* purple-400 */
+  filter: drop-shadow(0 0 6px rgba(112, 0, 255, 0.4));
+}
+
+/* Fingerprint paths: draw themselves with stroke-dasharray trick */
+.bio-path {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: bio-draw-path 3.5s ease-in-out infinite;
+}
+
+.bio-path-1 {
+  animation-delay: 0.0s;
+  color: rgba(139, 92, 246, 0.9);
+}
+
+.bio-path-2 {
+  animation-delay: 0.3s;
+  color: rgba(139, 92, 246, 0.85);
+}
+
+.bio-path-3 {
+  animation-delay: 0.6s;
+  color: rgba(139, 92, 246, 0.75);
+}
+
+.bio-path-4 {
+  animation-delay: 0.9s;
+  color: rgba(139, 92, 246, 0.65);
+}
+
+.bio-path-5 {
+  animation-delay: 1.1s;
+  color: rgba(139, 92, 246, 0.6);
+}
+
+.bio-path-6 {
+  animation-delay: 1.3s;
+  color: rgba(139, 92, 246, 0.55);
+}
+
+@keyframes bio-draw-path {
+  0% {
+    stroke-dashoffset: 200;
+    opacity: 0.2;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  60% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+
+  85% {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+
+  100% {
+    stroke-dashoffset: 200;
+    opacity: 0.2;
+  }
+}
+
+/* Corner brackets: always visible, subtle glow */
+.bio-bracket {
+  color: rgba(45, 91, 255, 0.6);
+  stroke-dasharray: 30;
+  stroke-dashoffset: 0;
+  animation: bio-bracket-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes bio-bracket-blink {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(45, 91, 255, 0.8));
+  }
+}
+
+/* --- Status text --- */
+.bio-status-text {
+  font-size: 11px;
+  font-weight: 900;
+  color: rgba(112, 0, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.35em;
+  animation: bio-text-blink 2.4s ease-in-out infinite;
+}
+
+@keyframes bio-text-blink {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}

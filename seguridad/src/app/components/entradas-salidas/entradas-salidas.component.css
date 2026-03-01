@@ -1,0 +1,291 @@
+/* --- Neo-Glass Elegance (Blue & Purple Palette) --- */
+
+:host {
+    --royal-blue: #0a0c20;
+    --electric-purple: #9d50ff;
+    --vivid-blue: #3b82f6;
+    --glass-stroke: rgba(255, 255, 255, 0.08);
+    --glass-bg: rgba(10, 12, 32, 0.75);
+}
+
+.neo-glass-container {
+    background: radial-gradient(circle at top left, rgba(112, 0, 255, 0.1), transparent 40%),
+        radial-gradient(circle at bottom right, rgba(45, 91, 255, 0.1), transparent 40%);
+}
+
+.glass-card-premium {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-stroke);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-card-premium:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: var(--electric-purple);
+    box-shadow: 0 20px 40px rgba(112, 0, 255, 0.15);
+}
+
+.status-badge {
+    font-family: 'Inter', sans-serif;
+    font-weight: 800;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 10px;
+}
+
+.badge-entry {
+    background: rgba(112, 0, 255, 0.1);
+    color: var(--electric-purple);
+    border: 1px solid rgba(112, 0, 255, 0.3);
+    box-shadow: 0 0 10px rgba(112, 0, 255, 0.2);
+}
+
+.badge-exit {
+    background: rgba(45, 91, 255, 0.1);
+    color: var(--vivid-blue);
+    border: 1px solid rgba(45, 91, 255, 0.3);
+    box-shadow: 0 0 10px rgba(45, 91, 255, 0.2);
+}
+
+.text-premium-gradient {
+    background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.avatar-frame {
+    position: relative;
+    padding: 3px;
+    background: linear-gradient(135deg, var(--electric-purple), var(--vivid-blue));
+    border-radius: 100%;
+}
+
+.avatar-frame img {
+    border: 2px solid var(--royal-blue);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--electric-purple);
+    border-radius: 10px;
+}
+
+/* --- Orbiting Nodes Animation (Elliptical & Trails) --- */
+.orbit-container {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1000px;
+}
+
+.core-node {
+    width: 60px;
+    height: 60px;
+    background: rgba(112, 0, 255, 0.1);
+    border: 1px solid var(--electric-purple);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(112, 0, 255, 0.4);
+    z-index: 10;
+    position: relative;
+}
+
+.orbit-path {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+    border: 1px solid rgba(112, 0, 255, 0.05);
+    transform-style: preserve-3d;
+}
+
+.orbit-1 {
+    width: 150px;
+    height: 150px;
+    transform: translate(-50%, -50%) rotateX(75deg) rotateY(15deg);
+    animation: rotateOrbit 4s linear infinite;
+}
+
+.orbit-2 {
+    width: 220px;
+    height: 220px;
+    transform: translate(-50%, -50%) rotateX(-70deg) rotateY(-20deg);
+    animation: rotateOrbit 7s linear reverse infinite;
+}
+
+.orbit-3 {
+    width: 280px;
+    height: 280px;
+    transform: translate(-50%, -50%) rotateX(60deg) rotateY(40deg);
+    animation: rotateOrbit 10s linear infinite;
+}
+
+.node-system {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translateX(-50%);
+}
+
+.node-point {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.node-purple .node-point {
+    background: var(--electric-purple);
+    box-shadow:
+        0 0 10px var(--electric-purple),
+        0 0 20px var(--electric-purple),
+        -10px 2px 15px var(--electric-purple),
+        /* Trail start */
+        -20px 5px 20px rgba(112, 0, 255, 0.4);
+    /* Trail end */
+}
+
+.node-blue .node-point {
+    background: var(--vivid-blue);
+    box-shadow:
+        0 0 10px var(--vivid-blue),
+        0 0 20px var(--vivid-blue),
+        10px -2px 15px var(--vivid-blue),
+        /* Trail start */
+        20px -5px 20px rgba(45, 91, 255, 0.4);
+    /* Trail end */
+}
+
+@keyframes rotateOrbit {
+    from {
+        transform: translate(-50%, -50%) rotateX(var(--rx, 70deg)) rotateY(var(--ry, 20deg)) rotateZ(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotateX(var(--rx, 70deg)) rotateY(var(--ry, 20deg)) rotateZ(360deg);
+    }
+}
+
+/* Base adjustment for each orbit to keep them centered but angled */
+.orbit-1 {
+    --rx: 75deg;
+    --ry: 15deg;
+}
+
+.orbit-2 {
+    --rx: -70deg;
+    --ry: -20deg;
+}
+
+.orbit-3 {
+    --rx: 60deg;
+    --ry: 40deg;
+}
+
+.pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+    0%,
+    100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.15);
+    }
+}
+
+/* --- Dropdown Premium Adjustments --- */
+.bg-royal-blue\/95 {
+    background-color: rgba(10, 12, 32, 0.98) !important;
+}
+
+.dropdown-option {
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+    /* Slate 300 */
+    transition: all 0.2s ease;
+}
+
+.dropdown-option:hover {
+    background: linear-gradient(90deg, rgba(157, 80, 255, 0.4), transparent);
+    color: #fff;
+    padding-left: 20px;
+}
+
+.dropdown-option.active {
+    background: rgba(157, 80, 255, 0.2);
+    color: #e9d5ff;
+    /* Extra light purple */
+    font-weight: bold;
+}
+
+.shadow-2xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+}
+
+/* Asegurar que los selectores no hereden comportamientos extraños de hover de las tarjetas */
+.group\/input {
+    position: relative;
+    z-index: 50;
+}
+
+/* Forzar que el contenedor de filtros no corte los dropdowns */
+.glass-card-premium.relative {
+    overflow: visible !important;
+    z-index: 40;
+}
+
+/* Evitar que elementos posteriores tapen los dropdowns de los anteriores */
+.grid {
+    display: grid !important;
+}
+
+.grid>div {
+    position: relative;
+}
+
+/* Escalar el z-index secuencialmente para que el de la derecha no tape al de la izquierda si se abren
+   (aunque solo se abre uno a la vez por lógica de TS) */
+.group\/input:nth-child(1) {
+    z-index: 54;
+}
+
+.group\/input:nth-child(2) {
+    z-index: 53;
+}
+
+.group\/input:nth-child(3) {
+    z-index: 52;
+}
+
+.group\/input:nth-child(4) {
+    z-index: 51;
+}

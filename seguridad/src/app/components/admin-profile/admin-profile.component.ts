@@ -2,8 +2,7 @@ import { Component, OnInit, Inject, PLATFORM_ID, OnDestroy } from '@angular/core
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ThemeService } from '../../services/theme.service';
-import { TranslationService } from '../../services/translation.service';
+
 import { AuthService } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
 
@@ -36,50 +35,22 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   public isSuccessModalVisible: boolean = false;
   public isLogoutConfirmationVisible: boolean = false;
 
-  // Language properties
-  public selectedLanguage: string = 'Español';
-  public uiText: any = {};
-  private langSubscription!: Subscription;
-
-  // Theme property
-  public currentTheme: 'light' | 'dark' = 'dark';
-  private themeSubscription!: Subscription;
-
   constructor(
     private router: Router,
-    private themeService: ThemeService,
-    private authService: AuthService, // Inject AuthService
-    public translationService: TranslationService, // Make it public
+    private authService: AuthService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
   ngOnInit(): void {
-    this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
-      this.currentTheme = theme;
-    });
     this.loadProfile();
-
-    this.langSubscription = this.translationService.uiText.subscribe(translations => {
-      this.uiText = translations.adminProfile || {};
-    });
-    this.selectedLanguage = this.translationService.currentLanguage.value;
   }
 
   ngOnDestroy(): void {
-    if (this.langSubscription) {
-      this.langSubscription.unsubscribe();
-    }
-    if (this.themeSubscription) {
-      this.themeSubscription.unsubscribe();
-    }
   }
 
   private loadProfile(): void {
     if (isPlatformBrowser(this.platformId)) {
-      // 1. Try to load from 'currentUser' (source of truth regarding auth)
       const currentUser = this.authService.getCurrentUser();
-
-      // 2. Load locally saved profile edits
       const savedProfile = localStorage.getItem('adminProfile');
 
       if (currentUser) {
@@ -89,14 +60,11 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
         this.location = currentUser.location || 'Sin Ubicación';
       }
 
-      // Overwrite with local edits if they exist (for name/phone/image)
       if (savedProfile) {
         const profile = JSON.parse(savedProfile);
         this.adminName = profile.name || this.adminName;
         this.adminPhone = profile.phone || this.adminPhone;
         this.profileImageUrl = profile.imageUrl || this.profileImageUrl;
-        // Allows editing company/location locally if we want, but usually these are fixed or updated elsewhere.
-        // For now, let's allow local overrides if we added inputs for them, but I'll stick to showing them from Auth mostly.
         if (profile.companyName) this.companyName = profile.companyName;
         if (profile.location) this.location = profile.location;
       }
@@ -116,7 +84,6 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
       };
       localStorage.setItem('adminProfile', JSON.stringify(profile));
 
-      // Optional: Update currentUser in localStorage too so it persists across reloads effectively
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
         currentUser.fullName = this.adminName;
@@ -125,16 +92,6 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
       }
     }
-  }
-
-  public setLanguage(event: Event): void {
-    const lang = (event.target as HTMLSelectElement).value;
-    this.translationService.setLanguage(lang);
-  }
-
-  // --- Theme Methods ---
-  public setTheme(theme: 'light' | 'dark'): void {
-    this.themeService.setTheme(theme);
   }
 
   public navigateTo(event: Event, path: string): void {

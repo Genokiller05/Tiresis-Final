@@ -23,7 +23,7 @@ export const routes: Routes = [
         children: [
             { path: '', redirectTo: 'alertas', pathMatch: 'full' },
             { path: 'alertas', component: AlertasComponent },
-            { path: 'registros', component: RegistrosComponent },
+            { path: 'registros', redirectTo: 'home', pathMatch: 'full' },
             { path: 'home', component: HomeComponent },
             { path: 'admin-profile', component: AdminProfileComponent },
             { path: 'mapa', component: MapaComponent },

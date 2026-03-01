@@ -64,17 +64,34 @@
   height: 100%;
 }
 
+.flatpickr-monthDropdown-months {
+  background: #7c3aed !important;
+  color: white !important;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.flatpickr-monthDropdown-months option {
+  background-color: #1a1625 !important;
+  /* Fondo muy oscuro para las opciones */
+  color: white !important;
+  padding: 8px;
+}
+
 .flatpickr-current-month .flatpickr-monthDropdown-months,
 .flatpickr-current-month input.cur-year {
   color: white !important;
   font-weight: bold;
   background: transparent !important;
-  /* Fix background overlap */
   border: none !important;
   box-shadow: none !important;
+  margin-right: 5px;
 }
 
-.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
 .flatpickr-current-month input.cur-year:hover {
   background: rgba(255, 255, 255, 0.1) !important;
 }
@@ -104,10 +121,44 @@
   background: #f3f4f6 !important;
 }
 
-/* You can add global styles to this file, and also import other style files */
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #020410 !important;
+  background-image:
+    radial-gradient(circle at 5% 5%, rgba(124, 58, 237, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 95% 95%, rgba(59, 130, 246, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 80%) !important;
+  background-attachment: fixed;
+  color: #e5e7eb;
+}
 
+/* Premium Utilities */
+.glass-effect {
+  background: rgba(13, 17, 35, 0.75) !important;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
 
+.bg-gradient-premium {
+  background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%) !important;
+}
 
+.text-gradient {
+  background: linear-gradient(to right, #a855f7, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-hover:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+  border-color: rgba(124, 58, 237, 0.3) !important;
+}
 
 .material-icons {
   font-size: inherit;

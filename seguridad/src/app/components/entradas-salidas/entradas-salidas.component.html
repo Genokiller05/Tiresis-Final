@@ -1,256 +1,478 @@
-<div class="p-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 min-h-screen">
-
-  <!-- Header -->
-  <div class="flex justify-between items-center mb-6">
-    <div class="flex items-center space-x-3">
-      <span class="material-icons text-4xl text-purple-600 dark:text-purple-400">login</span>
-      <h1 class="text-4xl font-bold">Registros de Entradas y Salidas</h1>
-    </div>
-    <!-- Removed Register Button -->
-  </div>
-
-  <!-- Filters -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow">
-    <div>
-      <label for="filterDesde" class="block text-sm font-medium mb-1">Desde</label>
-      <div class="relative">
-        <input type="text" id="filterDesde" placeholder="Seleccionar fecha..."
-          class="w-full pl-3 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-white">
-        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <span class="material-icons text-gray-400 text-sm">calendar_today</span>
-        </div>
-      </div>
-    </div>
-    <div>
-      <label for="filterHasta" class="block text-sm font-medium mb-1">Hasta</label>
-      <div class="relative">
-        <input type="text" id="filterHasta" placeholder="Seleccionar fecha..."
-          class="w-full pl-3 pr-10 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500 text-gray-900 dark:text-white">
-        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <span class="material-icons text-gray-400 text-sm">calendar_today</span>
-        </div>
-      </div>
-    </div>
-    <div>
-      <label for="filterTipo" class="block text-sm font-medium mb-1">Tipo</label>
-      <select id="filterTipo" [(ngModel)]="filtroTipo" (change)="filtrar()"
-        class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
-        <option value="Todos">Todos</option>
-        <option value="Residente">Residente</option>
-        <option value="Personal">Personal</option>
-        <option value="Paquetería">Paquetería</option>
-      </select>
-    </div>
-    <div>
-      <label for="filterAccion" class="block text-sm font-medium mb-1">Acción</label>
-      <select id="filterAccion" [(ngModel)]="filtroAccion" (change)="filtrar()"
-        class="w-full p-2 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-purple-500 focus:border-purple-500">
-        <option value="Todos">Todas</option>
-        <option value="Entrada">Entrada</option>
-        <option value="Salida">Salida</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Table -->
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-      <thead class="bg-gray-50 dark:bg-gray-700">
-        <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Nombre / Tipo</th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Acción</th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Fecha y Hora</th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Destino</th>
-          <th scope="col" class="relative px-6 py-3">
-            <span class="sr-only">Acciones</span>
-          </th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-        <tr *ngFor="let registro of registrosFiltrados">
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium">{{ registro.nombre }}</div>
-            <div class="text-sm text-gray-500">{{ registro.tipo }}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-              [ngClass]="registro.accion === 'Entrada' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'">
-              {{ registro.accion }}
-            </span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm">{{ registro.fecha | date:'short' }}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm">
-            {{ registro.destino }}
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-            <button (click)="toggleMenu(registro)"
-              class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 focus:outline-none">
-              <span class="material-icons">more_vert</span>
-            </button>
-            <!-- Dropdown Menu -->
-            <div *ngIf="registro.menuVisible"
-              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-20 text-left">
-              <a (click)="prepareEdit(registro)"
-                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
-                <span class="flex items-center gap-2">
-                  <span class="material-icons text-sm">edit</span> Modificar
-                </span>
-              </a>
-              <a (click)="showDetails(registro)"
-                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
-                <span class="flex items-center gap-2">
-                  <span class="material-icons text-sm">visibility</span> Detalles
-                </span>
-              </a>
-              <a (click)="prepareDelete(registro)"
-                class="block px-4 py-2 text-sm text-red-600 dark:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer">
-                <span class="flex items-center gap-2">
-                  <span class="material-icons text-sm">delete</span> Eliminar
-                </span>
-              </a>
+<div class="min-h-screen font-body text-gray-200 pl-24 transition-all duration-300">
+  <div class="flex flex-col h-screen">
+    <!-- Main Content -->
+    <main class="flex-1 p-8 flex flex-col overflow-y-auto">
+      <div class="container mx-auto flex flex-col h-full">
+        <header class="mb-10 flex justify-between items-center flex-shrink-0">
+          <div class="flex items-center space-x-4">
+            <div class="p-3 bg-gradient-premium rounded-2xl shadow-lg ring-1 ring-white/20">
+              <span class="material-icons text-3xl text-white">login</span>
             </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <div>
+              <h1 class="text-4xl font-bold text-gradient">Control de Accesos</h1>
+              <p class="text-gray-400 mt-1 font-medium tracking-wide">Historial detallado de Entradas y Salidas</p>
+            </div>
+          </div>
 
-    <div *ngIf="registrosFiltrados.length === 0" class="p-8 text-center text-gray-500">
-      No se encontraron registros.
-    </div>
+          <div class="flex items-center space-x-3">
+            <div class="text-right mr-4 hidden md:block">
+              <p class="text-[10px] font-black uppercase tracking-widest text-accent-blue">Estado del Sistema</p>
+              <p class="text-sm font-bold text-emerald-400 italic">Sincronizado</p>
+            </div>
+            <button (click)="filtrar()"
+              class="p-3 glass-effect border border-glass-border rounded-xl text-primary hover:scale-110 transition-all">
+              <span class="material-icons">refresh</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- Filters Section -->
+        <div class="glass-card-premium p-6 mb-10 relative group">
+          <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/5 pointer-events-none"></div>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
+            <div class="group/input">
+              <label
+                class="block text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Desde</label>
+              <div class="relative">
+                <input type="text" #filterDesdeInput id="filterDesde" name="filterDesde" placeholder="Fecha inicial..."
+                  [(ngModel)]="filtroDesde"
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm cursor-pointer">
+                <span
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 text-sm pointer-events-none">calendar_month</span>
+              </div>
+            </div>
+            <div class="group/input">
+              <label
+                class="block text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Hasta</label>
+              <div class="relative">
+                <input type="text" #filterHastaInput id="filterHasta" name="filterHasta" placeholder="Fecha final..."
+                  [(ngModel)]="filtroHasta"
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-sm cursor-pointer">
+                <span
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-sm pointer-events-none">calendar_today</span>
+              </div>
+            </div>
+            <div class="group/input relative">
+              <label
+                class="block text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Categoría
+                de Usuario</label>
+              <div class="relative">
+                <div (click)="toggleTipoDropdown()"
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-purple-500/30 rounded-xl text-white cursor-pointer hover:border-purple-500 transition-all text-sm flex items-center justify-between">
+                  <span class="truncate">{{ filtroTipo === 'Todos' ? 'Todos los Perfiles' : (filtroTipo === 'Paquetería'
+                    ? 'Servicios Externos' : filtroTipo + 's') }}</span>
+                  <span class="material-icons text-purple-500 text-sm transition-transform duration-300"
+                    [class.rotate-180]="isTipoDropdownOpen">expand_more</span>
+                </div>
+                <span
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 text-sm pointer-events-none">badge</span>
+
+                <!-- Custom Dropdown Menu -->
+                <div *ngIf="isTipoDropdownOpen"
+                  class="absolute top-full left-0 w-full mt-2 bg-royal-blue border border-purple-500/30 rounded-xl shadow-2xl z-[100] py-2 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                  <div (click)="selectTipo('Todos')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroTipo === 'Todos'">
+                    Todos los Perfiles
+                    <span *ngIf="filtroTipo === 'Todos'" class="material-icons text-xs">check</span>
+                  </div>
+                  <div (click)="selectTipo('Residente')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroTipo === 'Residente'">
+                    Residentes
+                    <span *ngIf="filtroTipo === 'Residente'" class="material-icons text-xs">check</span>
+                  </div>
+                  <div (click)="selectTipo('Personal')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroTipo === 'Personal'">
+                    Personal Técnico
+                    <span *ngIf="filtroTipo === 'Personal'" class="material-icons text-xs">check</span>
+                  </div>
+                  <div (click)="selectTipo('Paquetería')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroTipo === 'Paquetería'">
+                    Servicios Externos
+                    <span *ngIf="filtroTipo === 'Paquetería'" class="material-icons text-xs">check</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="group/input relative">
+              <label
+                class="block text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Tipo
+                de Acción</label>
+              <div class="relative">
+                <div (click)="toggleAccionDropdown()"
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white cursor-pointer hover:border-blue-500 transition-all text-sm flex items-center justify-between">
+                  <span class="truncate">{{ filtroAccion === 'Todos' ? 'Cualquier Movimiento' : (filtroAccion ===
+                    'Entrada'
+                    ? 'Registros de Entrada' : 'Registros de Salida') }}</span>
+                  <span class="material-icons text-blue-500 text-sm transition-transform duration-300"
+                    [class.rotate-180]="isAccionDropdownOpen">expand_more</span>
+                </div>
+                <span
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-sm pointer-events-none">swap_vert</span>
+
+                <!-- Custom Dropdown Menu -->
+                <div *ngIf="isAccionDropdownOpen"
+                  class="absolute top-full left-0 w-full mt-2 bg-royal-blue border border-blue-500/30 rounded-xl shadow-2xl z-[100] py-2 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                  <div (click)="selectAccion('Todos')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroAccion === 'Todos'">
+                    Cualquier Movimiento
+                    <span *ngIf="filtroAccion === 'Todos'" class="material-icons text-xs">check</span>
+                  </div>
+                  <div (click)="selectAccion('Entrada')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroAccion === 'Entrada'">
+                    Registros de Entrada
+                    <span *ngIf="filtroAccion === 'Entrada'" class="material-icons text-xs">check</span>
+                  </div>
+                  <div (click)="selectAccion('Salida')" class="dropdown-option flex items-center justify-between"
+                    [class.active]="filtroAccion === 'Salida'">
+                    Registros de Salida
+                    <span *ngIf="filtroAccion === 'Salida'" class="material-icons text-xs">check</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Neo-Glass Container -->
+        <div class="flex-grow flex flex-col min-h-0 neo-glass-container">
+          <div class="flex justify-between items-center mb-8 relative z-10">
+            <h2 class="text-3xl font-black text-white flex items-center tracking-tight">
+              <span class="material-icons text-purple-500 mr-4 text-4xl">history_toggle_off</span>
+              <span class="text-premium-gradient">Bitácora de Flujo Real</span>
+            </h2>
+            <div
+              class="flex items-center gap-4 bg-black/30 px-6 py-2 rounded-2xl border border-white/5 backdrop-blur-md">
+              <span class="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+              <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total: {{
+                registrosFiltrados.length }} Entradas/Salidas</span>
+            </div>
+          </div>
+
+          <!-- Chronological Timeline Display -->
+          <div class="overflow-y-auto flex-grow relative z-10 pr-2 custom-scrollbar">
+            <div *ngIf="registrosFiltrados.length === 0"
+              class="py-20 text-center flex flex-col items-center justify-center min-h-[400px]">
+              <div class="orbit-container mb-12">
+                <!-- Orbits with Elliptical Paths and Trails -->
+                <div class="orbit-path orbit-1">
+                  <div class="node-system node-purple">
+                    <div class="node-point"></div>
+                  </div>
+                </div>
+                <div class="orbit-path orbit-2">
+                  <div class="node-system node-blue">
+                    <div class="node-point"></div>
+                  </div>
+                </div>
+                <div class="orbit-path orbit-3">
+                  <div class="node-system node-purple opacity-30">
+                    <div class="node-point"></div>
+                  </div>
+                </div>
+
+                <!-- Center Core -->
+                <div class="core-node pulse-glow">
+                  <span class="material-icons text-purple-400 text-2xl">search</span>
+                </div>
+              </div>
+
+              <div class="space-y-4 relative z-10">
+                <p class="text-white text-xl font-black tracking-widest uppercase opacity-90 text-premium-gradient">
+                  Bóveda Sincronizada</p>
+                <p class="text-gray-500 text-sm font-bold italic tracking-tight">Escaneando flujo de datos tácticos en
+                  tiempo real...</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10">
+              <div *ngFor="let registro of registrosFiltrados"
+                class="glass-card-premium p-6 group relative overflow-hidden">
+
+                <!-- Accion Gradient Background -->
+                <div
+                  class="absolute top-0 right-0 w-32 h-32 opacity-10 blur-3xl pointer-events-none transition-all group-hover:opacity-20"
+                  [ngClass]="registro.accion === 'Entrada' ? 'bg-purple-500' : 'bg-blue-500'"></div>
+
+                <div class="flex items-start justify-between relative z-10 mb-6">
+                  <div class="flex items-center gap-4">
+                    <div class="avatar-frame">
+                      <div
+                        class="w-12 h-12 rounded-full bg-royal-blue flex items-center justify-center text-white font-black overflow-hidden relative">
+                        <img *ngIf="registro.foto; else initial" [src]="registro.foto"
+                          class="w-full h-full object-cover">
+                        <ng-template #initial>{{ registro.nombre.substring(0,2).toUpperCase() }}</ng-template>
+                      </div>
+                    </div>
+                    <div>
+                      <p class="text-white font-black text-base group-hover:text-purple-400 transition-colors">{{
+                        registro.nombre }}</p>
+                      <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em]">{{ registro.tipo }}</p>
+                    </div>
+                  </div>
+                  <span class="status-badge" [ngClass]="registro.accion === 'Entrada' ? 'badge-entry' : 'badge-exit'">
+                    {{ registro.accion }}
+                  </span>
+                </div>
+
+                <div class="space-y-4 relative z-10">
+                  <div class="flex items-center gap-3 text-gray-400 group-hover:text-white transition-colors">
+                    <span class="material-icons text-sm opacity-50">schedule</span>
+                    <span class="text-[11px] font-bold tracking-wide">{{ registro.fecha | date:'fullDate' }}</span>
+                    <span class="text-[11px] font-black text-purple-400 font-mono ml-auto">{{ registro.fecha |
+                      date:'HH:mm:ss' }}</span>
+                  </div>
+
+                  <div class="p-3 bg-black/40 rounded-xl border border-white/5 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="material-icons text-xs text-blue-400">meeting_room</span>
+                      <span class="text-[10px] text-gray-300 font-bold uppercase tracking-tight">Sector: {{
+                        registro.destino }}</span>
+                    </div>
+                    <span class="material-icons text-xs text-gray-600">verified_user</span>
+                  </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div
+                  class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
+                  <button (click)="showDetails(registro)"
+                    class="text-[9px] font-black text-purple-400 uppercase tracking-widest hover:underline">Ver
+                    Expediente</button>
+                  <div class="flex gap-2">
+                    <button (click)="prepareEdit(registro)"
+                      class="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors">
+                      <span class="material-icons text-sm">edit</span>
+                    </button>
+                    <button (click)="prepareDelete(registro)"
+                      class="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors">
+                      <span class="material-icons text-sm">delete</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <!-- Details Modal -->
-  <div *ngIf="isDetailsModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-lg w-full transform transition-all">
-      <h3
-        class="text-2xl font-bold text-gray-900 dark:text-white mb-6 border-b pb-2 border-gray-200 dark:border-gray-700">
-        Detalles del Registro</h3>
-      <div *ngIf="selectedRegistro" class="space-y-4 text-gray-700 dark:text-gray-300">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nombre</p>
-            <p class="text-lg font-semibold">{{ selectedRegistro.nombre }}</p>
+  <div *ngIf="isDetailsModalVisible"
+    class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
+    <div class="glass-card-premium p-10 max-w-2xl w-full animate-in zoom-in duration-300 overflow-hidden relative">
+      <div class="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 blur-[100px] rounded-full"></div>
+
+      <div class="relative z-10">
+        <div class="flex justify-between items-center mb-8">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-primary/20 rounded-xl">
+              <span class="material-icons text-primary">folder_shared</span>
+            </div>
+            <h3 class="text-2xl font-bold text-white text-gradient">Expediente de Acceso</h3>
           </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tipo</p>
-            <p class="text-lg">{{ selectedRegistro.tipo }}</p>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Acción</p>
-            <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-              [ngClass]="selectedRegistro.accion === 'Entrada' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'">
-              {{ selectedRegistro.accion }}
-            </span>
-          </div>
-          <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha y Hora</p>
-            <p class="text-lg">{{ selectedRegistro.fecha | date:'medium' }}</p>
-          </div>
-        </div>
-        <div>
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Destino</p>
-          <p class="text-lg p-2 bg-gray-50 dark:bg-gray-700/50 rounded-md">{{ selectedRegistro.destino }}</p>
+          <button (click)="closeDetailsModal()"
+            class="p-2 hover:bg-white/10 rounded-full transition-all text-gray-500 hover:text-white">
+            <span class="material-icons">close</span>
+          </button>
         </div>
 
-        <!-- Evidence Display -->
-        <div *ngIf="selectedRegistro.detalles?.evidence_url">
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Evidencia</p>
-          <div
-            class="relative h-48 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
-            <img [src]="selectedRegistro.detalles.evidence_url" alt="Evidencia" class="w-full h-full object-contain">
+        <div *ngIf="selectedRegistro" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div class="space-y-6">
+            <div class="p-6 bg-white/5 rounded-2xl border border-glass-border group hover:bg-white/10 transition-all">
+              <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Información del Sujeto</p>
+              <div class="flex items-center space-x-4 mb-4">
+                <div
+                  class="w-14 h-14 rounded-2xl bg-gradient-premium flex items-center justify-center shadow-lg border border-white/20">
+                  <span class="material-icons text-white text-2xl">person</span>
+                </div>
+                <div>
+                  <h4 class="text-xl font-bold text-white">{{ selectedRegistro.nombre }}</h4>
+                  <span
+                    class="px-2 py-0.5 bg-accent-blue/20 text-accent-blue text-[10px] font-black rounded uppercase tracking-widest">{{
+                    selectedRegistro.tipo }}</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center pt-4 border-t border-glass-border">
+                <div class="text-center px-4">
+                  <p class="text-[10px] text-gray-500 uppercase mb-1">Movimiento</p>
+                  <span class="text-sm font-bold"
+                    [ngClass]="selectedRegistro.accion === 'Entrada' ? 'text-emerald-400' : 'text-rose-400'">{{
+                    selectedRegistro.accion }}</span>
+                </div>
+                <div class="w-px h-8 bg-glass-border"></div>
+                <div class="text-center px-4">
+                  <p class="text-[10px] text-gray-500 uppercase mb-1">Hora Exacta</p>
+                  <span class="text-sm font-bold text-white font-mono">{{ selectedRegistro.fecha | date:'HH:mm:ss'
+                    }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-6 bg-white/5 rounded-2xl border border-glass-border">
+              <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Geolocalización / Destino
+              </p>
+              <div
+                class="flex items-center space-x-3 text-gray-300 bg-black/30 p-4 rounded-xl border border-glass-border">
+                <span class="material-icons text-primary">location_on</span>
+                <p class="font-medium">{{ selectedRegistro.destino }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence and Notes -->
+          <div class="space-y-6">
+            <div *ngIf="selectedRegistro.detalles?.evidence_url" class="group">
+              <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Evidencia Capturada</p>
+              <div
+                class="relative rounded-2xl overflow-hidden border border-glass-border shadow-2xl aspect-video bg-black/40 group-hover:border-primary/50 transition-all">
+                <img [src]="selectedRegistro.detalles.evidence_url" alt="Evidencia" class="w-full h-full object-cover">
+                <div
+                  class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                  <p class="text-white text-[10px] font-mono">ID_CAM: #042 • ANALÍTICA ACTIVA</p>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="selectedRegistro.detalles?.notes"
+              class="p-4 bg-primary/5 rounded-xl border border-primary/10 italic text-gray-400 text-sm leading-relaxed">
+              <span class="material-icons text-primary text-xs mr-2">notes</span>
+              "{{ selectedRegistro.detalles.notes }}"
+            </div>
           </div>
         </div>
-        <div *ngIf="selectedRegistro.detalles?.notes">
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-4">Notas</p>
-          <p class="text-base italic">{{ selectedRegistro.detalles.notes }}</p>
-        </div>
 
-      </div>
-      <div class="flex justify-end mt-8">
-        <button (click)="closeDetailsModal()"
-          class="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition duration-150 ease-in-out">
-          Cerrar
-        </button>
+        <div class="flex justify-end mt-10">
+          <button (click)="closeDetailsModal()"
+            class="px-12 py-3 bg-gradient-premium text-white font-bold rounded-xl shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+            Cerrar Expediente
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Modify Modal -->
-  <div *ngIf="isModifyModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full transform transition-all">
-      <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Modificar Registro</h3>
-      <div *ngIf="registroToModify" class="space-y-4">
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Nombre</label>
-          <input type="text" [(ngModel)]="registroToModify.nombre" disabled
-            class="w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 cursor-not-allowed">
-          <p class="text-xs text-gray-500 mt-1">El nombre no se puede editar.</p>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Tipo</label>
-          <select [(ngModel)]="registroToModify.tipo"
-            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
-            <option value="Residente">Residente</option>
-            <option value="Personal">Personal</option>
-            <option value="Paquetería">Paquetería</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Acción</label>
-          <select [(ngModel)]="registroToModify.accion"
-            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
-            <option value="Entrada">Entrada</option>
-            <option value="Salida">Salida</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1">Destino</label>
-          <input type="text" [(ngModel)]="registroToModify.destino"
-            class="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
-        </div>
-
+  <div *ngIf="isModifyModalVisible"
+    class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div
+      class="glass-effect p-8 rounded-3xl shadow-2xl max-w-md w-full border border-glass-border animate-in slide-in-from-top-4 duration-300">
+      <div class="flex items-center space-x-3 mb-8">
+        <span class="material-icons text-3xl text-accent-blue">edit_calendar</span>
+        <h3 class="text-2xl font-bold text-white text-gradient">Rectificar Registro</h3>
       </div>
-      <div class="flex justify-end space-x-3 mt-8">
+
+      <div *ngIf="registroToModify" class="space-y-6">
+        <div>
+          <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Sujeto (Identidad
+            Protegida)</label>
+          <div
+            class="px-4 py-3 bg-white/5 border border-glass-border rounded-xl text-gray-400 font-bold flex items-center">
+            <span class="material-icons text-sm mr-3">lock</span>
+            {{ registroToModify.nombre }}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="group relative">
+            <label
+              class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Categorización</label>
+            <div class="relative">
+              <div (click)="toggleModalTipoDropdown()"
+                class="w-full pl-3 pr-8 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white cursor-pointer hover:border-primary/50 transition-all text-sm flex items-center justify-between">
+                <span class="truncate">{{ registroToModify.tipo }}</span>
+                <span class="material-icons text-gray-500 text-sm transition-transform duration-300"
+                  [class.rotate-180]="isModalTipoDropdownOpen">expand_more</span>
+              </div>
+
+              <!-- Custom Modal Dropdown Menu -->
+              <div *ngIf="isModalTipoDropdownOpen"
+                class="absolute top-full left-0 w-full mt-1 bg-royal-blue border border-glass-border rounded-xl shadow-2xl z-[110] py-2 animate-in fade-in zoom-in duration-150">
+                <div (click)="selectModalTipo('Residente')"
+                  class="px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors">
+                  Residente</div>
+                <div (click)="selectModalTipo('Personal')"
+                  class="px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors">
+                  Personal</div>
+                <div (click)="selectModalTipo('Paquetería')"
+                  class="px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors">
+                  Paquetería</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="group relative">
+            <label
+              class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Movimiento</label>
+            <div class="relative">
+              <div (click)="toggleModalAccionDropdown()"
+                class="w-full pl-3 pr-8 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white cursor-pointer hover:border-primary/50 transition-all text-sm flex items-center justify-between">
+                <span class="truncate">{{ registroToModify.accion }}</span>
+                <span class="material-icons text-gray-500 text-sm transition-transform duration-300"
+                  [class.rotate-180]="isModalAccionDropdownOpen">expand_more</span>
+              </div>
+
+              <!-- Custom Modal Dropdown Menu -->
+              <div *ngIf="isModalAccionDropdownOpen"
+                class="absolute top-full left-0 w-full mt-1 bg-royal-blue border border-glass-border rounded-xl shadow-2xl z-[110] py-2 animate-in fade-in zoom-in duration-150">
+                <div (click)="selectModalAccion('Entrada')"
+                  class="px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors">
+                  Entrada</div>
+                <div (click)="selectModalAccion('Salida')"
+                  class="px-4 py-2 text-xs text-gray-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors">
+                  Salida</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <label
+            class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Sector
+            / Destino</label>
+          <input type="text" [(ngModel)]="registroToModify.destino"
+            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-4 mt-10">
         <button (click)="closeModifyModal()"
-          class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition">
-          Cancelar
+          class="px-6 py-3 text-gray-400 hover:text-white rounded-xl font-bold transition-all">
+          Abortar
         </button>
         <button (click)="confirmEdit()"
-          class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
-          Guardar Cambios
+          class="px-10 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+          Sellar Cambios
         </button>
       </div>
     </div>
   </div>
 
   <!-- Delete Modal -->
-  <div *ngIf="isDeleteModalVisible" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+  <div *ngIf="isDeleteModalVisible"
+    class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div
-      class="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-sm mx-auto transform transition-all border border-gray-200 dark:border-gray-700">
-      <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 mb-4">
-        <span class="material-icons text-red-600 dark:text-red-300">warning</span>
+      class="glass-effect p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full border border-glass-border anime-in zoom-in duration-300">
+      <div
+        class="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
+        <span class="material-icons text-rose-500 text-4xl">delete_forever</span>
       </div>
-      <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-2">Eliminar Registro</h3>
-      <div class="mt-2">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          ¿Estás seguro que deseas eliminar el registro de
-          <span class="font-bold" *ngIf="selectedRegistro">{{ selectedRegistro.nombre }}</span>?
-          Esta acción no se puede deshacer.
-        </p>
-      </div>
-      <div class="flex justify-center space-x-3 mt-6">
+      <h3 class="text-2xl font-bold text-white mb-2">Expurgar Registro</h3>
+      <p class="text-gray-400 text-sm mb-8 leading-relaxed">
+        ¿Confirmas la eliminación definitiva del registro de <strong class="text-white">{{ selectedRegistro?.nombre
+          }}</strong>?
+        <br><span class="text-rose-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 block">Esta acción es
+          irreversible.</span>
+      </p>
+
+      <div class="flex flex-col space-y-3">
         <button (click)="confirmDelete()"
-          class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm">
-          Eliminar
+          class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-900/40">
+          Confirmar Eliminación
         </button>
         <button (click)="closeDeleteModal()"
-          class="w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+          class="w-full py-3 glass-effect text-gray-400 hover:text-white rounded-2xl font-bold transition-all">
           Cancelar
         </button>
       </div>

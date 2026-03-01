@@ -50,6 +50,14 @@ export class GuardService {
     }
 
     /**
+     * Elimina un guardia.
+     * @param id El idEmpleado del guardia a eliminar.
+     */
+    async deleteGuard(id: string): Promise<any> {
+        return firstValueFrom(this.http.delete<any>(`${this.apiUrl}/guards/${id}`));
+    }
+
+    /**
      * Crea un nuevo guardia.
      * @param guardData Los datos del guardia a crear.
      */

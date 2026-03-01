@@ -7,15 +7,15 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Navy blue background from reference
-        "background-dark": "#0f172a", // Slate-900 like
-        "background-light": "#f1f5f9", // Slate-100
-        // Primary gold accent for button
-        primary: "#D4AF37", // Gold
-        "primary-hover": "#b5952f",
-        // Secondary accents
-        "accent-blue": "#3b82f6", // Bright blue for inputs/text
-        "navy-card": "#1e293b",
+        // Premium Dark Palette
+        "background-dark": "#020410", // Deep Midnight Blue
+        "card-dark": "rgba(13, 17, 45, 0.6)", // Blue-tinted glass
+        // Primary Purple/Blue accents
+        primary: "#7c3aed", // Electric Purple
+        secondary: "#3b82f6", // Royal Blue
+        "accent-purple": "#a855f7",
+        "accent-blue": "#60a5fa",
+        "glass-border": "rgba(255, 255, 255, 0.1)",
       },
       fontFamily: {
         display: ["Rajdhani", "sans-serif"],

@@ -1,65 +1,91 @@
-<!-- Sidebar (Static & Icon-only) -->
-<aside
-  class="w-20 bg-white dark:bg-gray-800 flex flex-col items-center py-6 shadow-md z-10 border-r border-gray-200 dark:border-gray-700 h-screen fixed">
-  <!-- Brand Icon -->
-  <div class="mb-8 text-purple-600 dark:text-purple-500">
-    <span class="material-icons !text-4xl">security</span>
+<!-- Sidebar — Premium Enhanced -->
+<aside class="w-24 glass-effect flex flex-col items-center py-6 z-10 h-screen fixed">
+
+  <!-- #7 Admin Avatar -->
+  <div class="mb-6 relative group cursor-pointer" (click)="navigateTo($event, '/dashboard/admin-profile')">
+    <!-- Avatar ring glow -->
+    <div class="sidebar-avatar-ring"></div>
+
+    <!-- Photo or Initials -->
+    <div class="sidebar-avatar-circle" [class.sidebar-avatar-has-photo]="adminPhotoUrl">
+      <img *ngIf="adminPhotoUrl" [src]="adminPhotoUrl" [alt]="adminName"
+        class="w-full h-full object-cover rounded-full" />
+      <span *ngIf="!adminPhotoUrl" class="text-white font-black text-sm tracking-tight select-none">
+        {{ adminInitials }}
+      </span>
+    </div>
+
+    <!-- Tooltip: Admin name -->
+    <span class="sidebar-tooltip sidebar-tooltip-bottom">{{ adminName }}</span>
+  </div>
+
+  <!-- #8 System Status Bar -->
+  <div class="sidebar-status-bar mb-8">
+    <span class="sidebar-status-dot" [class.status-online]="systemStatus === 'OPERATIVO'"
+      [class.status-degraded]="systemStatus === 'DEGRADADO'" [class.status-offline]="systemStatus === 'OFFLINE'">
+    </span>
+    <span class="sidebar-status-label" [class.text-emerald-400]="systemStatus === 'OPERATIVO'"
+      [class.text-yellow-400]="systemStatus === 'DEGRADADO'" [class.text-rose-500]="systemStatus === 'OFFLINE'">
+      {{ pingMs !== '--' ? pingMs + 'ms' : systemStatus }}
+    </span>
   </div>
 
   <!-- Navigation -->
-  <!-- Navigation -->
-  <nav class="flex flex-col w-full px-2 space-y-4">
+  <nav class="flex flex-col w-full px-2 space-y-4 flex-grow">
 
-    <!-- Alertas -->
-    <a title="Alertas" href="#" (click)="navigateTo($event, '/dashboard/alertas')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200 group relative"
-      [ngClass]="isActive('/dashboard/alertas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">notifications_active</span>
+    <!-- Alertas — red badge -->
+    <a href="#" (click)="navigateTo($event, '/dashboard/alertas')" class="sidebar-nav-item sidebar-color-red group"
+      [class.sidebar-active]="isActive('/dashboard/alertas')" [class.sidebar-clicked]="isClicked('/dashboard/alertas')">
+      <span class="sidebar-badge sidebar-badge-red" *ngIf="pendingAlertsCount > 0">
+        {{ pendingAlertsCount > 99 ? '99+' : pendingAlertsCount }}
+      </span>
+      <span class="material-icons text-2xl relative z-10">notifications_active</span>
+      <span class="sidebar-tooltip">Alertas y Reportes</span>
     </a>
 
-    <!-- Registros -->
-    <a title="Registros" href="#" (click)="navigateTo($event, '/dashboard/registros')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/registros') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">assignment_ind</span>
+    <!-- Guardias — cyan -->
+    <a href="#" (click)="navigateTo($event, '/dashboard/home')" class="sidebar-nav-item sidebar-color-cyan group"
+      [class.sidebar-active]="isActive('/dashboard/home')" [class.sidebar-clicked]="isClicked('/dashboard/home')">
+      <span class="material-icons text-2xl relative z-10">person_search</span>
+      <span class="sidebar-tooltip">Gestión de Personal</span>
     </a>
 
-    <!-- Buscar Guardias (Home) -->
-    <a title="Buscar Personal" href="#" (click)="navigateTo($event, '/dashboard/home')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/home') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">person_search</span>
+    <!-- Mapa — green -->
+    <a href="#" (click)="navigateTo($event, '/dashboard/mapa')" class="sidebar-nav-item sidebar-color-green group"
+      [class.sidebar-active]="isActive('/dashboard/mapa')" [class.sidebar-clicked]="isClicked('/dashboard/mapa')">
+      <span class="material-icons text-2xl relative z-10">map</span>
+      <span class="sidebar-tooltip">Mapa de Operaciones</span>
     </a>
 
-    <!-- Mapa -->
-    <a title="Mapa" href="#" (click)="navigateTo($event, '/dashboard/mapa')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/mapa') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">map</span>
+    <!-- Entradas/Salidas — blue -->
+    <a href="#" (click)="navigateTo($event, '/dashboard/entradas-salidas')"
+      class="sidebar-nav-item sidebar-color-blue group" [class.sidebar-active]="isActive('/dashboard/entradas-salidas')"
+      [class.sidebar-clicked]="isClicked('/dashboard/entradas-salidas')">
+      <span class="material-icons text-2xl relative z-10">swap_horiz</span>
+      <span class="sidebar-tooltip">Entradas y Salidas</span>
     </a>
 
-    <!-- Entradas/Salidas -->
-    <a title="Entradas y Salidas" href="#" (click)="navigateTo($event, '/dashboard/entradas-salidas')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/entradas-salidas') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">swap_horiz</span>
-    </a>
-
-    <!-- Cámaras -->
-    <a title="Cámaras" href="#" (click)="navigateTo($event, '/dashboard/camaras')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/camaras') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">videocam</span>
+    <!-- Cámaras — purple + yellow badge if offline -->
+    <a href="#" (click)="navigateTo($event, '/dashboard/camaras')" class="sidebar-nav-item sidebar-color-purple group"
+      [class.sidebar-active]="isActive('/dashboard/camaras')" [class.sidebar-clicked]="isClicked('/dashboard/camaras')">
+      <span class="sidebar-badge sidebar-badge-yellow" *ngIf="offlineCamerasCount > 0">
+        {{ offlineCamerasCount > 9 ? '9+' : offlineCamerasCount }}
+      </span>
+      <span class="material-icons text-2xl relative z-10">videocam</span>
+      <span class="sidebar-tooltip">Gestión de Cámaras</span>
     </a>
 
   </nav>
 
-  <!-- Bottom: Profile/Settings Link (Optional, using current user logic if exists or just static for now) -->
-  <div class="mt-auto mb-6">
-    <a title="Perfil Admin" href="#" (click)="navigateTo($event, '/dashboard/admin-profile')"
-      class="flex justify-center p-3 rounded-xl transition-all duration-200"
-      [ngClass]="isActive('/dashboard/admin-profile') ? 'bg-purple-600 text-white shadow-lg' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-purple-600 dark:hover:text-purple-400'">
-      <span class="material-icons text-2xl">settings</span>
-    </a>
-  </div>
+  <!-- Divider -->
+  <div class="sidebar-divider mb-4"></div>
+
+  <!-- Bottom: Settings -->
+  <a href="#" (click)="navigateTo($event, '/dashboard/admin-profile')" class="sidebar-nav-item sidebar-color-gray group"
+    [class.sidebar-active]="isActive('/dashboard/admin-profile')"
+    [class.sidebar-clicked]="isClicked('/dashboard/admin-profile')">
+    <span class="material-icons text-2xl relative z-10">settings</span>
+    <span class="sidebar-tooltip">Perfil Admin</span>
+  </a>
+
 </aside>

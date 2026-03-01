@@ -1,165 +1,187 @@
-<div class="relative h-screen w-full overflow-hidden">
+<div class="relative h-screen w-full overflow-hidden pl-24">
 
-  <div id="map" [class.picking-mode]="isPickingLocation || isEditingAdmin" class="absolute inset-0 z-0 h-full w-full">
+  <div id="map" [class.picking-mode]="isPickingLocation || isEditingAdmin"
+    class="absolute inset-0 z-0 h-full w-full grayscale-[0.2] invert-[0.9] hue-rotate-[200deg]">
+  </div>
+
+  <!-- Gradient Overlay for Map Depth -->
+  <div
+    class="absolute inset-0 pointer-events-none bg-gradient-to-tr from-background-dark/80 via-transparent to-primary/5">
   </div>
 
   <!-- Admin Controls (Top Right) -->
-  <div
-    class="absolute top-4 right-4 z-[500] bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-    <h3 class="text-xs uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 mb-2">Administrador</h3>
-    <button (click)="toggleTracking()"
-      class="w-full px-4 py-2 text-sm font-bold text-white rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 mb-2"
-      [ngClass]="isTracking ? 'bg-red-600 hover:bg-red-700 animate-pulse' : 'bg-purple-600 hover:bg-purple-700'">
-      <span class="material-symbols-outlined" *ngIf="isTracking">my_location</span>
-      {{ isTracking ? 'Detener Seguimiento' : 'Activar Ubicación Automática' }}
-    </button>
+  <div class="absolute top-8 right-8 z-[500] w-72 space-y-4">
+    <div class="glass-effect p-6 rounded-3xl border border-glass-border shadow-2xl relative overflow-hidden group">
+      <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
 
-    <button (click)="toggleZoneEditor()"
-      class="w-full px-4 py-2 text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 border mb-2"
-      [ngClass]="isDrawingZone ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'">
-      <span class="material-symbols-outlined">{{ isDrawingZone ? 'edit_off' : 'edit_square' }}</span>
-      {{ isDrawingZone ? 'Cancelar Dibujo' : 'Definir Zona Segura' }}
-    </button>
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Terminal de Comando</p>
 
-    <button (click)="toggleBuildingCreation()"
-      class="w-full px-4 py-2 text-sm font-bold rounded-md transition-colors shadow-sm flex items-center justify-center gap-2 border"
-      [ngClass]="isCreatingBuilding ? 'bg-cyan-100 text-cyan-700 border-cyan-300' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'">
-      <span class="material-symbols-outlined">{{ isCreatingBuilding ? 'domain_disabled' : 'domain_add' }}</span>
-      {{ isCreatingBuilding ? 'Cancelar Edificio' : 'Crear Edificio' }}
-    </button>
+      <div class="space-y-3">
+        <button (click)="toggleTracking()"
+          class="w-full px-4 py-3 text-xs font-black uppercase tracking-widest text-white rounded-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95"
+          [ngClass]="isTracking ? 'bg-rose-600 shadow-rose-900/40 ring-2 ring-rose-500/50' : 'bg-gradient-premium shadow-purple-900/40'">
+          <span class="material-icons text-lg" [class.animate-spin]="isTracking">settings_input_antenna</span>
+          {{ isTracking ? 'Terminar Rastreo' : 'Rastreo Satelital' }}
+        </button>
 
+        <button (click)="toggleZoneEditor()"
+          class="w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-3 border active:scale-95"
+          [ngClass]="isDrawingZone ? 'bg-amber-500 text-white border-amber-400 shadow-amber-900/40' : 'glass-effect border-glass-border text-gray-300 hover:text-white hover:border-primary/50'">
+          <span class="material-icons text-lg">{{ isDrawingZone ? 'draw' : 'square_foot' }}</span>
+          {{ isDrawingZone ? 'Abortar Zona' : 'Definir Perímetro' }}
+        </button>
 
+        <button (click)="toggleBuildingCreation()"
+          class="w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-3 border active:scale-95"
+          [ngClass]="isCreatingBuilding ? 'bg-cyan-600 text-white border-cyan-400 shadow-cyan-900/40' : 'glass-effect border-glass-border text-gray-300 hover:text-white hover:border-primary/50'">
+          <span class="material-icons text-lg">{{ isCreatingBuilding ? 'apartment' : 'add_business' }}</span>
+          {{ isCreatingBuilding ? 'Cancelar Estructura' : 'Mapear Estructura' }}
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Guard Management Panel (Left Side) -->
-  <div
-    class="absolute top-4 left-4 z-[500] w-80 bg-white dark:bg-gray-800 p-5 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col gap-4">
-    <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-      <span class="material-symbols-outlined text-purple-600">local_police</span>
-      Control de Guardias
-    </h3>
+  <div class="absolute top-8 left-28 z-[500] w-80 space-y-4">
+    <div
+      class="glass-effect p-6 rounded-3xl border border-glass-border shadow-2xl relative overflow-hidden flex flex-col gap-6">
+      <div class="flex items-center space-x-3">
+        <div class="p-2 bg-gradient-premium rounded-xl shadow-lg ring-1 ring-white/10">
+          <span class="material-icons text-white">security</span>
+        </div>
+        <h3 class="text-xl font-bold text-white text-gradient">Intercepción</h3>
+      </div>
 
-    <!-- Search -->
-    <div class="flex gap-2">
-      <input [(ngModel)]="searchId" (keyup.enter)="searchGuard()" type="text" placeholder="Buscar por ID..."
-        class="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white transition-all">
-      <button (click)="searchGuard()"
-        class="px-3 py-2 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
-        <span class="material-symbols-outlined text-sm font-bold">search</span>
-      </button>
-    </div>
+      <!-- Search Field -->
+      <div class="relative group">
+        <input [(ngModel)]="searchId" (keyup.enter)="searchGuard()" type="text" placeholder="ID de Operativo..."
+          class="w-full pl-4 pr-12 py-4 bg-black/60 border border-glass-border rounded-2xl text-sm text-white font-bold focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-all placeholder:text-gray-600">
+        <button (click)="searchGuard()"
+          class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:text-white hover:bg-primary/20 rounded-xl transition-all">
+          <span class="material-icons text-2xl">radar</span>
+        </button>
+      </div>
 
-    <!-- Selected Guard Details -->
-    <div *ngIf="selectedGuard"
-      class="p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600 animate-fade-in">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 flex-shrink-0 overflow-hidden shadow-sm">
-          <img *ngIf="selectedGuard.foto" [src]="'http://localhost:3000' + selectedGuard.foto"
-            class="w-full h-full object-cover">
-          <div *ngIf="!selectedGuard.foto" class="w-full h-full flex items-center justify-center text-gray-400">
-            <span class="material-symbols-outlined">person</span>
+      <!-- Selected Guard Information -->
+      <div *ngIf="selectedGuard"
+        class="p-5 bg-white/5 rounded-2xl border border-glass-border animate-in fade-in slide-in-from-left-4 duration-500">
+        <div class="flex items-center gap-4 mb-6">
+          <div class="relative">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-premium p-0.5 shadow-xl">
+              <div class="w-full h-full rounded-2xl bg-background-dark overflow-hidden">
+                <img *ngIf="selectedGuard.foto" [src]="'http://localhost:3000' + selectedGuard.foto"
+                  class="w-full h-full object-cover">
+                <div *ngIf="!selectedGuard.foto" class="w-full h-full flex items-center justify-center text-gray-700">
+                  <span class="material-icons">person</span>
+                </div>
+              </div>
+            </div>
+            <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-background-dark"
+              [ngClass]="selectedGuard.estado === 'En servicio' ? 'bg-emerald-500' : 'bg-rose-500'"></div>
+          </div>
+          <div class="overflow-hidden">
+            <p class="font-bold text-white truncate text-base">{{ selectedGuard.nombre }}</p>
+            <p class="text-[10px] text-primary font-black uppercase tracking-widest mt-0.5 font-mono">{{
+              selectedGuard.idEmpleado }}</p>
           </div>
         </div>
-        <div class="overflow-hidden">
-          <p class="font-bold text-gray-900 dark:text-white leading-tight truncate">{{ selectedGuard.nombre }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ selectedGuard.idEmpleado }}</p>
+
+        <div class="grid grid-cols-2 gap-3 mb-6">
+          <div class="bg-black/40 p-3 rounded-xl border border-glass-border">
+            <span class="block text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Zona</span>
+            <span class="text-xs text-gray-300 font-bold truncate block">{{ selectedGuard.area }}</span>
+          </div>
+          <div class="bg-black/40 p-3 rounded-xl border border-glass-border">
+            <span class="block text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">Estatus</span>
+            <span class="text-xs font-black uppercase tracking-tighter"
+              [ngClass]="selectedGuard.estado === 'En servicio' ? 'text-emerald-400' : 'text-rose-400'">
+              {{ selectedGuard.estado }}
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <!-- Normal Mode Decisions -->
+          <ng-container *ngIf="!isPickingLocation">
+            <button (click)="enableGuardLocationPick()"
+              class="w-full py-3 bg-gradient-to-r from-primary to-accent-blue text-white rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2">
+              <span class="material-icons text-sm">{{ selectedGuard.lat ? 'my_location' : 'add_location_alt' }}</span>
+              {{ selectedGuard.lat ? 'Actualizar Enlace' : 'Enlazar GPS' }}
+            </button>
+            <button *ngIf="selectedGuard.lat" (click)="removeGuardLocation()"
+              class="w-full py-2.5 glass-effect text-rose-400 hover:text-white border border-rose-500/20 hover:bg-rose-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+              Interrumpir Señal
+            </button>
+          </ng-container>
+
+          <!-- Decision Phase: Map Picking -->
+          <ng-container *ngIf="isPickingLocation">
+            <button (click)="confirmGuardLocation()"
+              class="w-full py-3 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500 active:scale-95 transition-all shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-2 animate-pulse">
+              <span class="material-icons text-sm">gps_fixed</span>
+              Confirmar Coordenadas
+            </button>
+            <button (click)="cancelPick()"
+              class="w-full py-2.5 glass-effect text-gray-400 hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+              Abortar Operación
+            </button>
+          </ng-container>
+        </div>
+
+        <!-- System Feedback -->
+        <div *ngIf="feedbackMessage"
+          class="mt-4 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center border animate-in fade-in zoom-in duration-300"
+          [ngClass]="feedbackType === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'">
+          {{ feedbackMessage }}
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-300 mb-4">
-        <div class="bg-white dark:bg-gray-700 p-2 rounded border border-gray-100 dark:border-gray-600">
-          <span class="block text-gray-400 text-[10px] uppercase">Área</span>
-          <span class="font-medium truncate">{{ selectedGuard.area }}</span>
+      <div *ngIf="!selectedGuard" class="text-center py-10">
+        <div
+          class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-glass-border text-gray-600">
+          <span class="material-icons text-3xl">satellite</span>
         </div>
-        <div class="bg-white dark:bg-gray-700 p-2 rounded border border-gray-100 dark:border-gray-600">
-          <span class="block text-gray-400 text-[10px] uppercase">Estado</span>
-          <span class="font-medium"
-            [ngClass]="selectedGuard.estado === 'En servicio' ? 'text-green-600' : 'text-red-500'">{{
-            selectedGuard.estado }}</span>
-        </div>
+        <p class="text-xs text-gray-500 font-bold italic">Esperando identificación de objetivo...</p>
       </div>
-
-      <!-- Pick / Action Buttons -->
-      <div class="flex flex-col gap-2">
-
-        <!-- Normal Mode -->
-        <ng-container *ngIf="!isPickingLocation">
-          <button (click)="enableGuardLocationPick()"
-            class="w-full px-3 py-2 bg-purple-600 text-white rounded-md text-sm font-bold hover:bg-purple-700 transition-colors shadow-sm flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-lg">{{ selectedGuard.lat ? 'edit_location' : 'add_location'
-              }}</span>
-            {{ selectedGuard.lat ? 'Reubicar' : 'Asignar Ubicación' }}
-          </button>
-          <button *ngIf="selectedGuard.lat" (click)="removeGuardLocation()"
-            class="w-full px-3 py-2 bg-white dark:bg-transparent border border-red-200 text-red-600 rounded-md text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-            Quitar del Mapa
-          </button>
-        </ng-container>
-
-        <!-- Picking Mode -->
-        <ng-container *ngIf="isPickingLocation">
-          <button (click)="confirmGuardLocation()"
-            class="w-full px-3 py-2 bg-green-600 text-white rounded-md text-sm font-bold hover:bg-green-700 transition-colors shadow-sm flex items-center justify-center gap-2 animate-pulse">
-            <span class="material-symbols-outlined text-lg">check</span>
-            Confirmar Ubicación
-          </button>
-          <button (click)="cancelPick()"
-            class="w-full px-3 py-2 bg-red-100 text-red-700 border border-red-200 rounded-md text-sm font-bold hover:bg-red-200 transition-colors flex items-center justify-center gap-2">
-            <span class="material-symbols-outlined text-lg">close</span>
-            Cancelar
-          </button>
-        </ng-container>
-
-      </div>
-
-      <!-- Feedback Message -->
-      <div *ngIf="feedbackMessage" class="mt-3 p-2 rounded text-xs font-medium text-center animate-pulse"
-        [ngClass]="feedbackType === 'success' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'">
-        {{ feedbackMessage }}
-      </div>
-    </div>
-
-    <div *ngIf="!selectedGuard" class="text-center py-8 opacity-50">
-      <span class="material-symbols-outlined text-4xl mb-2 text-gray-400">fmd_bad</span>
-      <p class="text-sm text-gray-500">Seleccione un guardia</p>
     </div>
   </div>
 
-  <!-- Location Picking Overlay Info -->
+  <!-- Operational Overlays -->
+  <!-- Picking Indication -->
   <div *ngIf="isPickingLocation"
-    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-gray-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-gray-700 pointer-events-none">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-yellow-400 animate-pulse">touch_app</span>
-      <div class="flex flex-col">
-        <span class="font-bold text-sm">Modo Asignación</span>
-        <span class="text-xs text-gray-400">Haz clic para colocar, arrastra para ajustar.</span>
-      </div>
+    class="absolute bottom-12 left-1/2 -translate-x-1/2 z-[1000] glass-effect px-8 py-4 rounded-3xl border border-primary/50 shadow-2xl flex items-center gap-5 animate-in slide-in-from-bottom-8 duration-500">
+    <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary animate-pulse">
+      <span class="material-icons">location_searching</span>
+    </div>
+    <div class="text-left">
+      <p class="text-sm font-black text-white uppercase tracking-widest">Modo Geoposicionamiento</p>
+      <p class="text-[10px] text-gray-400 font-medium tracking-wide">Haz clic sobre el mapa para fijar el vector de
+        ubicación.</p>
     </div>
   </div>
 
-  <!-- Admin Edit Mode Overlay -->
-  <!-- Tracking Active Overlay -->
+  <!-- Tracking Signal -->
   <div *ngIf="isTracking"
-    class="absolute top-8 left-1/2 transform -translate-x-1/2 z-[1000] bg-purple-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-purple-700 pointer-events-none">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-purple-300 animate-pulse">satellite_alt</span>
-      <div class="flex flex-col">
-        <span class="font-bold text-sm">Rastreo GPS Activo</span>
-        <span class="text-xs text-purple-200">Tu ubicación se actualiza automáticamente.</span>
-      </div>
+    class="absolute top-12 left-1/2 -translate-x-1/2 z-[1000] glass-effect px-8 py-3 rounded-full border border-purple-500/50 shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+    <div class="relative py-1">
+      <span class="flex h-2 w-2 relative">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+      </span>
     </div>
+    <span class="text-xs font-black text-white uppercase tracking-[0.3em]">Enlace GPS Activo</span>
   </div>
 
-  <!-- Drawing Mode Overlay -->
+  <!-- Tactical Boundary Drawing -->
   <div *ngIf="isDrawingZone"
-    class="absolute top-24 left-1/2 transform -translate-x-1/2 z-[1000] bg-yellow-900/90 backdrop-blur text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-bounce-subtle border border-yellow-700 pointer-events-none">
-    <div class="flex items-center gap-3">
-      <span class="material-symbols-outlined text-yellow-300 animate-pulse">draw</span>
-      <div class="flex flex-col">
-        <span class="font-bold text-sm">Modo Dibujo de Zona</span>
-        <span class="text-xs text-yellow-200">Haz clic en el mapa para marcar los puntos. Cierra la forma para
-          terminar.</span>
-      </div>
+    class="absolute bottom-12 left-1/2 -translate-x-1/2 z-[1000] glass-effect px-8 py-4 rounded-3xl border border-amber-500/50 shadow-2xl flex items-center gap-5 animate-in slide-in-from-bottom-8 duration-500">
+    <div class="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center text-amber-500">
+      <span class="material-icons animate-bounce">gesture</span>
+    </div>
+    <div class="text-left">
+      <p class="text-sm font-black text-white uppercase tracking-widest">Mapeado de Perímetro Crítico</p>
+      <p class="text-[10px] text-gray-400 font-medium tracking-wide">Defina los nodos del polígono. Cierre el bucle para
+        validar.</p>
     </div>
   </div>
 </div>

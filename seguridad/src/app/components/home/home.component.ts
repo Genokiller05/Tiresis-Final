@@ -21,18 +21,38 @@ export class HomeComponent implements OnInit, OnDestroy {
   public searchId: string = '';
   public errorMessage: string = '';
   public successMessage: string = '';
-  public currentGuard: any = null; // Store the entire guard object
+  public currentGuard: any = null;
   public isLogoutModalVisible: boolean = false;
   public isDeleteModalVisible: boolean = false;
-  public isEditModalVisible: boolean = false; // Add Edit Modal state
+  public isEditModalVisible: boolean = false;
   public isLoading: boolean = false;
 
   // Edit Form
   public editForm = {
     nombre: '',
     email: '',
-    area: ''
+    area: '',
+    telefono: '',
+    direccion: '',
+    estado: ''
   };
+
+  public activeTab: 'search' | 'register' = 'search';
+
+  // Registration properties (from RegistrosComponent)
+  public regForm = {
+    nombre: '',
+    email: '',
+    area: '',
+    telefono: '',
+    direccion: '',
+    idGuardia: ''
+  };
+  public regImagePreview: string | null = null;
+  public regStatusMessage: string = '';
+  public regSummaryCardData: any = null;
+  public regFieldErrors: { [key: string]: string } = {};
+  private regSelectedFile: File | null = null;
 
   private currentGuardId: string | null = null;
 
@@ -41,16 +61,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // Language properties
   public uiText: any = {};
+  public uiRegText: any = {};
   private langSubscription!: Subscription;
   private themeSubscription!: Subscription;
+  // Predefined areas for selection
+  public areas: string[] = ['Entrada Principal', 'Estacionamiento', 'Edificio A', 'Ronda Perimetral', 'Cámaras', 'Oficinas'];
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
-    private authService: AuthService, // Inyectar AuthService
-    private guardService: GuardService // Inject GuardService
+    private authService: AuthService,
+    private guardService: GuardService
   ) { }
 
   ngOnInit(): void {
@@ -59,6 +82,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
     this.langSubscription = this.translationService.uiText.subscribe(translations => {
       this.uiText = translations.home || {};
+      this.uiRegText = translations.registros || {}; // Load registration translations
     });
   }
 
@@ -69,6 +93,103 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
     }
+  }
+
+  public onTabChange(tab: 'search' | 'register'): void {
+    this.activeTab = tab;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.regStatusMessage = '';
+  }
+
+  // --- Registration Methods (from RegistrosComponent) ---
+  public onRegFileSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!isPlatformBrowser(this.platformId)) {
+      this.regFieldErrors['photo'] = 'La carga de imágenes no está disponible en el servidor.';
+      return;
+    }
+
+    this.regSelectedFile = file;
+    this.regFieldErrors['photo'] = '';
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.regImagePreview = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  private validateRegForm(): boolean {
+    this.regFieldErrors = {};
+    let isValid = true;
+    const nameRegex = /^[a-zA-Z\s]+$/;
+
+    if (!this.regForm.nombre.trim() || this.regForm.nombre.trim().length < 3 || !nameRegex.test(this.regForm.nombre)) {
+      this.regFieldErrors['nombre'] = 'El nombre es obligatorio y solo debe contener letras.';
+      isValid = false;
+    }
+    if (!this.regForm.idGuardia.trim()) {
+      this.regFieldErrors['idGuardia'] = 'El ID de identificación es obligatorio.';
+      isValid = false;
+    } else if (this.regForm.idGuardia.trim().length !== 8) {
+      this.regFieldErrors['idGuardia'] = 'El ID debe tener exactamente 8 caracteres.';
+      isValid = false;
+    }
+    if (this.regForm.telefono && (this.regForm.telefono.length !== 10 || !/^\d+$/.test(this.regForm.telefono))) {
+      this.regFieldErrors['telefono'] = 'El teléfono debe tener exactamente 10 dígitos numéricos.';
+      isValid = false;
+    }
+    return isValid;
+  }
+
+  public async onRegSubmit(): Promise<void> {
+    if (!this.validateRegForm()) {
+      this.regStatusMessage = `<span class="text-red-500">${this.uiRegText.validationError || 'Por favor, corrija los errores.'}</span>`;
+      return;
+    }
+
+    this.isLoading = true;
+    this.regStatusMessage = `<span class="text-blue-500">${this.uiRegText.submitting || 'Registrando guardia...'}</span>`;
+    this.regSummaryCardData = null;
+
+    try {
+      let photoUrl: string | null = null;
+      if (this.regSelectedFile) {
+        photoUrl = await this.guardService.uploadPhoto(this.regSelectedFile);
+      }
+
+      const guardData = {
+        full_name: this.regForm.nombre,
+        document_id: this.regForm.idGuardia,
+        email: this.regForm.email,
+        telefono: this.regForm.telefono,
+        direccion: this.regForm.direccion,
+        area: this.regForm.area,
+        photo_url: photoUrl || undefined
+      };
+
+      const newGuard = await this.guardService.createGuard(guardData);
+
+      this.regStatusMessage = `<span class="text-green-500 font-bold">${this.uiRegText.successMessage || 'Guardia registrado con éxito.'}</span>`;
+      this.regSummaryCardData = { ...newGuard, foto: photoUrl };
+      this.resetRegForm();
+
+    } catch (error: any) {
+      console.error(error);
+      this.regStatusMessage = `<span class="text-red-500">${this.uiRegText.errorMessage || 'Ocurrió un error'}: ${error.message}</span>`;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  public resetRegForm(): void {
+    this.regForm = { nombre: '', email: '', area: '', telefono: '', direccion: '', idGuardia: '' };
+    this.regImagePreview = null;
+    this.regSelectedFile = null;
+    this.regFieldErrors = {};
   }
 
   // --- Theme Methods ---
@@ -94,14 +215,25 @@ export class HomeComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (searchId.length !== 8) {
+      this.errorMessage = 'El ID debe tener exactamente 8 dígitos para realizar la búsqueda.';
+      return;
+    }
+
     this.isLoading = true;
     try {
       const guard = await this.guardService.getGuardById(searchId);
       if (guard) {
-        this.currentGuard = guard;
-        this.currentGuard = guard;
-        this.currentGuardId = guard.idEmpleado; // Updated to match local JSON property
-        this.successMessage = 'Guardia encontrado!';
+        // Normalización para compatibilidad frontend
+        this.currentGuard = {
+          ...guard,
+          nombre: guard.nombre || guard.full_name,
+          idEmpleado: guard.idEmpleado || guard.document_id,
+          telefono: guard.telefono || guard.phone || '',
+          direccion: guard.direccion || '',
+          estado: guard.estado || (guard.is_active ? 'En servicio' : 'Fuera de servicio')
+        };
+        this.currentGuardId = this.currentGuard.idEmpleado;
         this.successMessage = 'Guardia encontrado!';
       } else {
         this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
@@ -177,6 +309,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       setTimeout(() => this.errorMessage = '', 3000);
       return;
     }
+    this.hideEditModal();
     this.showDeleteModal();
   }
 
@@ -184,16 +317,21 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (!this.currentGuardId) return;
 
     this.isLoading = true;
-    // This should call a service method e.g., `this.guardService.deleteGuard(this.currentGuardId)`
-    // For now, we will just simulate success as delete is not implemented in the service
-    console.warn('Delete functionality is not fully implemented in the service.');
-
-    this.successMessage = 'Guardia eliminado (simulado).';
-    this.clearSearch();
-    setTimeout(() => this.successMessage = '', 3000);
-
-    this.isLoading = false;
-    this.hideDeleteModal();
+    try {
+      await this.guardService.deleteGuard(this.currentGuardId);
+      this.successMessage = 'Guardia eliminado permanentemente.';
+      this.clearSearch();
+      setTimeout(() => this.successMessage = '', 4000);
+    } catch (err: any) {
+      console.error('Error al eliminar guardia:', err);
+      // Extraer mensaje del servidor si existe
+      const serverMsg = err.error?.message || err.message;
+      this.errorMessage = `Error: ${serverMsg}. Intenta de nuevo.`;
+      setTimeout(() => this.errorMessage = '', 6000);
+    } finally {
+      this.isLoading = false;
+      this.hideDeleteModal();
+    }
   }
 
   // --- Modal Methods ---
@@ -222,9 +360,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   public showEditModal(): void {
     if (!this.currentGuard) return;
     this.editForm = {
-      nombre: this.currentGuard.nombre,
-      email: this.currentGuard.email || '', // email might not exist
-      area: this.currentGuard.area || ''    // area might not exist
+      nombre: this.currentGuard.nombre || this.currentGuard.full_name,
+      email: this.currentGuard.email || '',
+      area: this.currentGuard.area || '',
+      telefono: this.currentGuard.telefono || this.currentGuard.phone || '',
+      direccion: this.currentGuard.direccion || '',
+      estado: this.currentGuard.estado || 'Fuera de servicio'
     };
     this.isEditModalVisible = true;
   }
@@ -239,17 +380,37 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     const updatedData = {
       nombre: this.editForm.nombre,
+      full_name: this.editForm.nombre, // Compatibilidad
       email: this.editForm.email,
-      area: this.editForm.area
+      area: this.editForm.area,
+      telefono: this.editForm.telefono,
+      phone: this.editForm.telefono, // Compatibilidad
+      direccion: this.editForm.direccion,
+      estado: this.editForm.estado,
+      is_active: this.editForm.estado === 'En servicio'
     };
+
+    const phoneRegex = /^\d{10}$/;
+    if (this.editForm.telefono && !phoneRegex.test(this.editForm.telefono)) {
+      this.errorMessage = 'El teléfono debe tener exactamente 10 dígitos numéricos.';
+      this.isLoading = false;
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
 
     try {
       const updatedGuard = await this.guardService.updateGuard(this.currentGuardId, updatedData);
 
       // Update local state from response
-      this.currentGuard.nombre = updatedGuard.nombre;
-      this.currentGuard.email = updatedGuard.email;
-      this.currentGuard.area = updatedGuard.area;
+      this.currentGuard = {
+        ...this.currentGuard,
+        nombre: updatedGuard.nombre || updatedGuard.full_name,
+        email: updatedGuard.email,
+        area: updatedGuard.area,
+        telefono: updatedGuard.telefono || updatedGuard.phone,
+        direccion: updatedGuard.direccion,
+        estado: updatedGuard.estado
+      };
 
       this.successMessage = 'Datos actualizados correctamente.';
       this.hideEditModal();

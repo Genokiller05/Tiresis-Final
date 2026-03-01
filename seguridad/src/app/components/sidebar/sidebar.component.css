@@ -1,1 +1,355 @@
-/* Estilos para el componente de la barra lateral */
+/* =============================================
+   SIDEBAR PREMIUM — FULL ENHANCED
+   ============================================= */
+
+/* --- Base nav item --- */
+.sidebar-nav-item {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #6b7280;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: visible;
+}
+
+/* --- Active state (gradient-premium from global) --- */
+.sidebar-active {
+    background: linear-gradient(135deg, #7c3aed, #3b82f6);
+    color: #ffffff !important;
+    box-shadow: 0 0 24px rgba(112, 0, 255, 0.45), 0 8px 24px rgba(112, 0, 255, 0.2);
+}
+
+/* #10 — CLICK ANIMATION (bounce) */
+.sidebar-clicked {
+    animation: sidebar-bounce 0.3s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes sidebar-bounce {
+    0% {
+        transform: scale(1);
+    }
+
+    30% {
+        transform: scale(0.88);
+    }
+
+    70% {
+        transform: scale(1.12);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* =============================================
+   #9 — PER-SECTION GLOW COLORS ON HOVER
+   ============================================= */
+
+/* Ghost glow pseudo-element (shared) */
+.sidebar-nav-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.sidebar-nav-item:not(.sidebar-active):hover {
+    color: #ffffff;
+}
+
+.sidebar-nav-item:not(.sidebar-active):hover::before {
+    opacity: 1;
+    animation: sidebar-glow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sidebar-glow-pulse {
+
+    0%,
+    100% {
+        opacity: 0.65;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.06);
+    }
+}
+
+/* Color variants */
+.sidebar-color-red::before {
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.35) 0%, transparent 70%);
+}
+
+.sidebar-color-cyan::before {
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, transparent 70%);
+}
+
+.sidebar-color-green::before {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, transparent 70%);
+}
+
+.sidebar-color-blue::before {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.35) 0%, transparent 70%);
+}
+
+.sidebar-color-purple::before {
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, transparent 70%);
+}
+
+.sidebar-color-gray::before {
+    background: radial-gradient(circle, rgba(156, 163, 175, 0.25) 0%, transparent 70%);
+}
+
+/* Icon color on hover per section */
+.sidebar-color-red:not(.sidebar-active):hover {
+    color: #f87171;
+}
+
+.sidebar-color-cyan:not(.sidebar-active):hover {
+    color: #22d3ee;
+}
+
+.sidebar-color-green:not(.sidebar-active):hover {
+    color: #34d399;
+}
+
+.sidebar-color-blue:not(.sidebar-active):hover {
+    color: #60a5fa;
+}
+
+.sidebar-color-purple:not(.sidebar-active):hover {
+    color: #a78bfa;
+}
+
+.sidebar-color-gray:not(.sidebar-active):hover {
+    color: #d1d5db;
+}
+
+/* =============================================
+   #1 — TOOLTIP
+   ============================================= */
+.sidebar-tooltip {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-6px);
+    background: rgba(8, 8, 24, 0.96);
+    backdrop-filter: blur(16px);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+    padding: 7px 13px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-left: 3px solid #7c3aed;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 12px rgba(112, 0, 255, 0.12);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 9999;
+}
+
+.sidebar-tooltip::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-right: 7px solid rgba(124, 58, 237, 0.8);
+}
+
+.sidebar-nav-item:hover .sidebar-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Bottom tooltip (for avatar) */
+.sidebar-tooltip-bottom {
+    left: calc(100% + 12px);
+    top: 50%;
+}
+
+/* =============================================
+   #3 & #11 — BADGE (alerts red, cameras yellow)
+   ============================================= */
+.sidebar-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    font-size: 9px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(8, 8, 24, 0.9);
+    z-index: 20;
+    line-height: 1;
+    color: #fff;
+}
+
+.sidebar-badge-red {
+    background: #ef4444;
+    animation: badge-pulse-red 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse-red {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(239, 68, 68, 0);
+    }
+}
+
+.sidebar-badge-yellow {
+    background: #f59e0b;
+    animation: badge-pulse-yellow 2s ease-in-out infinite;
+}
+
+@keyframes badge-pulse-yellow {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(245, 158, 11, 0);
+    }
+}
+
+/* =============================================
+   #7 — ADMIN AVATAR
+   ============================================= */
+.sidebar-avatar-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c3aed, #3b82f6, #7c3aed);
+    background-size: 200%;
+    animation: avatar-ring-spin 3s linear infinite;
+    z-index: 0;
+}
+
+@keyframes avatar-ring-spin {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.sidebar-avatar-circle {
+    position: relative;
+    z-index: 1;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.8), rgba(59, 130, 246, 0.8));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(10, 10, 30, 0.9);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.sidebar-avatar-circle:hover {
+    transform: scale(1.08);
+}
+
+/* =============================================
+   #8 — SYSTEM STATUS BAR
+   ============================================= */
+.sidebar-status-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    width: 80%;
+}
+
+.sidebar-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.sidebar-status-label {
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.status-online {
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.status-degraded {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+    animation: dot-pulse 1s ease-in-out infinite;
+}
+
+.status-offline {
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+}
+
+@keyframes dot-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.4;
+    }
+}
+
+/* =============================================
+   DIVIDER
+   ============================================= */
+.sidebar-divider {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}

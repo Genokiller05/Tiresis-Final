@@ -200,18 +200,24 @@ app.post('/api/guards', async (req, res) => {
     const newGuard = {
       id: userId,
       full_name: full_name,
+      nombre: full_name, // Para compatibilidad
       document_id: document_id,
+      idEmpleado: document_id, // Para compatibilidad
       email: email || `guard_${document_id}@tiresis.local`,
       password: tempPassword,
-      phone: telefono,
+      phone: telefono || '',
+      direccion: direccion || '',
+      foto: photo_url || '/assets/images/guards/default.png',
       role: 'guard',
       is_active: true,
-      created_at: new Date().toISOString()
+      estado: 'Fuera de servicio',
+      created_at: new Date().toISOString(),
+      actividades: []
     };
 
     // Save to guards.json
     const guards = readJsonFile('guards.json');
-    if (guards.find(g => g.document_id === document_id)) {
+    if (guards.find(g => g.document_id === document_id || g.idEmpleado === document_id)) {
       return res.status(400).json({ message: 'El guardia ya existe (Local).' });
     }
     guards.push(newGuard);
@@ -227,15 +233,73 @@ app.post('/api/guards', async (req, res) => {
 });
 
 app.patch('/api/guards/:idEmpleado', async (req, res) => {
-  const { data, error } = await supabase.from('profiles').update(req.body).eq('document_id', req.params.idEmpleado).select();
+  const idEmpleado = req.params.idEmpleado;
+  const updateData = req.body;
+
+  // 1. Update Local JSON
+  try {
+    const guards = readJsonFile('guards.json');
+    const index = guards.findIndex(g => g.document_id === idEmpleado || g.idEmpleado === idEmpleado);
+
+    if (index !== -1) {
+      // Merge data
+      guards[index] = { ...guards[index], ...updateData };
+
+      // Asegurar compatibilidad en la actualización
+      if (updateData.nombre) guards[index].full_name = updateData.nombre;
+      if (updateData.full_name) guards[index].nombre = updateData.full_name;
+
+      writeJsonFile('guards.json', guards);
+      return res.json(guards[index]);
+    }
+  } catch (e) {
+    console.error('Local update failed:', e);
+  }
+
+  // 2. Fallback to Supabase
+  const { data, error } = await supabase.from('profiles').update(updateData).eq('document_id', idEmpleado).select();
   if (error) return res.status(500).json({ message: 'Error actualizando guardia', error: error.message });
   res.json(data[0]);
 });
 
 app.delete('/api/guards/:idEmpleado', async (req, res) => {
-  const { error } = await supabase.from('profiles').delete().eq('document_id', req.params.idEmpleado);
-  if (error) return res.status(500).json({ message: 'Error eliminando guardia', error: error.message });
-  res.json({ message: 'Guardia eliminado correctamente' });
+  const idToMatch = String(req.params.idEmpleado || '').trim();
+  console.log(`[BE] Solicitud de baja para ID: "${idToMatch}"`);
+
+  // 1. Intento de borrado en JSON Local
+  try {
+    let guards = readJsonFile('guards.json');
+    const initialCount = guards.length;
+
+    // Filtrado robusto con trim y conversión a String
+    guards = guards.filter(g => {
+      const docId = String(g.document_id || '').trim();
+      const empId = String(g.idEmpleado || '').trim();
+      return docId !== idToMatch && empId !== idToMatch;
+    });
+
+    if (guards.length < initialCount) {
+      writeJsonFile('guards.json', guards);
+      console.log(`[BE] ÉXITO: Guardia "${idToMatch}" eliminado del archivo local.`);
+      return res.json({ message: 'Guardia eliminado correctamente de la base de datos local.' });
+    } else {
+      console.log(`[BE] AVISO: No se encontró coincidencia para "${idToMatch}" en el archivo local.`);
+    }
+  } catch (e) {
+    console.error('[BE] ERROR en borrado local:', e);
+  }
+
+  // 2. Fallback a Supabase (solo si no se borró localmente)
+  try {
+    const { error } = await supabase.from('profiles').delete().eq('document_id', idToMatch);
+    if (!error) {
+      console.log(`[BE] Guardia "${idToMatch}" eliminado de Supabase.`);
+      return res.json({ message: 'Guardia eliminado correctamente (Nube)' });
+    }
+    return res.status(500).json({ message: 'Error al intentar eliminar en la nube', error: error.message });
+  } catch (err) {
+    return res.status(500).json({ message: 'Excepción al eliminar en la nube', error: err.message });
+  }
 });
 
 // --- Admins ---

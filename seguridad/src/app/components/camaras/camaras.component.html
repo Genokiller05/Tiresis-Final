@@ -1,204 +1,332 @@
-<div class="p-8 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-200 min-h-screen">
+<div class="min-h-screen font-body text-gray-200 pl-24 transition-all duration-300 obsidian-layout">
+    <div class="flex flex-col h-screen">
+        <!-- Main Content -->
+        <main class="flex-1 p-8 flex flex-col overflow-y-auto">
+            <div class="container mx-auto flex flex-col h-full">
+                <header class="mb-10 flex justify-between items-center flex-shrink-0">
+                    <div class="flex items-center space-x-4">
+                        <div class="p-3 bg-gradient-premium rounded-2xl shadow-lg ring-1 ring-white/20">
+                            <span class="material-icons text-3xl text-white">videocam</span>
+                        </div>
+                        <div>
+                            <h1 class="text-4xl font-bold text-gradient">Gestión de Cámaras</h1>
+                            <p class="text-gray-400 mt-1 font-medium tracking-wide">Monitoreo y administración de
+                                dispositivos de red</p>
+                        </div>
+                    </div>
 
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-        <div class="flex items-center space-x-3">
-            <span class="material-icons text-4xl text-purple-600 dark:text-purple-400">videocam</span>
-            <h1 class="text-4xl font-bold">Gestión de Cámaras</h1>
-        </div>
-        <button (click)="showRegisterModal()"
-            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex items-center">
-            <span class="material-icons mr-2">add</span>
-            Registrar Cámara
-        </button>
-    </div>
-
-    <!-- Camera List Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-visible">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">ID / IP</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Marca / Modelo</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider">Área</th>
-                    <th class="relative px-6 py-3"><span class="sr-only">Acciones</span></th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr *ngFor="let cam of cameras">
-                    <!-- ID / IP -->
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-bold">{{ cam.id }}</div>
-                        <div class="text-xs text-gray-500">{{ cam.ip }}</div>
-                    </td>
-                    <!-- Brand / Model -->
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium">{{ cam.marca }}</div>
-                        <div class="text-xs text-gray-500">{{ cam.modelo }}</div>
-                    </td>
-                    <!-- Status -->
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
-                            [ngClass]="cam.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                            {{ cam.activa ? 'Activa' : 'Inactiva' }}
-                        </span>
-                    </td>
-                    <!-- Area -->
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{ cam.area }}</td>
-
-                    <!-- Actions Menu -->
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                        <button (click)="toggleMenu(cam.id)"
-                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                            <span class="material-icons">more_vert</span>
+                    <div class="flex items-center space-x-3">
+                        <div class="text-right mr-4 hidden md:block">
+                            <p class="text-[10px] font-black uppercase tracking-widest text-accent-blue">Flujo de Datos
+                            </p>
+                            <p class="text-sm font-bold text-gray-300 italic">Encriptado (SSL)</p>
+                        </div>
+                        <button (click)="showRegisterModal()"
+                            class="px-6 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all flex items-center">
+                            <span class="material-icons mr-2">add</span>
+                            Registrar Cámara
                         </button>
+                    </div>
+                </header>
 
-                        <!-- Dropdown -->
-                        <div *ngIf="activeMenuId === cam.id"
-                            class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-50 ring-1 ring-black ring-opacity-5">
-                            <div class="py-1">
-                                <button (click)="toggleStatus(cam)"
-                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center">
-                                    <span class="material-icons text-base mr-2">{{ cam.activa ? 'videocam_off' :
-                                        'videocam' }}</span>
-                                    {{ cam.activa ? 'Desactivar' : 'Activar' }}
-                                </button>
-                                <button (click)="showDetails(cam)"
-                                    class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center">
-                                    <span class="material-icons text-base mr-2">info</span>
-                                    Detalles
-                                </button>
-                                <button (click)="requestDelete(cam)"
-                                    class="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center">
-                                    <span class="material-icons text-base mr-2">delete</span>
-                                    Eliminar
-                                </button>
+                <div class="flex-grow min-h-0 flex flex-col lg:flex-row gap-8 mb-6">
+                    <!-- Master Monitor (Left) -->
+                    <div class="lg:col-span-9 flex-grow flex flex-col min-w-0">
+                        <div class="master-monitor flex-grow relative group cursor-crosshair">
+                            <!-- Tactical Overlay Master -->
+                            <div class="absolute top-6 left-6 z-20 space-y-2 pointer-events-none">
+                                <div class="data-tag tactical-label">
+                                    <span class="opacity-50 mr-2">FEED:</span>
+                                    <span>{{ selectedCamera?.id || (cameras[0]?.id || 'NO SIGNAL') }}</span>
+                                </div>
+                                <div class="data-tag tactical-label flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
+                                    <span>REC // LIVE MON</span>
+                                </div>
+                            </div>
+
+                            <div class="absolute top-6 right-6 z-20 text-right pointer-events-none">
+                                <p class="tactical-label text-[8px] opacity-40">VECTOR COORDINATES</p>
+                                <p class="tactical-label">IP: {{ selectedCamera?.ip || cameras[0]?.ip || '0.0.0.0' }}
+                                </p>
+                            </div>
+
+                            <div class="absolute bottom-6 left-6 z-20 pointer-events-none">
+                                <div class="p-4 bg-black/40 backdrop-blur-md border-l-2 border-cyan-400 rounded-r-lg">
+                                    <p class="tactical-label text-[8px] opacity-50 mb-1">DEPLOYMENT SECTOR</p>
+                                    <p class="text-white font-black uppercase tracking-widest text-sm">{{
+                                        selectedCamera?.area || cameras[0]?.area || 'UNASSIGNED' }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Video Content Simulation -->
+                            <div
+                                class="w-full h-full bg-gray-950 flex items-center justify-center relative overflow-hidden">
+                                <div *ngIf="cameras.length > 0; else noSignal"
+                                    class="w-full h-full flex items-center justify-center">
+                                    <span class="material-icons text-white/5 text-[200px] animate-pulse">videocam</span>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-cyan-400/5 to-transparent"></div>
+                                </div>
+                                <ng-template #noSignal>
+                                    <div class="text-center">
+                                        <span class="material-icons text-gray-800 text-8xl mb-4">leak_remove</span>
+                                        <p class="tactical-label opacity-20">SIGNAL INTERRUPTED</p>
+                                    </div>
+                                </ng-template>
+                            </div>
+
+                            <!-- Corner Accents -->
+                            <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400 opacity-50">
+                            </div>
+                            <div
+                                class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400 opacity-50">
+                            </div>
+                            <div
+                                class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400 opacity-50">
+                            </div>
+                            <div
+                                class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400 opacity-50">
                             </div>
                         </div>
-                        <!-- Overlay to close menu when clicking outside -->
-                        <div *ngIf="activeMenuId === cam.id" (click)="closeMenu()"
-                            class="fixed inset-0 z-40 bg-transparent cursor-default"></div>
 
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                        <div
+                            class="mt-6 flex items-center justify-between p-6 glass-effect rounded-2xl border border-white/5">
+                            <div class="flex items-center gap-6">
+                                <button
+                                    class="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-all">
+                                    <span class="material-icons">settings_remote</span>
+                                </button>
+                                <button
+                                    class="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-all">
+                                    <span class="material-icons">zoom_in</span>
+                                </button>
+                                <div class="h-8 w-px bg-white/10"></div>
+                                <p class="tactical-label !text-purple-400">{{ selectedCamera?.marca || cameras[0]?.marca
+                                    }} - {{ selectedCamera?.modelo || cameras[0]?.modelo }}</p>
+                            </div>
+                            <button (click)="showDetails(selectedCamera || cameras[0])"
+                                class="px-6 py-2 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/20 text-cyan-400 hover:text-white rounded-xl font-bold transition-all text-xs tracking-widest uppercase">
+                                Configurar Nodo
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sub Feeds List (Right) -->
+                    <div class="lg:col-span-3 w-full lg:w-80 flex flex-col min-h-0">
+                        <div class="flex items-center justify-between mb-4 px-2">
+                            <h3 class="tactical-label opacity-60">Node List</h3>
+                            <span class="text-[10px] font-black text-white bg-white/10 px-2 py-0.5 rounded">{{
+                                cameras.length }}</span>
+                        </div>
+
+                        <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-4">
+                            <div *ngFor="let cam of cameras" (click)="selectedCamera = cam"
+                                class="sub-feed-card p-4 rounded-xl group transition-all"
+                                [ngClass]="{'border-cyan-400/50 bg-cyan-400/10': selectedCamera?.id === cam.id}">
+
+                                <div class="flex items-start justify-between mb-3">
+                                    <div>
+                                        <p
+                                            class="text-white font-bold text-xs group-hover:text-cyan-400 transition-colors">
+                                            {{ cam.id }}</p>
+                                        <p class="text-[9px] text-gray-500 font-mono">{{ cam.ip }}</p>
+                                    </div>
+                                    <span class="w-2 h-2 rounded-full"
+                                        [ngClass]="cam.activa ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-rose-500'">
+                                    </span>
+                                </div>
+
+                                <div
+                                    class="aspect-video bg-black/60 rounded-lg overflow-hidden relative border border-white/5 flex items-center justify-center">
+                                    <span
+                                        class="material-icons text-white/5 text-3xl group-hover:scale-110 transition-transform">videocam</span>
+                                    <div class="absolute inset-0 group-hover:bg-cyan-400/5 transition-all"></div>
+
+                                    <!-- Mini Overlay -->
+                                    <div class="absolute bottom-1 right-2 pointer-events-none">
+                                        <p class="text-[7px] tactical-label !text-gray-500">{{ cam.area }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <!-- Registration Modal -->
     <div *ngIf="isRegisterModalVisible"
-        class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-lg mx-4">
-            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Registrar Nueva Cámara</h3>
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+            class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-glass-border animate-in fade-in zoom-in duration-300">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="p-2 bg-primary/20 rounded-xl">
+                    <span class="material-icons text-primary">add_a_photo</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white text-gradient">Registrar Nueva Cámara</h3>
+            </div>
 
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Dirección IP</label>
-                    <input type="text" [(ngModel)]="newCamera.ip" placeholder="ej. 192.168.1.50"
-                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="sm:col-span-2 group">
+                    <label
+                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Segmento
+                        IP</label>
+                    <div class="relative">
+                        <input type="text" [(ngModel)]="newCamera.ip" placeholder="ej. 192.168.1.50"
+                            class="w-full pl-10 pr-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-mono text-sm">
+                        <span
+                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">hub</span>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Marca</label>
+
+                <div class="group">
+                    <label
+                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Marca</label>
                     <input type="text" [(ngModel)]="newCamera.marca" placeholder="ej. Hikvision"
-                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Modelo</label>
+
+                <div class="group">
+                    <label
+                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Modelo</label>
                     <input type="text" [(ngModel)]="newCamera.modelo" placeholder="ej. DS-2CD2043G0-I"
-                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Área Asignada</label>
-                    <input type="text" [(ngModel)]="newCamera.area" placeholder="ej. Estacionamiento"
-                        class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+
+                <div class="sm:col-span-2 group">
+                    <label
+                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Área
+                        / Sector Asignado</label>
+                    <div class="relative">
+                        <input type="text" [(ngModel)]="newCamera.area" placeholder="ej. Acceso Norte / Estacionamiento"
+                            class="w-full pl-10 pr-4 py-3 bg-black/60 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm placeholder-gray-600">
+                        <span
+                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">place</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="flex justify-end space-x-3 mt-8">
+            <div class="flex justify-end space-x-4 mt-10">
                 <button (click)="hideRegisterModal()"
-                    class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition">Cancelar</button>
+                    class="px-6 py-3 glass-effect text-gray-400 hover:text-white rounded-xl font-bold transition-all border border-glass-border">
+                    Cancelar
+                </button>
                 <button (click)="registerCamera()"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium transition">Registrar</button>
+                    class="px-8 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-purple-900/20 hover:scale-105 active:scale-95 transition-all">
+                    Sincronizar y Registrar
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Details / Modify Modal -->
     <div *ngIf="isDetailsModalVisible"
-        class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-lg mx-4">
-            <div class="flex justify-between items-start mb-4">
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Detalles de Cámara</h3>
-                <button (click)="hideDetailsModal()" class="text-gray-500 hover:text-gray-700"><span
-                        class="material-icons">close</span></button>
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div
+            class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-glass-border animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div class="flex justify-between items-start mb-8">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-accent-blue/20 rounded-xl">
+                        <span class="material-icons text-accent-blue">settings_suggest</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white text-gradient">Parámetros de Dispositivo</h3>
+                </div>
+                <button (click)="hideDetailsModal()"
+                    class="text-gray-500 hover:text-white p-1 hover:bg-white/10 rounded-lg transition-all">
+                    <span class="material-icons">close</span>
+                </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm text-gray-500 dark:text-gray-400">ID Cámara</label>
-                    <p class="font-bold text-gray-900 dark:text-gray-200">{{ selectedCamera?.id }}</p>
+            <div class="grid grid-cols-2 gap-6 mb-10">
+                <div class="p-4 bg-white/5 rounded-2xl border border-glass-border">
+                    <label
+                        class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Identificador
+                        Público</label>
+                    <p class="font-bold text-white text-lg">{{ selectedCamera?.id }}</p>
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-500 dark:text-gray-400">Dirección IP</label>
-                    <p class="font-mono text-gray-900 dark:text-gray-200">{{ selectedCamera?.ip }}</p>
+                <div class="p-4 bg-white/5 rounded-2xl border border-glass-border">
+                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Dirección
+                        Estática</label>
+                    <p class="font-mono text-accent-blue text-sm">{{ selectedCamera?.ip }}</p>
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-500 dark:text-gray-400">Alertas Detectadas</label>
-                    <span class="px-2 py-1 rounded text-xs font-bold"
-                        [ngClass]="(selectedCamera?.alertas || 0) > 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'">
-                        {{ selectedCamera?.alertas }} Alertas
+                <div
+                    class="col-span-2 p-4 bg-white/5 rounded-2xl border border-glass-border flex justify-between items-center">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Alertas
+                            en Historial</label>
+                        <p class="text-white font-bold">{{ selectedCamera?.alertas || 0 }} Eventos Detectados</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
+                        [ngClass]="(selectedCamera?.alertas || 0) > 5 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'">
+                        {{ (selectedCamera?.alertas || 0) > 5 ? 'Atención Crítica' : 'Estado Estable' }}
                     </span>
                 </div>
             </div>
 
-            <div class="border-t border-gray-200 dark:border-gray-700 my-4 pt-4">
-                <h4 class="font-bold mb-3 text-purple-600 dark:text-purple-400">Modificar Especificaciones</h4>
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Marca</label>
+            <div class="space-y-6">
+                <h4 class="text-xs font-black text-primary uppercase tracking-[0.2em] flex items-center">
+                    <span class="w-8 h-px bg-primary/30 mr-3"></span>
+                    Modificar Hardware
+                </h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="group">
+                        <label
+                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Marca</label>
                         <input type="text" [(ngModel)]="editForm.marca"
-                            class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Modelo</label>
+                    <div class="group">
+                        <label
+                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Modelo</label>
                         <input type="text" [(ngModel)]="editForm.modelo"
-                            class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium mb-1">Área Asignada</label>
+                    <div class="col-span-2 group">
+                        <label
+                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Área
+                            Asignada</label>
                         <input type="text" [(ngModel)]="editForm.area"
-                            class="w-full p-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white">
+                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
                     </div>
                 </div>
             </div>
 
-            <div class="flex justify-end space-x-3 mt-6">
+            <div class="flex justify-end space-x-4 mt-10">
                 <button (click)="hideDetailsModal()"
-                    class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition">Cancelar</button>
+                    class="px-6 py-2 text-gray-400 hover:text-white rounded-xl font-bold transition-all">Cerrar</button>
                 <button (click)="saveDetails()"
-                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium transition">Guardar
-                    Cambios</button>
+                    class="px-10 py-2 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+                    Actualizar Hardware
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
     <div *ngIf="isDeleteModalVisible"
-        class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-        <div class="bg-gray-100 dark:bg-gray-800 p-8 rounded-lg shadow-xl text-center max-w-sm mx-auto">
-            <p class="text-lg font-medium text-gray-900 dark:text-white mb-6">
-                ¿Estás seguro de que deseas eliminar la cámara <strong class="font-bold">{{ selectedCamera?.id
-                    }}</strong>?
-                <br /><span class="text-sm text-red-500">Esta acción no se puede deshacer.</span>
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="glass-effect p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full border border-glass-border">
+            <div
+                class="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
+                <span class="material-icons text-rose-500 text-4xl">no_photography</span>
+            </div>
+            <p class="text-xl font-bold text-white mb-2">Eliminar de la Red</p>
+            <p class="text-gray-400 text-sm mb-8">
+                ¿Confirmas la remoción del equipo <strong class="text-white">{{ selectedCamera?.id }}</strong>?
+                <br><span class="text-rose-400 italic text-[10px] font-black uppercase tracking-widest mt-2 block">Los
+                    datos históricos se perderán.</span>
             </p>
-            <div class="flex justify-center space-x-4">
+            <div class="flex flex-col space-y-3">
                 <button (click)="confirmDelete()"
-                    class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition">Eliminar</button>
+                    class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-900/40">
+                    Confirmar Baja
+                </button>
                 <button (click)="hideDeleteModal()"
-                    class="px-6 py-2 bg-gray-500 dark:bg-gray-600 text-white rounded-md hover:bg-gray-400 transition">Cancelar</button>
+                    class="w-full py-3 glass-effect text-gray-400 hover:text-white rounded-2xl font-bold transition-all">
+                    Abortar Acción
+                </button>
             </div>
         </div>
     </div>
-
 </div>
