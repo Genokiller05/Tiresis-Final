@@ -80,10 +80,11 @@ export const translations = {
     'new_report.sent_simulation': 'Reporte Enviado (Simulado)',
     'new_report.permission_required': 'Permiso requerido',
     'new_report.permission_message': 'Necesitamos permiso para acceder a tu cámara.',
-    'new_report.success_title': 'Éxito',
-    'new_report.success_message': 'Reporte enviado correctamente.',
-    'new_report.error_title': 'Error',
-    'new_report.error_message': 'Por favor completa todos los campos requeridos.',
+    'notifications.title': 'Notificaciones',
+    'notifications.mark_all_read': 'Marcar todo como leído',
+    'notifications.no_notifications': 'No tienes notificaciones',
+    'notifications.unread': 'sin leer',
+    'notifications.just_now': 'Ahora',
   },
   en: {
     'login.title': 'Surveillance System',
@@ -164,6 +165,11 @@ export const translations = {
     'new_report.success_message': 'Report sent successfully.',
     'new_report.error_title': 'Error',
     'new_report.error_message': 'Please fill in all required fields.',
+    'notifications.title': 'Notifications',
+    'notifications.mark_all_read': 'Mark all as read',
+    'notifications.no_notifications': 'No notifications yet',
+    'notifications.unread': 'unread',
+    'notifications.just_now': 'Just now',
   },
 };
 

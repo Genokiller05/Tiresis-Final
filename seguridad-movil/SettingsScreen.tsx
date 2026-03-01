@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -9,17 +9,19 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { useUser } from './context/UserContext';
+import { getUnreadCount, subscribeToNotifications } from './services/notificationService';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
   MainTabs: { screen: 'Home' };
   LoginScreen: undefined;
   SettingsScreen: undefined;
+  NotificationsScreen: undefined;
 };
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<
@@ -33,6 +35,32 @@ const SettingsScreen = () => {
   const { isDarkMode, toggleTheme, colors } = useTheme();
   const { t, language, setLanguage } = useI18n();
   const { user, logout } = useUser();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const guardId = user?.idEmpleado || '';
+
+  // Cargar conteo de no leídas
+  const loadUnreadCount = useCallback(async () => {
+    if (!guardId) return;
+    const count = await getUnreadCount(guardId);
+    setUnreadCount(count);
+  }, [guardId]);
+
+  // Recargar conteo cada vez que la pantalla recibe foco (al volver de NotificationsScreen)
+  useFocusEffect(
+    useCallback(() => {
+      loadUnreadCount();
+    }, [loadUnreadCount])
+  );
+
+  // Suscripción en tiempo real para actualizar badge
+  useEffect(() => {
+    if (!guardId) return;
+    const unsubscribe = subscribeToNotifications(guardId, () => {
+      setUnreadCount((prev) => prev + 1);
+    });
+    return unsubscribe;
+  }, [guardId]);
 
   const handleLanguageChange = () => {
     const newLanguage = language === 'es' ? 'en' : 'es';
@@ -161,10 +189,17 @@ const SettingsScreen = () => {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.optionRow, dynamicStyles.optionRow]} onPress={() => handleOptionPress(t('settings.notifications'))}>
+            <TouchableOpacity style={[styles.optionRow, dynamicStyles.optionRow]} onPress={() => navigation.navigate('NotificationsScreen')}>
               <Text style={styles.optionIcon}>🔔</Text>
               <Text style={[styles.optionText, dynamicStyles.optionText]}>{t('settings.notifications')}</Text>
-              <Text style={[styles.optionArrow, dynamicStyles.optionArrow]}>›</Text>
+              <View style={styles.optionRightContent}>
+                {unreadCount > 0 && (
+                  <View style={styles.notifBadge}>
+                    <Text style={styles.notifBadgeText}>{unreadCount}</Text>
+                  </View>
+                )}
+                <Text style={[styles.optionArrow, dynamicStyles.optionArrow]}>›</Text>
+              </View>
             </TouchableOpacity>
 
             <View style={[styles.optionRow, dynamicStyles.optionRow]}>
@@ -317,6 +352,21 @@ const styles = StyleSheet.create({
   },
   userInfoValue: {
     fontSize: 12,
+  },
+  notifBadge: {
+    backgroundColor: '#3b82f6',
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginRight: 8,
+  },
+  notifBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
 

@@ -54,3 +54,15 @@ export interface Guard {
   created_at?: string;
   fechaContratacion?: string;
 }
+
+export type NotificationType = 'area_change' | 'shift_start' | 'shift_end' | 'general';
+
+export interface GuardNotification {
+  id: string;
+  guard_id: string;
+  title: string;
+  body: string;
+  type: NotificationType;
+  is_read: boolean;
+  created_at: string;
+}
