@@ -62,6 +62,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public uiText: any = {};
   private langSubscription!: Subscription;
   private themeSubscription!: Subscription;
+  private realtimeSubscription!: Subscription;
 
   constructor(
     private router: Router,
@@ -82,6 +83,35 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     this.themeSubscription = this.themeService.currentTheme.subscribe(theme => {
       this.currentTheme = theme;
     });
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.realtimeSubscription = this.reportService.getReportUpdates().subscribe(payload => {
+        this.handleRealtimeEvent(payload);
+      });
+    }
+  }
+
+  private handleRealtimeEvent(payload: any) {
+    if (payload.eventType === 'INSERT') {
+      // Add new record if not exists
+      const mappedNew = this.mapReportFromDB(payload.new);
+      const exists = this.allAlerts.find(a => a.id === mappedNew.id);
+      if (!exists) {
+        this.allAlerts.unshift(mappedNew);
+      }
+    } else if (payload.eventType === 'UPDATE') {
+      // Update existing
+      const mappedUpdate = this.mapReportFromDB(payload.new);
+      const index = this.allAlerts.findIndex(a => a.id === mappedUpdate.id);
+      if (index !== -1) {
+        this.allAlerts[index] = mappedUpdate;
+      }
+    } else if (payload.eventType === 'DELETE') {
+      // Remove deleted
+      this.allAlerts = this.allAlerts.filter(a => a.id !== payload.old.id);
+    }
+    // Re-apply filters
+    this.aplicarFiltros();
   }
 
   ngAfterViewInit() {
@@ -127,9 +157,31 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
+  private mapReportFromDB(dbReport: any): any {
+    // Definimos mapas básicos para los IDs numéricos al texto que espera la interfaz
+    const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 4: 'Cancelado', 5: 'Suspendido' };
+    const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Mantenimiento', 3: 'Sospechoso', 4: 'Emergencia' };
+
+    return {
+      id: dbReport.id,
+      fechaHora: dbReport.created_at || new Date().toISOString(),
+      origen: dbReport.created_by_guard_id ? 'Guardia' : 'IA',
+      tipo: typeMap[dbReport.report_type_id] || 'Incidente',
+      sitioArea: 'Área Asignada', // Idealmente habría que hacer un JOIN con 'buildings'
+      estado: statusMap[dbReport.status_id] || 'Pendiente',
+      detalles: {
+        descripcion: dbReport.short_description || 'Sin descripción detallada.',
+        nombreGuardia: 'Guardia Registrado',
+        idGuardia: dbReport.created_by_guard_id || 'N/A'
+      },
+      _rawDBData: dbReport // Guardar información original
+    };
+  }
+
   async fetchReports() {
     try {
-      this.allAlerts = await this.reportService.getReports();
+      const dbReports = await this.reportService.getReports();
+      this.allAlerts = dbReports.map(r => this.mapReportFromDB(r));
     } catch (error) {
       console.error('Error fetching reports:', error);
       this.allAlerts = [];
@@ -143,6 +195,9 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
+    }
+    if (this.realtimeSubscription) {
+      this.realtimeSubscription.unsubscribe();
     }
     // Destroy Flatpickr instances
     if (this.datePickerDesde) {

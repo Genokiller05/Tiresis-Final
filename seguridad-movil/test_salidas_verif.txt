@@ -1,0 +1,26 @@
+[
+  {
+    "id": "0334f2df-efa2-471e-9018-06c5df0eaf41",
+    "fechaHora": "2026-02-26T18:17:00.756+00:00",
+    "tipo": "Salida",
+    "descripcion": "Nombre: Repartidor de Prueba. Paqueter├¡a: Amazon - Paquete",
+    "idRelacionado": null,
+    "created_at": "2026-02-26T18:18:27.272503+00:00"
+  },
+  {
+    "id": "90178498-ea5f-4b64-a6b1-29140d4177f9",
+    "fechaHora": "2026-02-26T18:17:00.756+00:00",
+    "tipo": "Salida",
+    "descripcion": "Nombre: Servicio de Prueba. Trabajador: Mantenimiento S.A. - Luces",
+    "idRelacionado": null,
+    "created_at": "2026-02-26T18:18:27.433322+00:00"
+  },
+  {
+    "id": "99be2537-a54a-4837-8932-b2fe37f9f569",
+    "fechaHora": "2026-02-26T18:17:00.744+00:00",
+    "tipo": "Salida",
+    "descripcion": "Nombre: Visitante de Prueba. Visita a: Test 101",
+    "idRelacionado": null,
+    "created_at": "2026-02-26T18:18:27.023874+00:00"
+  }
+]

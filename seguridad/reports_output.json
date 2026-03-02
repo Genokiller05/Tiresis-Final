@@ -1,0 +1,48 @@
+Fetching recent reports...
+Recent reports: [
+  {
+    "id": "e658b47c-65e1-4fd0-a572-01496fbaaa94",
+    "site_id": "29e48d60-df1e-4b7c-91dc-184ca1ea2c3e",
+    "shift_id": null,
+    "report_type_id": 2,
+    "status_id": 1,
+    "priority_id": 2,
+    "location_id": null,
+    "gps_lat": null,
+    "gps_lng": null,
+    "short_description": "Basura tirada en la entrada principal",
+    "created_at": "2026-03-02T02:54:13.6986+00:00",
+    "closed_at": null,
+    "created_by_guard_id": "a7fc32c3-56f5-4d68-ba57-43b5a2f17dd9"
+  },
+  {
+    "id": "490e9ae2-b95c-45a2-80e7-c2c97c7f26a3",
+    "site_id": "29e48d60-df1e-4b7c-91dc-184ca1ea2c3e",
+    "shift_id": null,
+    "report_type_id": 1,
+    "status_id": 1,
+    "priority_id": 2,
+    "location_id": null,
+    "gps_lat": null,
+    "gps_lng": null,
+    "short_description": "Hola",
+    "created_at": "2026-03-02T02:49:32.894164+00:00",
+    "closed_at": null,
+    "created_by_guard_id": "a7fc32c3-56f5-4d68-ba57-43b5a2f17dd9"
+  },
+  {
+    "id": "c29c1bd5-e8b3-4d0f-96a3-8d3a41404bcb",
+    "site_id": "29e48d60-df1e-4b7c-91dc-184ca1ea2c3e",
+    "shift_id": null,
+    "report_type_id": 1,
+    "status_id": 1,
+    "priority_id": 2,
+    "location_id": null,
+    "gps_lat": null,
+    "gps_lng": null,
+    "short_description": "Choby es un travieso ",
+    "created_at": "2026-03-01T18:10:53.785772+00:00",
+    "closed_at": null,
+    "created_by_guard_id": "b0d79123-91b0-4a90-8902-7317d63ebcd6"
+  }
+]

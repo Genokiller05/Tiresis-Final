@@ -18,14 +18,13 @@ const stripe = stripeKey ? Stripe(stripeKey) : null;
 
 console.log('\n\n');
 console.log('=================================================');
-console.log('!!! SERVER STARTING IN LOCAL JSON MODE !!!');
-console.log('!!! SUPABASE DISCONNECTED - SAVING TO JSON !!!');
+console.log('!!! SERVER STARTING IN SUPABASE MODE !!!');
 console.log('=================================================\n\n');
 
 // Supabase Configuration
 const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3aGxicGFhYnlmb29tbmxra3R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5NjU3MjAsImV4cCI6MjA4NDU0MTcyMH0.0E6oNSpArkYOsdxiGiSYAWmCyQxSkHWQ8DjXuBcTVZU';
-const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3aGxicGFhYnlmb29tbmxra3R0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODk2NTcyMCwiZXhwIjoyMDg0NTQxNzIwfQ.yrK8_wNU3u5r9DxEF6FSzQiPk4v3joy0dFjvmDK-mKs';
+const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
+const supabaseServiceKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
 const supabase = createClient(supabaseUrl, supabaseKey);
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -176,7 +175,7 @@ app.get('/api/guards/:idEmpleado', async (req, res) => {
   // 1. Try Local JSON FIRST
   try {
     const guards = readJsonFile('guards.json');
-    const guard = guards.find(g => g.document_id === req.params.idEmpleado);
+    const guard = guards.find(g => g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado);
     if (guard) return res.json(guard);
   } catch (e) { console.error(e); }
 
@@ -186,7 +185,7 @@ app.get('/api/guards/:idEmpleado', async (req, res) => {
 });
 
 app.post('/api/guards', async (req, res) => {
-  const { full_name, document_id, photo_url, email, telefono, direccion } = req.body;
+  const { full_name, document_id, photo_url, email, telefono, direccion, area } = req.body;
 
   if (!document_id || !full_name) {
     return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
@@ -207,6 +206,7 @@ app.post('/api/guards', async (req, res) => {
       password: tempPassword,
       phone: telefono || '',
       direccion: direccion || '',
+      area: area || '',
       foto: photo_url || '/assets/images/guards/default.png',
       role: 'guard',
       is_active: true,

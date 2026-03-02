@@ -1,0 +1,4 @@
+--- TEST DE VERIFICACI├ôN DE ENTRADAS ---
+[├ëXITO] Guardado correctamente en la BD: Nombre: Visitante de Prueba. Visita a: Test 101
+[├ëXITO] Guardado correctamente en la BD: Nombre: Repartidor de Prueba. Paqueter├¡a: Amazon - Paquete
+[├ëXITO] Guardado correctamente en la BD: Nombre: Servicio de Prueba. Trabajador: Mantenimiento S.A. - Luces

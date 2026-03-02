@@ -1,12 +1,38 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { Subject, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
 export class EntryExitService {
 
-    constructor(private supabaseService: SupabaseService) { }
+    private entriesUpdates = new Subject<any>();
+
+    constructor(private supabaseService: SupabaseService) {
+        this.setupRealtimeSubscription();
+    }
+
+    private setupRealtimeSubscription() {
+        this.supabaseService.client
+            .channel('entries-channel')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'entries_exits' },
+                (payload) => {
+                    console.log('Realtime change received (Entries)!', payload);
+                    this.entriesUpdates.next(payload);
+                }
+            )
+            .subscribe((status, err) => {
+                if (err) console.error('Supabase Realtime subscription error (Entries):', err);
+                else console.log('Supabase Realtime subscription status (Entries):', status);
+            });
+    }
+
+    getEntriesUpdates(): Observable<any> {
+        return this.entriesUpdates.asObservable();
+    }
 
     async getEntriesExits(): Promise<any[]> {
         const { data, error } = await this.supabaseService.client

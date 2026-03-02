@@ -109,5 +109,23 @@
     "direccion": "qathq54u",
     "estado": "En servicio",
     "foto": "/uploads/photo-1772331333947-445361962.png"
+  },
+  {
+    "id": "GUARD-LOCAL-1772395360453",
+    "full_name": "Test Guard Area",
+    "nombre": "Test Guard Area",
+    "document_id": "TEST-AREA-1",
+    "idEmpleado": "TEST-AREA-1",
+    "email": "testarea@segcdmx.mx",
+    "password": "i90jxj5w",
+    "phone": "1111111111",
+    "direccion": "Test Address",
+    "area": "Edificio Test",
+    "foto": "/assets/images/guards/default.png",
+    "role": "guard",
+    "is_active": true,
+    "estado": "Fuera de servicio",
+    "created_at": "2026-03-01T20:02:40.453Z",
+    "actividades": []
   }
 ]

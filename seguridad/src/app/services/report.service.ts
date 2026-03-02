@@ -1,12 +1,38 @@
 import { Injectable } from '@angular/core';
 import { SupabaseService } from './supabase.service';
+import { Subject, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ReportService {
 
-    constructor(private supabaseService: SupabaseService) { }
+    private reportUpdates = new Subject<any>();
+
+    constructor(private supabaseService: SupabaseService) {
+        this.setupRealtimeSubscription();
+    }
+
+    private setupRealtimeSubscription() {
+        this.supabaseService.client
+            .channel('reports-channel')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'reports' },
+                (payload) => {
+                    console.log('Realtime change received!', payload);
+                    this.reportUpdates.next(payload);
+                }
+            )
+            .subscribe((status, err) => {
+                if (err) console.error('Supabase Realtime subscription error:', err);
+                else console.log('Supabase Realtime subscription status:', status);
+            });
+    }
+
+    getReportUpdates(): Observable<any> {
+        return this.reportUpdates.asObservable();
+    }
 
     async getReports(): Promise<any[]> {
         const { data, error } = await this.supabaseService.client

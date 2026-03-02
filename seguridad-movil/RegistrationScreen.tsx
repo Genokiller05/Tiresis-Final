@@ -51,6 +51,7 @@ const RegistrationScreen = () => {
     const { user } = useUser();
 
     // Estados del formulario
+    const [isExit, setIsExit] = useState(false);
     const [name, setName] = useState('');
     const [purpose, setPurpose] = useState(''); // Empresa o Motivo
     const [company, setCompany] = useState(''); // Solo para worker/delivery
@@ -136,14 +137,17 @@ const RegistrationScreen = () => {
             const entryData = {
                 id: generateUUID(),
                 fechaHora: localDate.toISOString(),
-                tipo: 'Entrada', // Currently hardcoded to Entrada as this is a registration screen
+                tipo: isExit ? 'Salida' : 'Entrada', // Modificado a usar el switch de ENTRADA/SALIDA
                 descripcion: `Nombre: ${name}. ${description}`,
                 idRelacionado: evidenceId,
             };
 
             await createEntryExit(entryData);
 
-            Alert.alert('Registro Exitoso', 'La entrada ha sido registrada correctamente.');
+            Alert.alert(
+                isExit ? 'Salida Registrada' : 'Entrada Registrada',
+                isExit ? 'La salida ha sido registrada correctamente.' : 'La entrada ha sido registrada correctamente.'
+            );
             navigation.goBack();
         } catch (error) {
             console.error(error);
@@ -170,7 +174,19 @@ const RegistrationScreen = () => {
                             <Ionicons name="arrow-back" size={24} color={colors.text} />
                         </TouchableOpacity>
                         <Text style={[styles.headerTitle, { color: colors.text }]}>{config.title}</Text>
-                        <View style={{ width: 24 }} />
+                        <TouchableOpacity
+                            onPress={() => setIsExit(!isExit)}
+                            style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 16,
+                                backgroundColor: isExit ? '#ef4444' : '#22c55e'
+                            }}
+                        >
+                            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>
+                                {isExit ? 'SALIDA' : 'ENTRADA'}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
 
                     <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -242,9 +258,9 @@ const RegistrationScreen = () => {
                                 />
                             </View>
 
-                            <TouchableOpacity onPress={handleSubmit} style={[styles.submitButton, { backgroundColor: colors.accent }]}>
-                                <Text style={styles.submitText}>Registrar Entrada</Text>
-                                <Ionicons name="arrow-forward-circle" size={24} color="white" style={{ marginLeft: 8 }} />
+                            <TouchableOpacity onPress={handleSubmit} style={[styles.submitButton, { backgroundColor: isExit ? '#ef4444' : colors.accent }]}>
+                                <Text style={styles.submitText}>{isExit ? 'Registrar Salida' : 'Registrar Entrada'}</Text>
+                                <Ionicons name={isExit ? "exit-outline" : "enter-outline"} size={24} color="white" style={{ marginLeft: 8 }} />
                             </TouchableOpacity>
 
                         </BlurView>

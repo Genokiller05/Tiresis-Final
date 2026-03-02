@@ -1,0 +1,129 @@
+commit c94112bd32d02911378be42937128ac2fae49539
+Author: Genokiller05 <aldinalv62@gmail.com>
+Date:   Tue Feb 24 23:55:01 2026 -0600
+
+    Fix timezone in Entry exit table to match mobile device timezone instead of UTC
+
+ seguridad-movil/RegistrationScreen.tsx | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+commit 1f932c1e31de0c5e39804ad94566338fca20948d
+Author: Genokiller05 <aldinalv62@gmail.com>
+Date:   Tue Feb 24 19:48:53 2026 -0600
+
+    Fix merge conflicts, package dependencies and deprecated expo features
+
+ README.md                                      | 151 +++++++++++++++++++++++++
+ seguridad-movil/App.tsx                        |   2 +-
+ seguridad-movil/LoginScreen.tsx                |   5 +
+ seguridad-movil/NewReportScreen.tsx            |  56 +++++----
+ seguridad-movil/RegistrationScreen.tsx         |   2 +-
+ seguridad-movil/ReportDetailScreen.tsx         |  89 +++++++++++----
+ seguridad-movil/ReportsScreen.tsx              |   7 +-
+ seguridad-movil/admins_dump.json               |  13 +++
+ seguridad-movil/babel.config.js                |   6 +
+ seguridad-movil/cameras_check.txt              |  16 +++
+ seguridad-movil/cameras_sample.json            |   1 +
+ seguridad-movil/check-reportes.js              |  12 ++
+ seguridad-movil/check-reports.js               |  18 +++
+ seguridad-movil/check-update-guards.js         |  15 +++
+ seguridad-movil/check-urls.js                  |  17 +++
+ seguridad-movil/debug-login.js                 |  23 ++++
+ seguridad-movil/diagnose-cameras.js            |  33 ++++++
+ seguridad-movil/diagnose-guards.js             |  32 ++++++
+ seguridad-movil/diagnose-guards.ts             |  27 +++++
+ seguridad-movil/dump-admins.js                 |  18 +++
+ seguridad-movil/guards_output.txt              | 147 ++++++++++++++++++++++++
+ seguridad-movil/guards_sample.json             |   1 +
+ seguridad-movil/list-data.js                   |  20 ++++
+ seguridad-movil/package-lock.json              |  90 ++++++++-------
+ seguridad-movil/package.json                   |   2 +
+ seguridad-movil/reports_columns.txt            |   1 +
+ seguridad-movil/reports_sample.json            |   1 +
+ seguridad-movil/schema-reports.js              |  20 ++++
+ seguridad-movil/services/dataService.ts        |  46 +++++---
+ seguridad-movil/simulate-server-insert.js      |  35 ++++++
+ seguridad-movil/test-access.js                 |  43 +++++++
+ seguridad-movil/test-insert.js                 |  30 +++++
+ seguridad-movil/test-insert2.js                |  18 +++
+ seguridad-movil/test_access_retry.txt          |  35 ++++++
+ seguridad-movil/test_output.txt                |  16 +++
+ seguridad-movil/theme/translations.ts          |   8 ++
+ seguridad-movil/types/supabase.ts              |  26 ++---
+ seguridad-movil/verify_connection_fix.js       |  51 +++++++++
+ seguridad/check_column.js                      |   4 +-
+ seguridad/fix_reports_missing_columns.sql      |  19 ++++
+ seguridad/fix_site_id_constraint.sql           |  20 ++++
+ seguridad/fix_site_id_trigger.sql              |  24 ++++
+ seguridad/force_fix_site_id.sql                |   6 +
+ seguridad/inspect_reports.js                   |  24 ++++
+ seguridad/inspect_reports_standalone.js        |  42 +++++++
+ seguridad/probe_site_id.js                     |  26 +++++
+ seguridad/report_error_log.json                |   2 +-
+ seguridad/src/app/services/supabase.service.ts |   8 +-
+ seguridad/verify_report_fix.js                 |   2 +-
+ seguridad/verify_reports_fix.js                |  29 +++++
+ seguridad/verify_site_id_fix.js                |  40 +++++++
+ seguridad/verify_site_id_v2.js                 |  25 ++++
+ setup/create_cameras_table.sql                 |  16 +++
+ setup/fix_db_and_storage.sql                   |  16 +++
+ setup/fix_rls_policies.sql                     |  22 ++++
+ 55 files changed, 1330 insertions(+), 128 deletions(-)
+
+commit 0a65ba2a75c5fc8f88c3a7e59188de748ea08653
+Author: jehieli19 <jehielixool@gmail.com>
+Date:   Sun Feb 22 08:37:41 2026 -0600
+
+    Registro de admin mejorado: Stripe Live y remoción de PayPal
+
+ seguridad/.gitignore                               |   6 +
+ seguridad/data/admins.json                         |  60 ++++
+ seguridad/data/emails.json                         |  35 +++
+ seguridad/server.js                                | 122 ++++++--
+ .../admin-register/admin-register.component.ts     | 328 +++++++++++++++++----
+ seguridad/src/index.html                           |   1 +
+ seguridad/test_local_auth_flow.js                  |   1 +
+ 7 files changed, 464 insertions(+), 89 deletions(-)
+
+commit 8337ae12d346db0dd7eff6cee529a11dfe98636a
+Author: chobyyy <24090588@alumno.utmetropolitana.edu.mx>
+Date:   Fri Feb 20 19:48:00 2026 -0600
+
+    Actualización de archivos del proyecto y scripts de utilidad
+
+ seguridad-movil/NewReportScreen.tsx     |  94 ++++--
+ seguridad-movil/ReportsScreen.tsx       |  51 +--
+ seguridad-movil/app.json                |   1 -
+ seguridad-movil/check_db.js             |  20 ++
+ seguridad-movil/check_db_v2.js          |  26 ++
+ seguridad-movil/package-lock.json       | 532 +++++++++++++++--------------
+ seguridad-movil/package.json            |   2 +-
+ seguridad-movil/probe_schema.js         |  50 +++
+ seguridad-movil/services/dataService.ts |  38 ++-
+ seguridad-movil/theme/translations.ts   |   4 +
+ seguridad-movil/types/supabase.ts       |  27 +-
+ seguridad/check_old_schema.js           |  30 ++
+ seguridad/check_report_permissions.js   |  48 +++
+ seguridad/check_reports_columns.js      |  28 ++
+ seguridad/check_sites_buildings.js      |  33 ++
+ seguridad/check_sites_final.js          |  14 +
+ seguridad/db                            |   5 +-
+ seguridad/final_migration.sql           | 582 ++++++++++++++++++++++++++++++++
+ seguridad/insert_site.js                |  17 +
+ seguridad/populate_sites.js             |  25 ++
+ seguridad/populate_uuids.sql            |  23 ++
+ seguridad/probe_reports.js              |  22 ++
+ seguridad/server.js                     |   1 -
+ seguridad/verify_migration.js           |  29 ++
+ 24 files changed, 1389 insertions(+), 313 deletions(-)
+
+commit 0c487d34d866841d81cd7dfa2d1188865dfbae28
+Author: Nanashi31 <yaelrr302@gmail.com>
+Date:   Wed Feb 11 10:56:22 2026 -0600
+
+    Api cambiada 2
+
+ seguridad-movil/debug/log.md          | 7 ++++---
+ seguridad-movil/lib/supabase.ts       | 2 +-
+ seguridad-movil/lib/supabaseClient.ts | 4 ++--
+ 3 files changed, 7 insertions(+), 6 deletions(-)
