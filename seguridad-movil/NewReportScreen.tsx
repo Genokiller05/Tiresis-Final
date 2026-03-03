@@ -64,6 +64,22 @@ const NewReportScreen = () => {
   const [description, setDescription] = useState('');
   const [evidence, setEvidence] = useState<string | null>(null);
 
+  // Áreas
+  const areasList = [
+    "Edificio Central",
+    "Área Deportiva",
+    "Entrada Principal",
+    "Nuevo Edificio",
+    "Entrada Trasera",
+    "Estacionamiento",
+    "Edificio A",
+    "Edificio B",
+    "Oficinas",
+    "Ronda Perimetral"
+  ];
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [isAreaModalVisible, setAreaModalVisible] = useState(false);
+
   // We skip fetching specific catalogs for now to avoid errors if tables are missing/hidden
   // But we still try to fetch sites if possible, or use a default.
   useEffect(() => {
@@ -135,8 +151,8 @@ const NewReportScreen = () => {
   };
 
   const handleSubmitReport = async () => {
-    if (!selectedType || !description) {
-      Alert.alert(t('new_report.error_title'), t('new_report.error_message'));
+    if (!selectedType || !description || !selectedArea) {
+      Alert.alert(t('new_report.error_title'), 'Por favor completa todos los campos requeridos, incluyendo el Área.');
       return;
     }
 
@@ -150,11 +166,15 @@ const NewReportScreen = () => {
 
     try {
       let evidenceId = null;
+      let evidenceUrl = null;
 
       if (evidence) {
-        evidenceId = await uploadEntryEvidence(evidence, guardId);
-        if (!evidenceId) {
+        const uploadResult = await uploadEntryEvidence(evidence, guardId);
+        if (!uploadResult) {
           Alert.alert('Advertencia', 'No se pudo subir la evidencia. Se enviará el reporte sin foto.');
+        } else {
+          evidenceId = uploadResult.id;
+          evidenceUrl = uploadResult.url;
         }
       }
 
@@ -170,10 +190,11 @@ const NewReportScreen = () => {
         return;
       }
 
+      const guardInfo = user ? ` | Guardia: ${user.nombre} (ID: ${user.idEmpleado} / ${user.email})` : '';
       const newReportData = {
         site_id: siteId,
         created_by_guard_id: guardId,
-        short_description: description,
+        short_description: `Area: ${selectedArea}${guardInfo} | ${description}${evidenceUrl ? ` | Evidencia: ${evidenceUrl}` : ''}`,
         report_type_id: selectedType?.id || 1,
         status_id: pendingStatus?.id || 1,
         priority_id: defaultPriority?.id || 1,
@@ -213,7 +234,9 @@ const NewReportScreen = () => {
             <Pressable onPress={handleGoBackToHome} style={styles.backButton}>
               <Text style={styles.backIcon}>←</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>{t('new_report.title')}</Text>
+            <View style={{ flex: 1, marginHorizontal: 12, alignItems: 'center' }}>
+              <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>{t('new_report.title')}</Text>
+            </View>
             <View style={{ width: 24 }} />
           </View>
 
@@ -223,8 +246,19 @@ const NewReportScreen = () => {
               style={styles.dropdownButton}
               onPress={() => setIncidentModalVisible(true)}
             >
-              <Text style={styles.dropdownButtonText}>
+              <Text style={[styles.dropdownButtonText, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                 {selectedType ? selectedType.name : t('new_report.select_incident_type')}
+              </Text>
+              <Text style={styles.dropdownIcon}>▼</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Área Asignada</Text>
+            <TouchableOpacity
+              style={styles.dropdownButton}
+              onPress={() => setAreaModalVisible(true)}
+            >
+              <Text style={[styles.dropdownButtonText, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
+                {selectedArea ? selectedArea : 'Seleccionar Área'}
               </Text>
               <Text style={styles.dropdownIcon}>▼</Text>
             </TouchableOpacity>
@@ -284,6 +318,39 @@ const NewReportScreen = () => {
             >
               <Text style={styles.incidentOptionText}>{t('general.cancel')}</Text>
             </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
+      {/* Modal para seleccionar Área */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={isAreaModalVisible}
+        onRequestClose={() => setAreaModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setAreaModalVisible(false)}>
+          <View style={styles.incidentModalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {areasList.map((area, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.incidentOption}
+                  onPress={() => {
+                    setSelectedArea(area);
+                    setAreaModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.incidentOptionText}>{area}</Text>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.incidentOption, styles.incidentCancelOption]}
+                onPress={() => setAreaModalVisible(false)}
+              >
+                <Text style={styles.incidentOptionText}>{t('general.cancel')}</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </Pressable>
       </Modal>

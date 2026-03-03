@@ -68,6 +68,23 @@ const ReportDetailScreen = () => {
     descriptionText = descriptionText.replace(evidenceMatch[0], '').trim();
   }
 
+  let assignedArea = 'Área Asignada (Desconocida)';
+  let guardInfo = 'Guardia Registrado';
+
+  const guardMatch = descriptionText.match(/Guardia: ([^|]+)/);
+  if (guardMatch && guardMatch[1]) {
+    guardInfo = guardMatch[1].trim();
+    descriptionText = descriptionText.replace(guardMatch[0], '').replace(/\|\s*\|\s*/, '|').replace(/\|\s*$/, '').trim();
+  }
+
+  if (descriptionText.includes('|')) {
+    const parts = descriptionText.split('|');
+    if (parts[0].trim().startsWith('Area:')) {
+      assignedArea = parts[0].trim().substring(5).trim();
+      descriptionText = parts.slice(1).join('|').trim();
+    }
+  }
+
   const statusColors: Record<string, string> = {
     Enviado: colors.accent,
     'En Revisión': '#F59E0B',
@@ -91,7 +108,9 @@ const ReportDetailScreen = () => {
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
             <Text style={styles.backIcon}>←</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>Detalle del Reporte</Text>
+          <View style={{ flex: 1, marginHorizontal: 12, alignItems: 'center' }}>
+            <Text style={styles.headerTitle} adjustsFontSizeToFit numberOfLines={1}>Detalle del Reporte</Text>
+          </View>
           <View style={{ width: 24 }} />
         </View>
 
@@ -102,8 +121,18 @@ const ReportDetailScreen = () => {
           </View>
 
           <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Guardia / Usuario</Text>
+            <Text style={[styles.detailValue, { flexShrink: 1 }]} numberOfLines={2} adjustsFontSizeToFit>{guardInfo}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Tipo de Incidente</Text>
             <Text style={styles.detailValue}>{displayType}</Text>
+          </View>
+
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Área Asignada</Text>
+            <Text style={[styles.detailValue, { flexShrink: 1 }]} numberOfLines={2} adjustsFontSizeToFit>{assignedArea}</Text>
           </View>
 
           <View style={styles.detailRow}>

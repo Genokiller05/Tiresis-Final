@@ -160,21 +160,52 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   private mapReportFromDB(dbReport: any): any {
     // Definimos mapas básicos para los IDs numéricos al texto que espera la interfaz
     const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 4: 'Cancelado', 5: 'Suspendido' };
-    const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Mantenimiento', 3: 'Sospechoso', 4: 'Emergencia' };
+    const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Novedad', 3: 'Rondín', 4: 'Alerta recibida', 5: 'Mantenimiento', 6: 'Sospechoso', 7: 'Emergencia' };
+
+    let parsedArea = 'Área Asignada';
+    let parsedDescription = dbReport.short_description || 'Sin descripción detallada.';
+    let parsedEvidence = null;
+    let parsedGuardName = 'Guardia Registrado';
+    let parsedGuardID = dbReport.created_by_guard_id || 'N/A';
+
+    if (dbReport.short_description && typeof dbReport.short_description === 'string') {
+      let tempDesc = dbReport.short_description;
+
+      const evidenceMatch = tempDesc.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
+      if (evidenceMatch && evidenceMatch[1]) {
+        parsedEvidence = evidenceMatch[1];
+        tempDesc = tempDesc.replace(evidenceMatch[0], '').replace(/\|\s*$/, '').trim();
+      }
+
+      const guardMatch = tempDesc.match(/Guardia: ([^|]+)/);
+      if (guardMatch && guardMatch[1]) {
+        parsedGuardName = guardMatch[1].trim();
+        tempDesc = tempDesc.replace(guardMatch[0], '').replace(/\|\s*\|\s*/, '|').replace(/\|\s*$/, '').trim();
+      }
+
+      const areaMatch = tempDesc.match(/Area:\s*([^|]+)/);
+      if (areaMatch && areaMatch[1]) {
+        parsedArea = areaMatch[1].trim();
+        tempDesc = tempDesc.replace(areaMatch[0], '').replace(/^\|\s*/, '').replace(/\|\s*\|\s*/, '|').trim();
+      }
+
+      parsedDescription = tempDesc;
+    }
 
     return {
       id: dbReport.id,
       fechaHora: dbReport.created_at || new Date().toISOString(),
       origen: dbReport.created_by_guard_id ? 'Guardia' : 'IA',
       tipo: typeMap[dbReport.report_type_id] || 'Incidente',
-      sitioArea: 'Área Asignada', // Idealmente habría que hacer un JOIN con 'buildings'
+      sitioArea: parsedArea,
       estado: statusMap[dbReport.status_id] || 'Pendiente',
       detalles: {
-        descripcion: dbReport.short_description || 'Sin descripción detallada.',
-        nombreGuardia: 'Guardia Registrado',
-        idGuardia: dbReport.created_by_guard_id || 'N/A'
+        descripcion: parsedDescription,
+        nombreGuardia: parsedGuardName,
+        idGuardia: parsedGuardID,
+        evidencia: parsedEvidence
       },
-      _rawDBData: dbReport // Guardar información original
+      _rawDBData: dbReport
     };
   }
 

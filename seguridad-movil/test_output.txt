@@ -1,21 +1,5 @@
-Testing Entries Exits Table...
-Sample row from entries_exits: {
-  id: '17f6a58a-4fe8-4197-a8af-4a62971460a5',
-  fechaHora: '2026-01-28T15:55:52.634+00:00',
-  tipo: 'Entrada',
-  descripcion: 'Nombre: Hgdg. Visita a: Hgtjg',
-  idRelacionado: null,
-  created_at: '2026-01-28T15:55:53.495773+00:00'
-}
-Error inserting test visitor (default): {
-  code: '23502',
-  details: null,
-  hint: null,
-  message: 'null value in column "id" of relation "entries_exits" violates not-null constraint'
-}
-Error inserting test visitor with categoria: {
-  code: 'PGRST204',
-  details: null,
-  hint: null,
-  message: "Could not find the 'categoria' column of 'entries_exits' in the schema cache"
-}
+Area: Edificio A | Hola
+---
+Area: Entrada Principal | Intrusos detectados en la caseta de guardias
+---
+HAY UNA CACOTA AFUERA DE LA REJA

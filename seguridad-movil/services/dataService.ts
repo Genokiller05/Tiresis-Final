@@ -163,7 +163,7 @@ export const getAllReports = async (): Promise<Report[]> => {
  * @param userId - The ID of the user uploading the evidence.
  * @returns The ID of the newly created evidence record.
  */
-export const uploadEntryEvidence = async (uri: string, userId: string): Promise<string | null> => {
+export const uploadEntryEvidence = async (uri: string, userId: string): Promise<{ id: string, url: string } | null> => {
   try {
     const filename = `evidence/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
 
@@ -196,11 +196,12 @@ export const uploadEntryEvidence = async (uri: string, userId: string): Promise<
       .single();
 
     if (evidenceError) {
-      console.error('Error creating evidence record:', evidenceError);
-      return null;
+      console.error('Error creating evidence record (Ignored, returning URL):', evidenceError);
     }
 
-    return evidenceData.id;
+    const { data: urlData } = supabase.storage.from('evidence').getPublicUrl(filename);
+
+    return { id: evidenceData?.id || 'temp-evidence-id', url: urlData.publicUrl };
   } catch (error) {
     console.error('Upload exception:', error);
     return null;

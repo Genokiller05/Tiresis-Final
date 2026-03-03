@@ -97,18 +97,29 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
     let nombreStr = 'Identidad Protegida';
     let destinoStr = 'Sin especificar';
     let tipoPerfil = 'Residente'; // Valor por defecto
+    let evidenciaSrc = null;
+    let descripcionLimpia = entry.descripcion || '';
 
     // Intentamos parsear la descripción que guarda la app móvil ("Nombre: XXX. Visita a: YYY")
     if (entry.descripcion) {
-      if (entry.descripcion.includes('Nombre:')) {
-        const parts = entry.descripcion.split('.');
+      let tempDesc = entry.descripcion;
+      const evMatch = tempDesc.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
+      if (evMatch && evMatch[1]) {
+        evidenciaSrc = evMatch[1];
+        tempDesc = tempDesc.replace(evMatch[0], '').replace(/\|\s*$/, '').trim();
+      }
+
+      descripcionLimpia = tempDesc;
+
+      if (tempDesc.includes('Nombre:')) {
+        const parts = tempDesc.split('.');
         nombreStr = parts[0].replace('Nombre:', '').trim();
         if (parts.length > 1) {
-          destinoStr = parts[1].trim();
+          destinoStr = parts.slice(1).join('.').trim();
         }
       } else {
-        nombreStr = entry.descripcion.substring(0, 30);
-        destinoStr = entry.descripcion;
+        nombreStr = tempDesc.substring(0, 30);
+        destinoStr = tempDesc;
       }
     }
 
@@ -130,7 +141,8 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
       nombre: nombreStr,
       destino: destinoStr,
       detalles: {
-        notes: entry.descripcion
+        notes: descripcionLimpia,
+        evidence_url: evidenciaSrc
       },
       _rawDBData: entry
     };

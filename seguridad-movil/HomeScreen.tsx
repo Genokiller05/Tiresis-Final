@@ -43,9 +43,9 @@ const HomeScreen = () => {
 
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.header}>
-          <View>
-            <Text style={[styles.greeting, { color: colors.subtext }]}>{t('home.guard_button')}</Text>
-            <Text style={[styles.title, { color: colors.text }]}>{t('home.dashboard_title')}</Text>
+          <View style={{ flex: 1, paddingRight: 16 }}>
+            <Text style={[styles.greeting, { color: colors.subtext }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.guard_button')}</Text>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.dashboard_title')}</Text>
           </View>
           <TouchableOpacity
             style={[styles.profileButton, { borderColor: colors.accent }]}
@@ -75,9 +75,9 @@ const HomeScreen = () => {
                 <View style={[styles.iconBox, { backgroundColor: 'rgba(251, 191, 36, 0.15)' }]}>
                   <Ionicons name="people" size={32} color="#fbbf24" />
                 </View>
-                <View style={styles.textContainer}>
-                  <Text style={[styles.cardTitle, { color: colors.text }]}>{t('home.new_visit')}</Text>
-                  <Text style={[styles.cardTag, { color: colors.accent }]}>{t('home.register_action')}</Text>
+                <View style={[styles.textContainer, { flex: 1, marginRight: 8 }]}>
+                  <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2} adjustsFontSizeToFit>{t('home.new_visit')}</Text>
+                  <Text style={[styles.cardTag, { color: colors.accent }]} numberOfLines={1}>{t('home.register_action')}</Text>
                 </View>
                 <View style={[styles.arrowCircle, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                   <Ionicons name="arrow-forward" size={18} color={colors.text} />
@@ -101,9 +101,9 @@ const HomeScreen = () => {
                   <View style={[styles.iconBoxSmall, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
                     <Ionicons name="cube-outline" size={24} color="#60a5fa" />
                   </View>
-                  <View>
-                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.delivery')}</Text>
-                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.delivery_desc')}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.cardTitleSmall, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.delivery')}</Text>
+                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]} numberOfLines={2}>{t('home.delivery_desc')}</Text>
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -121,9 +121,9 @@ const HomeScreen = () => {
                   <View style={[styles.iconBoxSmall, { backgroundColor: 'rgba(249, 115, 22, 0.15)' }]}>
                     <Ionicons name="hammer-outline" size={24} color="#fb923c" />
                   </View>
-                  <View>
-                    <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.services')}</Text>
-                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.services_desc')}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.cardTitleSmall, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.services')}</Text>
+                    <Text style={[styles.cardDescSmall, { color: colors.subtext }]} numberOfLines={2}>{t('home.services_desc')}</Text>
                   </View>
                 </BlurView>
               </TouchableOpacity>
@@ -143,8 +143,8 @@ const HomeScreen = () => {
                   <Ionicons name="alert-circle-outline" size={24} color="#f43f5e" />
                 </View>
                 <View style={{ flex: 1, marginLeft: 14 }}>
-                  <Text style={[styles.cardTitleSmall, { color: colors.text }]}>{t('home.report_incident')}</Text>
-                  <Text style={[styles.cardDescSmall, { color: colors.subtext }]}>{t('home.report_desc')}</Text>
+                  <Text style={[styles.cardTitleSmall, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.report_incident')}</Text>
+                  <Text style={[styles.cardDescSmall, { color: colors.subtext }]} numberOfLines={1} adjustsFontSizeToFit>{t('home.report_desc')}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={colors.subtext} />
               </BlurView>

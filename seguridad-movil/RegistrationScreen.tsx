@@ -122,8 +122,11 @@ const RegistrationScreen = () => {
         try {
             // Upload Evidence first
             let evidenceId = null;
+            let evidenceUrl = null;
             if (evidenceUri) {
-                evidenceId = await uploadEntryEvidence(evidenceUri, user.id);
+                const uploadResult = await uploadEntryEvidence(evidenceUri, user.id);
+                evidenceId = uploadResult?.id || null;
+                evidenceUrl = uploadResult?.url || null;
             }
 
             const description = type === 'visit'
@@ -134,11 +137,13 @@ const RegistrationScreen = () => {
             const now = new Date();
             const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
 
+            const evidenceTag = evidenceUrl ? ` | Evidencia: ${evidenceUrl}` : '';
+
             const entryData = {
                 id: generateUUID(),
                 fechaHora: localDate.toISOString(),
                 tipo: isExit ? 'Salida' : 'Entrada', // Modificado a usar el switch de ENTRADA/SALIDA
-                descripcion: `Nombre: ${name}. ${description}`,
+                descripcion: `Nombre: ${name}. ${description}${evidenceTag}`,
                 idRelacionado: evidenceId,
             };
 
@@ -173,7 +178,9 @@ const RegistrationScreen = () => {
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={colors.text} />
                         </TouchableOpacity>
-                        <Text style={[styles.headerTitle, { color: colors.text }]}>{config.title}</Text>
+                        <View style={{ flex: 1, marginHorizontal: 10, alignItems: 'center' }}>
+                            <Text style={[styles.headerTitle, { color: colors.text, textAlign: 'center' }]} adjustsFontSizeToFit numberOfLines={1}>{config.title}</Text>
+                        </View>
                         <TouchableOpacity
                             onPress={() => setIsExit(!isExit)}
                             style={{

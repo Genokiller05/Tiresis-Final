@@ -74,24 +74,55 @@ const ReportsScreen = () => {
     'Resuelto': t('reports.status_resolved') || 'Resuelto',
   };
 
-  const renderReportItem = ({ item }: { item: any }) => (
-    <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: String(item.id) })}>
-      <View style={styles.reportIconContainer}>
-        <Text style={styles.reportIcon}>📋</Text>
-      </View>
-      <View style={styles.reportTextContainer}>
-        <Text style={styles.reportType}>{item.report_type?.name || item.tipo || 'Reporte'}</Text>
-        <Text style={styles.reportSummary}>{item.short_description || item.description || item.detalles?.descripcion || 'Sin descripción'}</Text>
-        <Text style={styles.reportDate}>{new Date(item.created_at || item.fechaHora).toLocaleString()}</Text>
-      </View>
-      <View style={styles.statusContainer}>
-        <View style={[styles.statusDot, { backgroundColor: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]} />
-        <Text style={[styles.statusText, { color: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]}>
-          {statusTranslations[item.status_id] || statusTranslations[item.estado] || item.estado || 'Pendiente'}
-        </Text>
-      </View>
-    </Pressable>
-  );
+  const renderReportItem = ({ item }: { item: any }) => {
+    let summary = item.short_description || item.description || item.detalles?.descripcion || 'Sin descripción';
+    let areaTag = null;
+
+    if (typeof summary === 'string') {
+      const guardMatch = summary.match(/Guardia: ([^|]+)/);
+      if (guardMatch && guardMatch[2] !== undefined) {
+        // just safely match it but we really want `guardMatch[0]`
+      }
+      if (guardMatch) {
+        summary = summary.replace(guardMatch[0], '').replace(/\|\s*\|\s*/, '|').replace(/\|\s*$/, '').trim();
+      }
+
+      if (summary.includes('|')) {
+        const parts = summary.split('|');
+        if (parts[0].trim().startsWith('Area:')) {
+          areaTag = parts[0].trim().substring(5).trim();
+          summary = parts.slice(1).join('|').trim();
+        }
+      }
+
+      const evidenceMatch = summary.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
+      if (evidenceMatch && evidenceMatch[1]) {
+        summary = summary.replace(evidenceMatch[0], '').replace(/\|\s*$/, '').trim();
+      }
+
+      summary = summary.replace(/^\|\s*/, '').trim();
+    }
+
+    return (
+      <Pressable style={styles.reportCard} onPress={() => navigation.navigate('ReportDetail', { reportId: String(item.id) })}>
+        <View style={styles.reportIconContainer}>
+          <Text style={styles.reportIcon}>📋</Text>
+        </View>
+        <View style={styles.reportTextContainer}>
+          <Text style={styles.reportType} numberOfLines={1}>{item.report_type?.name || item.tipo || 'Reporte'}</Text>
+          {areaTag && <Text style={{ fontSize: 12, color: colors.accent, fontWeight: 'bold', marginTop: 2 }} numberOfLines={1}>{areaTag}</Text>}
+          <Text style={styles.reportSummary} numberOfLines={2}>{summary}</Text>
+          <Text style={styles.reportDate} numberOfLines={1}>{new Date(item.created_at || item.fechaHora).toLocaleString()}</Text>
+        </View>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusDot, { backgroundColor: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]} />
+          <Text style={[styles.statusText, { color: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]}>
+            {statusTranslations[item.status_id] || statusTranslations[item.estado] || item.estado || 'Pendiente'}
+          </Text>
+        </View>
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
