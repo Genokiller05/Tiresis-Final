@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom, Subject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
-import { Subject, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
 export class ReportService {
-
+    private apiUrl = 'http://localhost:3000/api';
     private reportUpdates = new Subject<any>();
 
-    constructor(private supabaseService: SupabaseService) {
+    constructor(private http: HttpClient, private supabaseService: SupabaseService) {
         this.setupRealtimeSubscription();
     }
 
@@ -35,59 +36,18 @@ export class ReportService {
     }
 
     async getReports(): Promise<any[]> {
-        const { data, error } = await this.supabaseService.client
-            .from('reports')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching reports:', error);
-            throw error;
-        }
-        return data || [];
+        return firstValueFrom(this.http.get<any[]>(`${this.apiUrl}/reports`));
     }
 
     async createReport(report: any): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('reports')
-            .insert(report)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating report:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.post<any>(`${this.apiUrl}/reports`, report));
     }
 
     async updateReport(id: string, updates: any): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('reports')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error updating report:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.patch<any>(`${this.apiUrl}/reports/${id}`, updates));
     }
 
     async deleteReport(id: string): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('reports')
-            .delete()
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error deleting report:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.delete<any>(`${this.apiUrl}/reports/${id}`));
     }
 }

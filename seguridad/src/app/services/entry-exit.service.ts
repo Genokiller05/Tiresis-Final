@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom, Subject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
-import { Subject, Observable } from 'rxjs';
 
 @Injectable({
     providedIn: 'root'
 })
 export class EntryExitService {
-
+    private apiUrl = 'http://localhost:3000/api';
     private entriesUpdates = new Subject<any>();
 
-    constructor(private supabaseService: SupabaseService) {
+    constructor(private http: HttpClient, private supabaseService: SupabaseService) {
         this.setupRealtimeSubscription();
     }
 
@@ -35,59 +36,18 @@ export class EntryExitService {
     }
 
     async getEntriesExits(): Promise<any[]> {
-        const { data, error } = await this.supabaseService.client
-            .from('entries_exits')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching entries/exits:', error);
-            throw error;
-        }
-        return data || [];
+        return firstValueFrom(this.http.get<any[]>(`${this.apiUrl}/entries-exits`));
     }
 
     async createEntryExit(entry: any): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('entries_exits')
-            .insert(entry)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error creating entry/exit:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.post<any>(`${this.apiUrl}/entries-exits`, entry));
     }
 
     async updateEntryExit(id: string | number, updates: any): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('entries_exits')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error updating entry/exit:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.patch<any>(`${this.apiUrl}/entries-exits/${id}`, updates));
     }
 
     async deleteEntryExit(id: string | number): Promise<any> {
-        const { data, error } = await this.supabaseService.client
-            .from('entries_exits')
-            .delete()
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error deleting entry/exit:', error);
-            throw error;
-        }
-        return data;
+        return firstValueFrom(this.http.delete<any>(`${this.apiUrl}/entries-exits/${id}`));
     }
 }

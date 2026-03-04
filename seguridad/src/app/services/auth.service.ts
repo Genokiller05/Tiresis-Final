@@ -77,4 +77,12 @@ export class AuthService {
     return null;
   }
 
+  /**
+   * Obtiene el ID del admin autenticado.
+   * Este ID se usa como x-admin-id en el interceptor HTTP.
+   */
+  getAdminId(): string | null {
+    const user = this.getCurrentUser();
+    return user ? user.id : null;
+  }
 }

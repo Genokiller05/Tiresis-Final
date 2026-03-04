@@ -8,6 +8,7 @@ const Stripe = require('stripe');
 require('dotenv').config();
 
 const nodemailer = require('nodemailer');
+const authMiddleware = require('./middleware/authMiddleware');
 
 // --- STRIPE CONFIGURATION ---
 const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -22,11 +23,17 @@ console.log('!!! SERVER STARTING IN SUPABASE MODE !!!');
 console.log('=================================================\n\n');
 
 // Supabase Configuration
-const supabaseUrl = 'https://uwhlbpaabyfoomnlkktt.supabase.co';
-const supabaseKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
-const supabaseServiceKey = 'sb_publishable_NSjbMGGFrJYYtMhCPXUOhw_NkqzT6sK';
-const supabase = createClient(supabaseUrl, supabaseKey);
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const supabaseUrl = process.env.SUPABASE_URL || 'https://uwhlbpaabyfoomnlkktt.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseServiceKey) {
+  console.error('\n❌ FATAL: SUPABASE_SERVICE_KEY no está configurada en .env');
+  console.error('   El backend DEBE usar la service role key, NO la anon key.');
+  console.error('   Agrega SUPABASE_SERVICE_KEY=eyJhbG... en tu archivo .env\n');
+  process.exit(1);
+}
+
+const supabase = require('@supabase/supabase-js').createClient(supabaseUrl, supabaseServiceKey);
 
 const app = express();
 const port = 3000;
@@ -157,46 +164,43 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
   res.status(200).json({ url: fileUrl, message: 'Archivo subido correctamente.' });
 });
 
-// --- Guards ---
-app.get('/api/guards', async (req, res) => {
-  // 1. Try Local JSON FIRST
+// --- Guards (Protegido por authMiddleware, filtrado por site_id) ---
+app.get('/api/guards', authMiddleware, async (req, res) => {
+  // 1. Try Local JSON FIRST (filtrado por site_id)
   try {
     const guards = readJsonFile('guards.json');
-    if (guards.length > 0) return res.json(guards);
+    const filtered = guards.filter(g => req.siteIds.includes(g.site_id));
+    if (filtered.length > 0) return res.json(filtered);
   } catch (e) { console.error(e); }
 
-  // 2. Fallback to Supabase
-  const { data, error } = await supabase.from('profiles').select('*').eq('role', 'guard');
+  // 2. Fallback to Supabase (filtrado por site_id)
+  const { data, error } = await supabase.from('guards').select('*').in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json(data || []);
 });
 
-app.get('/api/guards/:idEmpleado', async (req, res) => {
-  // 1. Prioritize querying Supabase "guards" table
+app.get('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   try {
-    const { data: data1 } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).single();
+    const { data: data1 } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).in('site_id', req.siteIds).single();
     if (data1) return res.json(data1);
 
-    const { data: data2 } = await supabase.from('guards').select('*').eq('document_id', req.params.idEmpleado).single();
+    const { data: data2 } = await supabase.from('guards').select('*').eq('document_id', req.params.idEmpleado).in('site_id', req.siteIds).single();
     if (data2) return res.json(data2);
   } catch (err) {
     console.error('Error querying supabase guards:', err);
   }
 
-  // 2. Try Local JSON FIRST if Supabase query fails
+  // Fallback to Local JSON (filtrado por site_id)
   try {
     const guards = readJsonFile('guards.json');
-    const guard = guards.find(g => g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado);
+    const guard = guards.find(g => (g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado) && req.siteIds.includes(g.site_id));
     if (guard) return res.json(guard);
   } catch (e) { console.error(e); }
 
-  // 3. Fallback to profiles table if it still hasn't been found
-  const { data, error } = await supabase.from('profiles').select('*').eq('document_id', req.params.idEmpleado).eq('role', 'guard').single();
-  if (error) return res.status(404).json({ message: 'Guardia no encontrado' });
-  res.json(data);
+  return res.status(404).json({ message: 'Guardia no encontrado' });
 });
 
-app.post('/api/guards', async (req, res) => {
+app.post('/api/guards', authMiddleware, async (req, res) => {
   const { full_name, document_id, photo_url, email, telefono, direccion, area } = req.body;
 
   if (!document_id || !full_name) {
@@ -207,13 +211,13 @@ app.post('/api/guards', async (req, res) => {
     const tempPassword = Math.random().toString(36).slice(-8);
     const userId = 'GUARD-LOCAL-' + Date.now();
 
-    // Construct response object & Local Record
+    // site_id se asigna desde el middleware, NUNCA del frontend
     const newGuard = {
       id: userId,
       full_name: full_name,
-      nombre: full_name, // Para compatibilidad
+      nombre: full_name,
       document_id: document_id,
-      idEmpleado: document_id, // Para compatibilidad
+      idEmpleado: document_id,
       email: email || `guard_${document_id}@tiresis.local`,
       password: tempPassword,
       phone: telefono || '',
@@ -224,19 +228,20 @@ app.post('/api/guards', async (req, res) => {
       is_active: true,
       estado: 'Fuera de servicio',
       created_at: new Date().toISOString(),
-      actividades: []
+      actividades: [],
+      site_id: req.activeSiteId
     };
 
     // Save to guards.json
     const guards = readJsonFile('guards.json');
-    if (guards.find(g => g.document_id === document_id || g.idEmpleado === document_id)) {
-      return res.status(400).json({ message: 'El guardia ya existe (Local).' });
+    if (guards.find(g => (g.document_id === document_id || g.idEmpleado === document_id) && g.site_id === req.activeSiteId)) {
+      return res.status(400).json({ message: 'El guardia ya existe en este sitio.' });
     }
     guards.push(newGuard);
     writeJsonFile('guards.json', guards);
-    console.log('[BE] Guard saved locally:', userId);
+    console.log('[BE] Guard saved:', userId, 'site:', req.activeSiteId);
 
-    res.status(201).json({ message: 'Guardia registrado (Local)', guard: newGuard, password: tempPassword });
+    res.status(201).json({ message: 'Guardia registrado', guard: newGuard, password: tempPassword });
 
   } catch (err) {
     console.error("Guard Insert Error:", err);
@@ -244,47 +249,46 @@ app.post('/api/guards', async (req, res) => {
   }
 });
 
-app.patch('/api/guards/:idEmpleado', async (req, res) => {
+app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   const idEmpleado = req.params.idEmpleado;
-  const updateData = req.body;
+  const updateData = { ...req.body };
+  delete updateData.site_id; // No permitir cambio de site_id
 
   try {
-    // 1. Prioritize updating Supabase "guards" table
-    const { data: updatedGuard, error: supabaseError } = await supabase
+    const { data: updatedGuard } = await supabase
       .from('guards')
       .update(updateData)
       .eq('idEmpleado', idEmpleado)
+      .in('site_id', req.siteIds)
       .select();
 
     if (updatedGuard && updatedGuard.length > 0) {
       return res.json(updatedGuard[0]);
     }
 
-    // Try document_id just in case
-    const { data: updatedGuardDoc, error: docError } = await supabase
+    const { data: updatedGuardDoc } = await supabase
       .from('guards')
       .update(updateData)
       .eq('document_id', idEmpleado)
+      .in('site_id', req.siteIds)
       .select();
 
     if (updatedGuardDoc && updatedGuardDoc.length > 0) {
       return res.json(updatedGuardDoc[0]);
     }
-
   } catch (err) {
     console.error('Error updating supabase guards:', err);
   }
 
-  // 2. Fallback local JSON
+  // Fallback local JSON
   try {
     const guards = readJsonFile('guards.json');
-    const index = guards.findIndex(g => g.document_id === idEmpleado || g.idEmpleado === idEmpleado);
+    const index = guards.findIndex(g => (g.document_id === idEmpleado || g.idEmpleado === idEmpleado) && req.siteIds.includes(g.site_id));
 
     if (index !== -1) {
       guards[index] = { ...guards[index], ...updateData };
       if (updateData.nombre) guards[index].full_name = updateData.nombre;
       if (updateData.full_name) guards[index].nombre = updateData.full_name;
-
       writeJsonFile('guards.json', guards);
       return res.json(guards[index]);
     }
@@ -292,49 +296,43 @@ app.patch('/api/guards/:idEmpleado', async (req, res) => {
     console.error('Local update failed:', e);
   }
 
-  // 3. Fallback to Supabase profiles
-  const { data, error } = await supabase.from('profiles').update(updateData).eq('document_id', idEmpleado).select();
-  if (error) return res.status(500).json({ message: 'Error actualizando guardia', error: error.message });
-  res.json(data ? data[0] : {});
+  return res.status(404).json({ message: 'Guardia no encontrado en tus sitios' });
 });
 
-app.delete('/api/guards/:idEmpleado', async (req, res) => {
+app.delete('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   const idToMatch = String(req.params.idEmpleado || '').trim();
-  console.log(`[BE] Solicitud de baja para ID: "${idToMatch}"`);
+  console.log(`[BE] Baja guardia ID: "${idToMatch}" sites: [${req.siteIds}]`);
 
-  // 1. Intento de borrado en JSON Local
+  // 1. Borrado en JSON Local (solo de sites del admin)
   try {
     let guards = readJsonFile('guards.json');
     const initialCount = guards.length;
 
-    // Filtrado robusto con trim y conversión a String
     guards = guards.filter(g => {
       const docId = String(g.document_id || '').trim();
       const empId = String(g.idEmpleado || '').trim();
-      return docId !== idToMatch && empId !== idToMatch;
+      const isMatch = docId === idToMatch || empId === idToMatch;
+      const isOwned = req.siteIds.includes(g.site_id);
+      return !(isMatch && isOwned);
     });
 
     if (guards.length < initialCount) {
       writeJsonFile('guards.json', guards);
-      console.log(`[BE] ÉXITO: Guardia "${idToMatch}" eliminado del archivo local.`);
-      return res.json({ message: 'Guardia eliminado correctamente de la base de datos local.' });
-    } else {
-      console.log(`[BE] AVISO: No se encontró coincidencia para "${idToMatch}" en el archivo local.`);
+      return res.json({ message: 'Guardia eliminado correctamente.' });
     }
   } catch (e) {
     console.error('[BE] ERROR en borrado local:', e);
   }
 
-  // 2. Fallback a Supabase (solo si no se borró localmente)
+  // 2. Fallback a Supabase
   try {
-    const { error } = await supabase.from('profiles').delete().eq('document_id', idToMatch);
+    const { error } = await supabase.from('guards').delete().eq('document_id', idToMatch).in('site_id', req.siteIds);
     if (!error) {
-      console.log(`[BE] Guardia "${idToMatch}" eliminado de Supabase.`);
       return res.json({ message: 'Guardia eliminado correctamente (Nube)' });
     }
-    return res.status(500).json({ message: 'Error al intentar eliminar en la nube', error: error.message });
+    return res.status(500).json({ message: 'Error al eliminar', error: error.message });
   } catch (err) {
-    return res.status(500).json({ message: 'Excepción al eliminar en la nube', error: err.message });
+    return res.status(500).json({ message: 'Excepción al eliminar', error: err.message });
   }
 });
 
@@ -415,6 +413,20 @@ app.post('/api/register-admin', async (req, res) => {
 
     console.log('[BE] Admin saved locally:', userId);
 
+    // Auto-crear membership en el site por defecto
+    const DEFAULT_SITE_ID = '00000000-0000-0000-0000-000000000001';
+    try {
+      await supabase.from('site_memberships').upsert({
+        user_id: userId,
+        site_id: DEFAULT_SITE_ID,
+        role: 'admin',
+        is_active: true
+      }, { onConflict: 'user_id,site_id' });
+      console.log('[BE] Membership creada para admin:', userId);
+    } catch (memErr) {
+      console.warn('[BE] Error creando membership:', memErr.message);
+    }
+
     // (Optional) Send simulated email logic
     try {
       const emails = readJsonFile('emails.json');
@@ -483,9 +495,23 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ message: 'Credenciales incorrectas' });
   }
 
+  // Obtener sites del admin via site_memberships
+  let sites = [];
+  try {
+    const { data: memberships } = await supabase
+      .from('site_memberships')
+      .select('site_id, sites(id, name)')
+      .eq('user_id', adminUser.id)
+      .eq('is_active', true);
+    sites = (memberships || []).map(m => m.sites || { id: m.site_id });
+  } catch (e) {
+    console.warn('[Login] No se pudieron obtener sites:', e.message);
+  }
+
   res.json({
     message: 'Login exitoso',
     admin: {
+      id: adminUser.id,
       name: adminUser.fullName || adminUser.full_name,
       email: adminUser.email,
       location: adminUser.location,
@@ -493,7 +519,8 @@ app.post('/api/login', async (req, res) => {
       lat: adminUser.lat,
       lng: adminUser.lng,
       zone: adminUser.zone,
-      role: adminUser.role
+      role: adminUser.role,
+      sites: sites
     }
   });
 });
@@ -507,68 +534,73 @@ app.patch('/api/admins/update', async (req, res) => {
   res.json({ message: 'Administrador actualizado', admin: data[0] });
 });
 
-// --- Cameras ---
-app.get('/api/cameras', async (req, res) => {
-  const { data, error } = await supabase.from('cameras').select('*');
+// --- Cameras (filtrado por site_id) ---
+app.get('/api/cameras', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('cameras').select('*').in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json(data || []);
 });
 
-app.post('/api/cameras', async (req, res) => {
-  const { error } = await supabase.from('cameras').insert([req.body]);
+app.post('/api/cameras', authMiddleware, async (req, res) => {
+  const camera = { ...req.body, site_id: req.activeSiteId };
+  const { error } = await supabase.from('cameras').insert([camera]);
   if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ message: 'Cámara registrada', camera: req.body });
+  res.status(201).json({ message: 'Cámara registrada', camera });
 });
 
-app.patch('/api/cameras/:id', async (req, res) => {
-  const { error } = await supabase.from('cameras').update(req.body).eq('id', req.params.id);
+app.patch('/api/cameras/:id', authMiddleware, async (req, res) => {
+  const updateData = { ...req.body };
+  delete updateData.site_id;
+  const { error } = await supabase.from('cameras').update(updateData).eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ ...req.body, id: req.params.id });
+  res.json({ ...updateData, id: req.params.id });
 });
 
-app.delete('/api/cameras/:id', async (req, res) => {
-  const { error } = await supabase.from('cameras').delete().eq('id', req.params.id);
+app.delete('/api/cameras/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('cameras').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Cámara eliminada' });
 });
 
-// --- Reports ---
-app.get('/api/reports', async (req, res) => {
-  const { data, error } = await supabase.from('reports').select('*');
+// --- Reports (filtrado por site_id) ---
+app.get('/api/reports', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('reports').select('*').in('site_id', req.siteIds).order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json(data || []);
 });
 
-app.post('/api/reports', async (req, res) => {
-  const report = { ...req.body };
-  if (!report.id) report.id = Date.now().toString(); // Fallback ID if not provided
+app.post('/api/reports', authMiddleware, async (req, res) => {
+  const report = { ...req.body, site_id: req.activeSiteId };
+  if (!report.id) report.id = Date.now().toString();
 
   const { error } = await supabase.from('reports').insert([report]);
   if (error) return res.status(500).json({ error: error.message });
   res.status(201).json({ message: 'Reporte registrado', report });
 });
 
-app.patch('/api/reports/:id', async (req, res) => {
-  const { error } = await supabase.from('reports').update(req.body).eq('id', req.params.id);
+app.patch('/api/reports/:id', authMiddleware, async (req, res) => {
+  const updateData = { ...req.body };
+  delete updateData.site_id;
+  const { error } = await supabase.from('reports').update(updateData).eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ ...req.body });
+  res.json({ ...updateData });
 });
 
-app.delete('/api/reports/:id', async (req, res) => {
-  const { error } = await supabase.from('reports').delete().eq('id', req.params.id);
+app.delete('/api/reports/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('reports').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Reporte eliminado' });
 });
 
-// --- Buildings ---
-app.get('/api/buildings', async (req, res) => {
-  const { data, error } = await supabase.from('buildings').select('*');
+// --- Buildings (filtrado por site_id) ---
+app.get('/api/buildings', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('buildings').select('*').in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json(data || []);
 });
 
-app.post('/api/buildings', async (req, res) => {
-  const building = { ...req.body };
+app.post('/api/buildings', authMiddleware, async (req, res) => {
+  const building = { ...req.body, site_id: req.activeSiteId };
   if (!building.id) building.id = Date.now().toString();
 
   const { error } = await supabase.from('buildings').insert([building]);
@@ -576,21 +608,21 @@ app.post('/api/buildings', async (req, res) => {
   res.status(201).json({ message: 'Edificio guardado', building });
 });
 
-app.delete('/api/buildings/:id', async (req, res) => {
-  const { error } = await supabase.from('buildings').delete().eq('id', req.params.id);
+app.delete('/api/buildings/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('buildings').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Edificio eliminado' });
 });
 
-// --- Entries/Exits ---
-app.get('/api/entries-exits', async (req, res) => {
-  const { data, error } = await supabase.from('entries_exits').select('*');
+// --- Entries/Exits (filtrado por site_id) ---
+app.get('/api/entries-exits', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('entries_exits').select('*').in('site_id', req.siteIds).order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+  res.json(data || []);
 });
 
-app.post('/api/entries-exits', async (req, res) => {
-  const entry = { ...req.body };
+app.post('/api/entries-exits', authMiddleware, async (req, res) => {
+  const entry = { ...req.body, site_id: req.activeSiteId };
   if (!entry.id) entry.id = 'EE' + Date.now().toString();
 
   const { error } = await supabase.from('entries_exits').insert([entry]);
@@ -598,14 +630,16 @@ app.post('/api/entries-exits', async (req, res) => {
   res.status(201).json({ message: 'Registro guardado', entry });
 });
 
-app.patch('/api/entries-exits/:id', async (req, res) => {
-  const { error } = await supabase.from('entries_exits').update(req.body).eq('id', req.params.id);
+app.patch('/api/entries-exits/:id', authMiddleware, async (req, res) => {
+  const updateData = { ...req.body };
+  delete updateData.site_id;
+  const { error } = await supabase.from('entries_exits').update(updateData).eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
-  res.json(req.body);
+  res.json(updateData);
 });
 
-app.delete('/api/entries-exits/:id', async (req, res) => {
-  const { error } = await supabase.from('entries_exits').delete().eq('id', req.params.id);
+app.delete('/api/entries-exits/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('entries_exits').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Registro eliminado' });
 });
