@@ -1,5 +1,6 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ReportService } from '../../services/report.service';
 import { CameraService } from '../../services/camera.service';
@@ -9,7 +10,7 @@ import { interval, Subscription } from 'rxjs';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
@@ -31,14 +32,35 @@ export class SidebarComponent implements OnInit, OnDestroy {
   // Click animation tracking
   public clickedRoute: string | null = null;
 
+  // Notifications Popover
+  public isNotificationsOpen: boolean = false;
+  public alerts: any[] = [];
+  public activeFilter: 'Todas' | 'Pendientes' | 'Estado' = 'Todas';
+
+  // Status Dropdown state
+  public isStatusDropdownOpen: boolean = false;
+  public selectedStatus: string = 'Pendiente';
+  public statusOptions: string[] = ['Pendiente', 'En proceso', 'Completado', 'Cancelado', 'Suspendido'];
+
   private refreshSubscription!: Subscription;
+  private realtimeSubscription!: Subscription;
 
   constructor(
     private router: Router,
     private reportService: ReportService,
     private cameraService: CameraService,
-    private authService: AuthService
+    private authService: AuthService,
+    private eRef: ElementRef
   ) { }
+
+  // Close notifications if clicking outside
+  @HostListener('document:click', ['$event'])
+  clickout(event: Event) {
+    if (!this.eRef.nativeElement.contains(event.target)) {
+      this.isNotificationsOpen = false;
+      this.isStatusDropdownOpen = false;
+    }
+  }
 
   ngOnInit(): void {
     this.loadAdminProfile();
@@ -50,11 +72,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.loadAllBadges();
       this.measurePing();
     });
+
+    // Realtime updates from DB
+    this.realtimeSubscription = this.reportService.getReportUpdates().subscribe(() => {
+      this.loadPendingAlerts();
+    });
   }
 
   ngOnDestroy(): void {
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
+    }
+    if (this.realtimeSubscription) {
+      this.realtimeSubscription.unsubscribe();
     }
   }
 
@@ -83,13 +113,101 @@ export class SidebarComponent implements OnInit, OnDestroy {
   // #3 — Alert badge (pending alerts)
   private async loadPendingAlerts(): Promise<void> {
     try {
-      const reports = await this.reportService.getReports();
-      this.pendingAlertsCount = reports.filter(
-        (r: any) => r.estado !== 'Resuelto' && r.estado !== 'Completado' && r.estado !== 'Cancelado'
+      const rawReports = await this.reportService.getReports();
+      const mappedReports = rawReports.map((r: any) => this.mapReport(r));
+
+      // Guardar y ordenar alertas más recientes arriba
+      this.alerts = mappedReports.sort((a: any, b: any) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime());
+
+      this.pendingAlertsCount = mappedReports.filter(
+        (r: any) => r.estado?.toUpperCase() === 'PENDIENTE' || r.estado?.toUpperCase() === 'NUEVO'
       ).length;
     } catch {
       // Keep previous count on error
     }
+  }
+
+  // Map DB representation to UI representation
+  private mapReport(dbReport: any): any {
+    const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 31: 'Cancelado', 32: 'Suspendido' };
+    const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Novedad', 3: 'Rondín', 4: 'Alerta recibida', 5: 'Mantenimiento', 6: 'Sospechoso', 7: 'Emergencia' };
+
+    let parsedArea = 'Área Asignada';
+    let parsedDescription = dbReport.short_description || 'Sin descripción';
+
+    if (dbReport.short_description) {
+      let tempDesc = dbReport.short_description;
+
+      const areaMatch = tempDesc.match(/Area:\s*([^|]+)/);
+      if (areaMatch && areaMatch[1]) {
+        parsedArea = areaMatch[1].trim();
+        tempDesc = tempDesc.replace(areaMatch[0], '').replace(/^\|\s*/, '').replace(/\|\s*\|\s*/, '|').trim();
+      }
+
+      // Cleanup desc for UI
+      tempDesc = tempDesc.replace(/Evidencia: (http[s]?:\/\/[^\s]+)/, '').replace(/Guardia: ([^|]+)/, '').replace(/\|\s*$/, '').replace(/\|\s*\|\s*/, '|').trim();
+      if (tempDesc) parsedDescription = tempDesc;
+    }
+
+    return {
+      id: dbReport.id,
+      fechaHora: dbReport.created_at || new Date().toISOString(),
+      origen: dbReport.created_by_guard_id ? 'Guardia' : 'IA',
+      tipo: typeMap[dbReport.report_type_id] || 'Incidente',
+      estado: statusMap[dbReport.status_id] || 'Pendiente',
+      sitioArea: parsedArea,
+      descripcion: parsedDescription
+    };
+  }
+
+  // Toggle notifications popover
+  toggleNotifications(event: Event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isNotificationsOpen = !this.isNotificationsOpen;
+  }
+
+  // Filter for Idea 1
+  get filteredAlerts() {
+    let filtered = this.alerts;
+
+    if (this.activeFilter === 'Pendientes') {
+      filtered = filtered.filter(a => a.estado?.toUpperCase() === 'PENDIENTE' || a.estado?.toUpperCase() === 'NUEVO');
+    } else if (this.activeFilter === 'Estado') {
+      filtered = filtered.filter(a => a.estado?.toUpperCase() === this.selectedStatus.toUpperCase());
+    }
+
+    return filtered.slice(0, 15);
+  }
+
+  setFilter(filter: 'Todas' | 'Pendientes' | 'Estado', event: Event) {
+    event.stopPropagation();
+    this.activeFilter = filter;
+    if (filter !== 'Estado') {
+      this.isStatusDropdownOpen = false;
+    }
+  }
+
+  get footerButtonText(): string {
+    if (this.activeFilter === 'Todas') return 'VER CENTRO DE ALERTAS';
+    if (this.activeFilter === 'Pendientes') return 'VER PENDIENTES';
+    if (this.activeFilter === 'Estado') {
+      if (this.selectedStatus.toUpperCase() === 'EN PROCESO') return 'VER EN PROCESO';
+      return `VER ${this.selectedStatus.toUpperCase()}S`;
+    }
+    return 'VER CENTRO DE ALERTAS';
+  }
+
+  toggleStatusDropdown(event: Event) {
+    event.stopPropagation();
+    this.isStatusDropdownOpen = !this.isStatusDropdownOpen;
+  }
+
+  selectStatus(status: string, event: Event) {
+    event.stopPropagation();
+    this.selectedStatus = status;
+    this.activeFilter = 'Estado';
+    this.isStatusDropdownOpen = false;
   }
 
   // #11 — Camera offline badge
@@ -129,6 +247,36 @@ export class SidebarComponent implements OnInit, OnDestroy {
       if (path !== '/dashboard/alertas') {
         setTimeout(() => this.loadPendingAlerts(), 500);
       }
+    }, 300);
+  }
+
+  navigateToFilteredAlerts(event: Event): void {
+    event.preventDefault();
+    this.isNotificationsOpen = false;
+    this.clickedRoute = '/dashboard/alertas';
+    setTimeout(() => {
+      this.clickedRoute = null;
+      let queryParams: any = {};
+
+      if (this.activeFilter === 'Pendientes') {
+        queryParams.status = 'Pendiente';
+      } else if (this.activeFilter === 'Estado') {
+        queryParams.status = this.selectedStatus;
+      }
+
+      this.router.navigate(['/dashboard/alertas'], { queryParams });
+    }, 300);
+  }
+
+  navigateToAlert(event: Event, alertId: string): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    this.isNotificationsOpen = false;
+    this.clickedRoute = '/dashboard/alertas';
+    setTimeout(() => {
+      this.clickedRoute = null;
+      this.router.navigate(['/dashboard/alertas'], { queryParams: { alertId: alertId } });
     }, 300);
   }
 

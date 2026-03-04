@@ -1,5 +1,4 @@
-<!-- Sidebar — Premium Enhanced -->
-<aside class="w-24 glass-effect flex flex-col items-center py-6 z-10 h-screen fixed">
+<aside class="w-24 glass-effect flex flex-col items-center py-6 z-[9999] h-screen fixed">
 
   <!-- #7 Admin Avatar -->
   <div class="mb-6 relative group cursor-pointer" (click)="navigateTo($event, '/dashboard/admin-profile')">
@@ -34,14 +33,115 @@
   <nav class="flex flex-col w-full px-2 space-y-4 flex-grow">
 
     <!-- Alertas — red badge -->
-    <a href="#" (click)="navigateTo($event, '/dashboard/alertas')" class="sidebar-nav-item sidebar-color-red group"
-      [class.sidebar-active]="isActive('/dashboard/alertas')" [class.sidebar-clicked]="isClicked('/dashboard/alertas')">
-      <span class="sidebar-badge sidebar-badge-red" *ngIf="pendingAlertsCount > 0">
-        {{ pendingAlertsCount > 99 ? '99+' : pendingAlertsCount }}
-      </span>
-      <span class="material-icons text-2xl relative z-10">notifications_active</span>
-      <span class="sidebar-tooltip">Alertas y Reportes</span>
-    </a>
+    <div class="relative group">
+      <a href="#" (click)="toggleNotifications($event)" class="sidebar-nav-item sidebar-color-red group"
+        [class.sidebar-active]="isActive('/dashboard/alertas') || isNotificationsOpen"
+        [class.sidebar-clicked]="isClicked('/dashboard/alertas')">
+        <span class="sidebar-badge sidebar-badge-red" *ngIf="pendingAlertsCount > 0">
+          {{ pendingAlertsCount > 99 ? '99+' : pendingAlertsCount }}
+        </span>
+        <span class="material-icons text-2xl relative z-10">notifications_active</span>
+        <span class="sidebar-tooltip">Notificaciones</span>
+      </a>
+
+      <!-- Notifications Popover -->
+      <div *ngIf="isNotificationsOpen"
+        class="absolute left-full top-0 ml-4 w-[20rem] bg-[#0f0e17]/95 backdrop-blur-3xl border border-white/10 rounded-2xl shadow-2xl z-[100] flex flex-col animate-in slide-in-from-left-4 fade-in duration-300"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="px-5 py-4 border-b border-white/5 relative bg-white/[0.02]">
+          <div class="flex items-center justify-between relative z-10 mb-4">
+            <h3 class="text-[13px] font-black text-gray-200 tracking-widest uppercase">Notificaciones</h3>
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 bg-white/10 rounded-full text-[10px] font-bold text-gray-300">Todas {{
+                alerts.length }}</span>
+            </div>
+          </div>
+
+          <!-- Filters (Idea 1) -->
+          <div class="flex gap-2 relative z-10 pb-1 w-full overflow-visible">
+            <button (click)="setFilter('Todas', $event)" [class.bg-gradient-premium]="activeFilter === 'Todas'"
+              [class.text-white]="activeFilter === 'Todas'" [class.bg-white_5]="activeFilter !== 'Todas'"
+              [class.text-gray-400]="activeFilter !== 'Todas'"
+              class="px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/5 hover:text-white">
+              Todas
+            </button>
+            <button (click)="setFilter('Pendientes', $event)"
+              [class.bg-gradient-premium]="activeFilter === 'Pendientes'"
+              [class.text-white]="activeFilter === 'Pendientes'" [class.bg-white_5]="activeFilter !== 'Pendientes'"
+              [class.text-gray-400]="activeFilter !== 'Pendientes'"
+              class="px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border border-white/5 hover:text-white">
+              No Leídas
+            </button>
+            <!-- Dropdown Container -->
+            <div class="relative">
+              <button (click)="toggleStatusDropdown($event)" [class.bg-gradient-premium]="activeFilter === 'Estado'"
+                [class.text-white]="activeFilter === 'Estado'" [class.bg-white_5]="activeFilter !== 'Estado'"
+                [class.text-gray-400]="activeFilter !== 'Estado'" [class.border-transparent]="activeFilter === 'Estado'"
+                class="px-4 py-1.5 rounded-full w-[115px] justify-between text-xs font-bold transition-all border border-white/5 hover:text-white flex items-center gap-1 group">
+                <span class="truncate">{{ activeFilter === 'Estado' ? selectedStatus : 'Estado' }}</span>
+                <span class="material-icons text-[14px] leading-none transition-transform duration-200 flex-shrink-0"
+                  [class.rotate-180]="isStatusDropdownOpen">expand_more</span>
+              </button>
+
+              <!-- Dropdown Menu -->
+              <div *ngIf="isStatusDropdownOpen"
+                class="absolute left-0 top-full mt-2 w-36 bg-[#0a0a1a] border border-purple-500/30 rounded-xl shadow-2xl overflow-hidden animate-in fade-in z-[110]">
+                <div class="py-2 flex flex-col">
+                  <button *ngFor="let option of statusOptions" (click)="selectStatus(option, $event)"
+                    class="w-full text-left px-4 py-2 text-[13px] font-medium transition-colors flex justify-between items-center group"
+                    [ngClass]="selectedStatus === option && activeFilter === 'Estado' ? 'text-white' : 'text-gray-300 hover:text-white'">
+                    <span>{{ option }}</span>
+                    <span *ngIf="selectedStatus === option && activeFilter === 'Estado'"
+                      class="material-icons text-[14px] text-purple-400">check</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- List -->
+        <div class="max-h-[350px] overflow-y-auto custom-scrollbar">
+          <div *ngIf="filteredAlerts.length === 0" class="p-8 text-center text-gray-500">
+            <p class="text-xs font-bold">No hay notificaciones aquí.</p>
+          </div>
+
+          <div *ngFor="let alert of filteredAlerts" (click)="navigateToAlert($event, alert.id)"
+            class="px-5 py-3.5 border-b border-white/5 hover:bg-white/[0.04] transition-colors cursor-pointer flex items-start gap-4 last:border-0 group">
+
+            <!-- Minimal Icon -->
+            <div class="mt-0.5 flex-shrink-0">
+              <span class="material-icons text-[18px] opacity-80 group-hover:opacity-100 transition-opacity"
+                [ngClass]="alert.origen === 'IA' ? 'text-blue-400' : 'text-purple-400'">
+                {{ alert.origen === 'IA' ? 'smart_toy' : 'error_outline' }}
+              </span>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow min-w-0 flex flex-col justify-center">
+              <h4 class="text-[13px] font-bold text-gray-200 truncate">{{ alert.tipo }}</h4>
+              <p class="text-[11px] text-gray-500 truncate mt-0.5" title="{{ alert.descripcion }}">{{ alert.descripcion
+                || alert.sitioArea }}</p>
+            </div>
+
+            <!-- Time -->
+            <div class="flex-shrink-0 text-right mt-0.5">
+              <span class="text-[10px] text-gray-500 font-medium">{{ alert.fechaHora | date:'shortTime' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-white/5 bg-black/20 rounded-b-2xl">
+          <button (click)="navigateToFilteredAlerts($event)"
+            class="w-full py-2.5 rounded-xl border border-purple-500/30 text-purple-400 text-xs font-black uppercase tracking-widest hover:bg-purple-500/10 transition-colors">
+            {{ footerButtonText }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Guardias — cyan -->
     <a href="#" (click)="navigateTo($event, '/dashboard/home')" class="sidebar-nav-item sidebar-color-cyan group"

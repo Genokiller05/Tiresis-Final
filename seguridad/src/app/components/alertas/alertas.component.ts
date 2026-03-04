@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { AuthService } from '../../services/auth.service';
@@ -34,6 +34,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public filterHasta: string = '';
   public filterOrigen: string = 'Guardia';
   public filterTipo: string = 'Todos';
+  public filterEstado: string = 'Todos';
 
   public isDeleteModalVisible: boolean = false;
   public alertToDelete: any = null;
@@ -63,6 +64,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   private langSubscription!: Subscription;
   private themeSubscription!: Subscription;
   private realtimeSubscription!: Subscription;
+  private querySub!: Subscription;
+  public initialOpenAlertId: string | null = null;
 
   constructor(
     private router: Router,
@@ -70,10 +73,21 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     private translationService: TranslationService,
     private reportService: ReportService,
     private authService: AuthService,
+    private route: ActivatedRoute,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
   async ngOnInit(): Promise<void> {
+    this.querySub = this.route.queryParams.subscribe(params => {
+      if (params['alertId']) {
+        const id = params['alertId'];
+        this.openAlertById(id);
+      }
+      if (params['status']) {
+        this.filterEstado = params['status'];
+      }
+    });
+
     if (isPlatformBrowser(this.platformId)) {
       this.fetchReports();
     }
@@ -159,7 +173,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private mapReportFromDB(dbReport: any): any {
     // Definimos mapas básicos para los IDs numéricos al texto que espera la interfaz
-    const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 4: 'Cancelado', 5: 'Suspendido' };
+    const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 31: 'Cancelado', 32: 'Suspendido' };
     const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Novedad', 3: 'Rondín', 4: 'Alerta recibida', 5: 'Mantenimiento', 6: 'Sospechoso', 7: 'Emergencia' };
 
     let parsedArea = 'Área Asignada';
@@ -218,6 +232,32 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       this.allAlerts = [];
     }
     this.aplicarFiltros();
+    if (this.initialOpenAlertId) {
+      this.openAlertById(this.initialOpenAlertId);
+      this.initialOpenAlertId = null;
+    }
+  }
+
+  private openAlertById(id: string) {
+    if (this.allAlerts.length === 0) {
+      this.initialOpenAlertId = id;
+    } else {
+      const target = this.allAlerts.find(a => a.id === id);
+      if (target) {
+        // Limpiamos los filtros para que aparezca si estaba oculto
+        this.filterDesde = '';
+        this.filterHasta = '';
+        this.filterOrigen = 'Todos';
+        this.filterTipo = 'Todos';
+        this.aplicarFiltros();
+
+        // Mostramos el detalle
+        setTimeout(() => this.mostrarDetalles(target), 100);
+
+        // Limpiamos la URL
+        this.router.navigate([], { queryParams: { alertId: null }, queryParamsHandling: 'merge' });
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -236,6 +276,9 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     if (this.datePickerHasta) {
       this.datePickerHasta.destroy();
+    }
+    if (this.querySub) {
+      this.querySub.unsubscribe();
     }
   }
 
@@ -316,18 +359,26 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.alertToModify && this.selectedStatus) {
       this.alertToModify.estado = this.selectedStatus;
 
-      try {
-        await this.reportService.updateReport(this.alertToModify.id, { estado: this.selectedStatus });
+      const reverseStatusMap: { [key: string]: number } = {
+        'Pendiente': 1,
+        'En proceso': 2,
+        'Completado': 3,
+        'Cancelado': 31,
+        'Suspendido': 32
+      };
 
-        // Update local state is handled by re-fetching or optimistic update. 
-        // Here we just modified the object reference, which is displayed.
-        // But better to fetch fresh data or update array carefully.
-        // The modifying of 'alertToModify' already updated the object in memory if it's the same ref.
+      try {
+        await this.reportService.updateReport(this.alertToModify.id, { status_id: reverseStatusMap[this.selectedStatus] });
+
+        // Update local arrays for both 'allAlerts' and 'displayedAlerts'
+        const allIndex = this.allAlerts.findIndex(a => a.id === this.alertToModify.id);
+        if (allIndex !== -1) {
+          this.allAlerts[allIndex].estado = this.selectedStatus;
+        }
 
         this.aplicarFiltros();
       } catch (error) {
         console.error('Error updating report status:', error);
-        // Revert change if needed
       }
     }
     this.hideStatusModal();
@@ -398,6 +449,9 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       // Apply type filter
       if (this.filterTipo !== 'Todos' && alerta.tipo !== this.filterTipo) return false;
 
+      // Apply status filter
+      if (this.filterEstado !== 'Todos' && alerta.estado?.toUpperCase() !== this.filterEstado.toUpperCase()) return false;
+
       return true;
     });
 
@@ -414,6 +468,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     this.filterHasta = '';
     this.filterOrigen = 'Todos';
     this.filterTipo = 'Todos';
+    this.filterEstado = 'Todos';
     this.aplicarFiltros();
   }
 
