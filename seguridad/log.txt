@@ -1,0 +1,11 @@
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ­ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+
+
+
+=================================================
+!!! SERVER STARTING IN SUPABASE MODE !!!
+=================================================
+
+
+ÔÜá´©Å  STRIPE_SECRET_KEY no configurada en .env - Los pagos no funcionar├ín
+Servidor de la API corriendo en http://localhost:3000

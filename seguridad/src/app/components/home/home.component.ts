@@ -64,6 +64,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public uiRegText: any = {};
   private langSubscription!: Subscription;
   private themeSubscription!: Subscription;
+  private realtimeSubscription!: Subscription;
   // Predefined areas for selection
   public areas: string[] = ['Entrada Principal', 'Estacionamiento', 'Edificio A', 'Ronda Perimetral', 'Cámaras', 'Oficinas'];
 
@@ -84,6 +85,23 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.uiText = translations.home || {};
       this.uiRegText = translations.registros || {}; // Load registration translations
     });
+    if (isPlatformBrowser(this.platformId)) {
+      this.realtimeSubscription = this.guardService.getGuardUpdates().subscribe(payload => {
+        if (this.currentGuardId && payload.new) {
+          const isSameGuard = payload.new.document_id === this.currentGuardId || payload.new.idEmpleado === this.currentGuardId;
+          if (isSameGuard) {
+            this.currentGuard = {
+              ...this.currentGuard,
+              ...payload.new,
+              // Normalize fields to ensure compatibility with UI requirements
+              nombre: payload.new.nombre || payload.new.full_name || this.currentGuard.nombre,
+              telefono: payload.new.telefono || payload.new.phone || this.currentGuard.telefono,
+              estado: payload.new.estado || this.currentGuard.estado,
+            };
+          }
+        }
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -92,6 +110,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     if (this.themeSubscription) {
       this.themeSubscription.unsubscribe();
+    }
+    if (this.realtimeSubscription) {
+      this.realtimeSubscription.unsubscribe();
     }
   }
 

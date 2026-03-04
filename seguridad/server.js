@@ -172,13 +172,25 @@ app.get('/api/guards', async (req, res) => {
 });
 
 app.get('/api/guards/:idEmpleado', async (req, res) => {
-  // 1. Try Local JSON FIRST
+  // 1. Prioritize querying Supabase "guards" table
+  try {
+    const { data: data1 } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).single();
+    if (data1) return res.json(data1);
+
+    const { data: data2 } = await supabase.from('guards').select('*').eq('document_id', req.params.idEmpleado).single();
+    if (data2) return res.json(data2);
+  } catch (err) {
+    console.error('Error querying supabase guards:', err);
+  }
+
+  // 2. Try Local JSON FIRST if Supabase query fails
   try {
     const guards = readJsonFile('guards.json');
     const guard = guards.find(g => g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado);
     if (guard) return res.json(guard);
   } catch (e) { console.error(e); }
 
+  // 3. Fallback to profiles table if it still hasn't been found
   const { data, error } = await supabase.from('profiles').select('*').eq('document_id', req.params.idEmpleado).eq('role', 'guard').single();
   if (error) return res.status(404).json({ message: 'Guardia no encontrado' });
   res.json(data);
@@ -236,16 +248,40 @@ app.patch('/api/guards/:idEmpleado', async (req, res) => {
   const idEmpleado = req.params.idEmpleado;
   const updateData = req.body;
 
-  // 1. Update Local JSON
+  try {
+    // 1. Prioritize updating Supabase "guards" table
+    const { data: updatedGuard, error: supabaseError } = await supabase
+      .from('guards')
+      .update(updateData)
+      .eq('idEmpleado', idEmpleado)
+      .select();
+
+    if (updatedGuard && updatedGuard.length > 0) {
+      return res.json(updatedGuard[0]);
+    }
+
+    // Try document_id just in case
+    const { data: updatedGuardDoc, error: docError } = await supabase
+      .from('guards')
+      .update(updateData)
+      .eq('document_id', idEmpleado)
+      .select();
+
+    if (updatedGuardDoc && updatedGuardDoc.length > 0) {
+      return res.json(updatedGuardDoc[0]);
+    }
+
+  } catch (err) {
+    console.error('Error updating supabase guards:', err);
+  }
+
+  // 2. Fallback local JSON
   try {
     const guards = readJsonFile('guards.json');
     const index = guards.findIndex(g => g.document_id === idEmpleado || g.idEmpleado === idEmpleado);
 
     if (index !== -1) {
-      // Merge data
       guards[index] = { ...guards[index], ...updateData };
-
-      // Asegurar compatibilidad en la actualización
       if (updateData.nombre) guards[index].full_name = updateData.nombre;
       if (updateData.full_name) guards[index].nombre = updateData.full_name;
 
@@ -256,10 +292,10 @@ app.patch('/api/guards/:idEmpleado', async (req, res) => {
     console.error('Local update failed:', e);
   }
 
-  // 2. Fallback to Supabase
+  // 3. Fallback to Supabase profiles
   const { data, error } = await supabase.from('profiles').update(updateData).eq('document_id', idEmpleado).select();
   if (error) return res.status(500).json({ message: 'Error actualizando guardia', error: error.message });
-  res.json(data[0]);
+  res.json(data ? data[0] : {});
 });
 
 app.delete('/api/guards/:idEmpleado', async (req, res) => {

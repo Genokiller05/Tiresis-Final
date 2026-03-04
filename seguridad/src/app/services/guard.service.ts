@@ -1,14 +1,38 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject, Observable } from 'rxjs';
+import { SupabaseService } from './supabase.service';
 
 @Injectable({
     providedIn: 'root'
 })
 export class GuardService {
     private apiUrl = 'http://localhost:3000/api';
+    private guardUpdates = new Subject<any>();
 
-    constructor(private http: HttpClient) { }
+    constructor(private http: HttpClient, private supabaseService: SupabaseService) {
+        this.setupRealtimeSubscription();
+    }
+
+    private setupRealtimeSubscription() {
+        this.supabaseService.client
+            .channel('guards-channel')
+            .on(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'guards' },
+                (payload) => {
+                    console.log('Realtime change received! Guards:', payload);
+                    this.guardUpdates.next(payload);
+                }
+            )
+            .subscribe((status, err) => {
+                if (err) console.error('Supabase Realtime subscription error (Guards):', err);
+            });
+    }
+
+    getGuardUpdates(): Observable<any> {
+        return this.guardUpdates.asObservable();
+    }
 
     /**
      * Obtiene todos los guardias.

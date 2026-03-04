@@ -15,6 +15,7 @@ import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { useUser } from './context/UserContext';
 import { getUnreadCount, subscribeToNotifications } from './services/notificationService';
+import { supabase } from './lib/supabase';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -71,7 +72,17 @@ const SettingsScreen = () => {
     navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (user?.email) {
+      try {
+        await supabase
+          .from('guards')
+          .update({ estado: 'Fuera de servicio' })
+          .eq('email', user.email);
+      } catch (error) {
+        console.error('Error updating status on logout:', error);
+      }
+    }
     logout();
     navigation.reset({
       index: 0,
