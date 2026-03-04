@@ -262,6 +262,9 @@ app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
       .in('site_id', req.siteIds)
       .select();
 
+    console.log('PATCH /api/guards', idEmpleado, updateData);
+    if (supabaseError) console.error('Supabase update (idEmpleado) failed:', supabaseError);
+
     if (updatedGuard && updatedGuard.length > 0) {
       return res.json(updatedGuard[0]);
     }

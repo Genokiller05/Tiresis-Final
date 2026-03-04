@@ -193,7 +193,11 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
       const guardMatch = tempDesc.match(/Guardia: ([^|]+)/);
       if (guardMatch && guardMatch[1]) {
-        parsedGuardName = guardMatch[1].trim();
+        const idMatch = guardMatch[1].match(/ID:\s*(\d+)/);
+        if (idMatch && idMatch[1]) {
+          parsedGuardID = idMatch[1];
+        }
+        parsedGuardName = guardMatch[1].replace(/\(.*?\)/g, '').trim();
         tempDesc = tempDesc.replace(guardMatch[0], '').replace(/\|\s*\|\s*/, '|').replace(/\|\s*$/, '').trim();
       }
 
