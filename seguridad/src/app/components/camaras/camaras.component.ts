@@ -38,15 +38,18 @@ export class CamarasComponent implements OnInit {
   constructor(private cameraService: CameraService) { }
 
   ngOnInit(): void {
-    this.cargarDatos();
+    // Datos de ejemplo para restaurar el diseño visual mientras se repara la API
+    this.cameras = [
+      { id: 'CAM-001', ip: '192.168.1.50', marca: 'Hikvision', modelo: 'DS-2CD2043G2-I', activa: true, area: 'Entrada Principal', alertas: 2 },
+      { id: 'CAM-002', ip: '192.168.1.51', marca: 'Dahua', modelo: 'IPC-HFW2431S-S', activa: true, area: 'Estacionamiento Norte', alertas: 0 },
+      { id: 'CAM-003', ip: '192.168.1.52', marca: 'Axis', modelo: 'M3065-V', activa: false, area: 'Pasillo Central', alertas: 5 },
+      { id: 'CAM-004', ip: '192.168.1.53', marca: 'Lorex', modelo: 'LNB8005', activa: true, area: 'Carga y Descarga', alertas: 1 }
+    ];
+    this.selectedCamera = this.cameras[0];
   }
 
   async cargarDatos() {
-    try {
-      this.cameras = await this.cameraService.getCameras();
-    } catch (error) {
-      console.error('Error cargando cámaras:', error);
-    }
+    // API temporalmente deshabilitada
   }
 
   // Registration Modal

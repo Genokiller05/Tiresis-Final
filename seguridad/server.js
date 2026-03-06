@@ -83,6 +83,11 @@ const writeJsonFile = (filename, data) => {
   }
 };
 
+// --- PUBLIC HEALTH/PING ENDPOINT (no auth required) ---
+app.get('/api/ping', (req, res) => {
+  res.json({ status: 'ok', ts: Date.now() });
+});
+
 // --- MIGRATION ENDPOINT ---
 app.post('/api/migrate', async (req, res) => {
   try {
@@ -528,12 +533,18 @@ app.post('/api/login', async (req, res) => {
   // Obtener sites del admin via site_memberships
   let sites = [];
   try {
-    const { data: memberships } = await supabase
-      .from('site_memberships')
-      .select('site_id, sites(id, name)')
-      .eq('user_id', adminUser.id)
-      .eq('is_active', true);
-    sites = (memberships || []).map(m => m.sites || { id: m.site_id });
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(adminUser.id)) {
+      const { data: memberships } = await supabase
+        .from('site_memberships')
+        .select('site_id, sites(id, name)')
+        .eq('user_id', adminUser.id)
+        .eq('is_active', true);
+      sites = (memberships || []).map(m => m.sites || { id: m.site_id });
+    } else {
+      console.warn('[Login] ID no es UUID, saltando consulta de memberships:', adminUser.id);
+      // Opcional: Si el sitio es local-only, podrías asociarlo aquí
+    }
   } catch (e) {
     console.warn('[Login] No se pudieron obtener sites:', e.message);
   }
@@ -630,11 +641,22 @@ app.get('/api/buildings', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/buildings', authMiddleware, async (req, res) => {
-  const building = { ...req.body, site_id: req.activeSiteId };
-  if (!building.id) building.id = Date.now().toString();
+  // Only extract valid columns to avoid Supabase schema errors (e.g., if 'type' is sent)
+  const { id, name, geometry } = req.body;
+  const building = {
+    id: id || Date.now().toString(),
+    name,
+    geometry,
+    site_id: req.activeSiteId
+  };
+
+  console.log('[BE] Admin:', req.adminEmail, '| Saving building into site:', req.activeSiteId);
 
   const { error } = await supabase.from('buildings').insert([building]);
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    console.error('[BE] Error inserting building into Supabase:', error);
+    return res.status(500).json({ error: error.message, detail: error.details });
+  }
   res.status(201).json({ message: 'Edificio guardado', building });
 });
 

@@ -1,33 +1,29 @@
 <div class="min-h-screen font-body text-gray-200 pl-24 transition-all duration-300">
   <div class="flex flex-col h-screen">
     <!-- Main Content -->
-    <main class="flex-1 p-8 flex flex-col overflow-y-auto">
+    <main class="flex-1 p-4 flex flex-col overflow-y-auto">
       <div class="container mx-auto flex flex-col h-full">
-        <header class="mb-10 flex justify-between items-center flex-shrink-0">
+        <header class="mb-4 flex justify-between items-center flex-shrink-0">
           <div class="flex items-center space-x-4">
-            <div class="p-3 bg-gradient-premium rounded-2xl shadow-lg ring-1 ring-white/20">
-              <span class="material-icons text-3xl text-white">login</span>
+            <div class="p-2 bg-gradient-premium rounded-xl shadow-lg ring-1 ring-white/20">
+              <span class="material-icons text-2xl text-white">login</span>
             </div>
             <div>
-              <h1 class="text-4xl font-bold text-gradient">Control de Accesos</h1>
-              <p class="text-gray-400 mt-1 font-medium tracking-wide">Historial detallado de Entradas y Salidas</p>
+              <h1 class="text-2xl font-bold text-gradient">Control de Accesos</h1>
+              <p class="text-gray-400 text-xs font-medium tracking-wide">Historial detallado de Entradas y Salidas</p>
             </div>
           </div>
 
           <div class="flex items-center space-x-3">
-            <div class="text-right mr-4 hidden md:block">
-              <p class="text-[10px] font-black uppercase tracking-widest text-accent-blue">Estado del Sistema</p>
-              <p class="text-sm font-bold text-emerald-400 italic">Sincronizado</p>
-            </div>
             <button (click)="filtrar()"
-              class="p-3 glass-effect border border-glass-border rounded-xl text-primary hover:scale-110 transition-all">
-              <span class="material-icons">refresh</span>
+              class="p-2 glass-effect border border-glass-border rounded-xl text-primary hover:scale-110 transition-all">
+              <span class="material-icons text-sm">refresh</span>
             </button>
           </div>
         </header>
 
         <!-- Filters Section -->
-        <div class="glass-card-premium p-6 mb-10 relative group z-[60]">
+        <div class="glass-card-premium p-4 mb-4 relative group z-[60]">
           <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/5 pointer-events-none"></div>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-50">
             <div class="group/input">
@@ -136,9 +132,9 @@
 
         <!-- Neo-Glass Container -->
         <div class="flex-grow flex flex-col min-h-0 neo-glass-container">
-          <div class="flex justify-between items-center mb-8 relative z-10">
-            <h2 class="text-3xl font-black text-white flex items-center tracking-tight">
-              <span class="material-icons text-purple-500 mr-4 text-4xl">history_toggle_off</span>
+          <div class="flex justify-between items-center mb-4 relative z-10">
+            <h2 class="text-xl font-black text-white flex items-center tracking-tight">
+              <span class="material-icons text-purple-500 mr-2 text-2xl">history_toggle_off</span>
               <span class="text-premium-gradient">Bitácora de Flujo Real</span>
             </h2>
             <div

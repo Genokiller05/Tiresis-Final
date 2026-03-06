@@ -1,16 +1,15 @@
 import { Component, OnInit, OnDestroy, HostListener, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule, RouterLink } from '@angular/router';
 import { ReportService } from '../../services/report.service';
-import { CameraService } from '../../services/camera.service';
 import { AuthService } from '../../services/auth.service';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule, RouterLink],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
@@ -18,7 +17,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Badge counts
   public pendingAlertsCount: number = 0;
-  public offlineCamerasCount: number = 0;
 
   // Admin avatar
   public adminInitials: string = 'A';
@@ -48,7 +46,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private reportService: ReportService,
-    private cameraService: CameraService,
     private authService: AuthService,
     private eRef: ElementRef
   ) { }
@@ -104,10 +101,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Load all badge data
   private async loadAllBadges(): Promise<void> {
-    await Promise.allSettled([
-      this.loadPendingAlerts(),
-      this.loadOfflineCameras()
-    ]);
+    await this.loadPendingAlerts();
   }
 
   // #3 — Alert badge (pending alerts)
@@ -162,8 +156,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Toggle notifications popover
   toggleNotifications(event: Event) {
-    this.isNotificationsOpen = true;
-    this.navigateTo(event, '/dashboard/alertas');
+    event.preventDefault();
+    event.stopPropagation();
+    this.isNotificationsOpen = !this.isNotificationsOpen;
+    this.isStatusDropdownOpen = false;
   }
 
   // Close notifications popover
@@ -227,23 +223,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  // #11 — Camera offline badge
-  private async loadOfflineCameras(): Promise<void> {
-    try {
-      const cameras = await this.cameraService.getCameras();
-      this.offlineCamerasCount = cameras.filter(
-        (c: any) => c.estado === 'Offline' || c.estado === 'offline' || c.status === 'offline'
-      ).length;
-    } catch {
-      // Keep previous count on error
-    }
-  }
 
-  // #8 — Measure ping to evaluate system status
+  // #8 — Measure ping to evaluate system status (public /api/ping endpoint)
   private async measurePing(): Promise<void> {
     const start = performance.now();
     try {
-      await fetch('http://localhost:3000/api/cameras', { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+      await fetch('http://localhost:3000/api/ping', { signal: AbortSignal.timeout(3000) });
       const ms = Math.round(performance.now() - start);
       this.pingMs = `${ms}`;
       this.systemStatus = ms < 300 ? 'OPERATIVO' : 'DEGRADADO';
@@ -255,10 +240,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // #10 — Navigation with click animation
   navigateTo(event: Event, path: string): void {
+    console.log('[Sidebar] Navigating to:', path);
     event.preventDefault();
     this.clickedRoute = path;
     setTimeout(() => {
       this.clickedRoute = null;
+      console.log('[Sidebar] Router navigation executing:', path);
       this.router.navigate([path]);
       // Refresh badges when leaving alerts
       if (path !== '/dashboard/alertas') {
@@ -298,7 +285,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   isActive(route: string): boolean {
-    return this.router.url === route;
+    const active = this.router.url === route;
+    if (route === '/dashboard/camaras' && active) {
+      console.log('[Sidebar] Cameras route is active');
+    }
+    return active;
   }
 
   isClicked(route: string): boolean {

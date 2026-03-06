@@ -1,30 +1,26 @@
 <div class="min-h-screen prism-void-container text-gray-200 pl-24 transition-all duration-300">
   <div class="flex flex-col h-screen">
     <!-- Main Content -->
-    <main class="flex-1 p-8 flex flex-col overflow-y-auto">
+    <main class="flex-1 p-4 flex flex-col overflow-y-auto">
       <div class="container mx-auto flex flex-col h-full">
         <header
           class="mb-6 flex justify-between items-center flex-shrink-0 animate-in fade-in slide-in-from-top-4 duration-700">
           <div class="flex items-center space-x-6">
             <div
-              class="p-4 bg-gradient-to-br from-purple-600 to-blue-700 rounded-2xl shadow-[0_0_30px_rgba(112,0,255,0.3)] ring-1 ring-white/20">
-              <span class="material-icons text-4xl text-white">security</span>
+              class="p-2 bg-gradient-to-br from-purple-600 to-blue-700 rounded-xl shadow-[0_0_20px_rgba(112,0,255,0.3)] ring-1 ring-white/20">
+              <span class="material-icons text-2xl text-white">security</span>
             </div>
             <div>
-              <h1 class="text-4xl font-black tracking-tighter text-prism-gradient italic">{{ uiText.pageTitle }}</h1>
-              <p class="text-blue-400/60 mt-1 font-bold tracking-[0.2em] uppercase text-xs">{{ uiText.pageSubtitle }}
+              <h1 class="text-3xl font-black tracking-tighter text-prism-gradient italic">{{ uiText.pageTitle }}</h1>
+              <p class="text-blue-400/60 font-bold tracking-[0.2em] uppercase text-xs">{{ uiText.pageSubtitle }}
               </p>
             </div>
           </div>
 
           <div class="flex items-center space-x-6">
-            <div class="text-right hidden md:block border-r border-white/10 pr-6">
-              <p class="text-[10px] font-black uppercase tracking-[0.3em] text-purple-400">Estado_Red</p>
-              <p class="text-sm font-black text-white italic">OPERATIVO // 2.4 MS</p>
-            </div>
             <button (click)="aplicarFiltros()"
-              class="p-4 glass-card-premium rounded-2xl text-purple-400 hover:rotate-180 hover:bg-purple-500/20 active:scale-95 transition-all duration-500 shadow-xl border border-white/5">
-              <span class="material-icons">sync</span>
+              class="p-2 glass-card-premium rounded-xl text-purple-400 hover:rotate-180 hover:bg-purple-500/20 active:scale-95 transition-all duration-500 shadow-xl border border-white/5">
+              <span class="material-icons text-sm">sync</span>
             </button>
           </div>
         </header>
@@ -34,7 +30,7 @@
 
           <!-- Filters Panel (Integrated) -->
           <div class="prism-filter-card p-4 md:p-6 animate-in zoom-in duration-500 relative z-[60]">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6 relative z-50">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 relative z-50">
               <div class="space-y-1.5">
                 <label class="data-label" for="filter-desde">{{ uiText.fromLabel || 'Rango_Inicial' }}</label>
                 <div class="relative group">
@@ -59,13 +55,7 @@
                 </div>
               </div>
 
-              <div class="space-y-1.5">
-                <label class="data-label">Criterio_Origen</label>
-                <div
-                  class="w-full px-4 py-3 bg-purple-500/10 border border-purple-500/30 rounded-xl text-purple-400 font-black text-center uppercase tracking-widest text-xs h-full flex items-center justify-center">
-                  DISPOSITIVO_GUARDIA
-                </div>
-              </div>
+
 
               <div class="space-y-1.5">
                 <label class="data-label" for="filter-tipo">{{ uiText.alertTypeLabel || 'Filtrado_Tipo' }}</label>

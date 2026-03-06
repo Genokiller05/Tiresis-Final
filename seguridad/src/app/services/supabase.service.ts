@@ -13,7 +13,7 @@ export class SupabaseService {
   constructor() {
     this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
-        persistSession: true,
+        persistSession: false, // Prevents internal storage sync/NavigatorLock issues
         autoRefreshToken: true,
         detectSessionInUrl: false
       }

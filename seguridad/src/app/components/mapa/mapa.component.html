@@ -184,4 +184,52 @@
         validar.</p>
     </div>
   </div>
+
+  <!-- Building Entry Modal (Premium Design) -->
+  <div *ngIf="isBuildingModalVisible"
+    class="fixed inset-0 z-[2000] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div
+      class="w-[450px] glass-effect p-10 rounded-[2.5rem] border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] relative overflow-hidden flex flex-col items-center animate-in zoom-in-95 duration-500">
+
+      <!-- Decorative Glow -->
+      <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 blur-[80px] rounded-full pointer-events-none">
+      </div>
+      <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-cyan-500/20 blur-[80px] rounded-full pointer-events-none">
+      </div>
+
+      <!-- Icon Header -->
+      <div class="mb-6 p-4 bg-gradient-premium rounded-3xl shadow-2xl ring-4 ring-white/5 relative z-10">
+        <span class="material-icons text-4xl text-white">apartment</span>
+      </div>
+
+      <h3 class="text-2xl font-black text-white text-gradient mb-2 uppercase tracking-tight">Identificar Estructura</h3>
+      <p class="text-[11px] text-gray-400 font-bold uppercase tracking-widest mb-8 opacity-70">Asigne un nombre táctico
+        al edificio detectado</p>
+
+      <!-- Input Section -->
+      <div class="w-full relative mb-8 group">
+        <div
+          class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-gray-500 group-focus-within:text-primary transition-colors">
+          <span class="material-icons text-xl">label</span>
+        </div>
+        <input [(ngModel)]="newBuildingName" type="text" placeholder="Nombre de la Estructura..."
+          class="w-full pl-14 pr-6 py-5 bg-black/40 border-2 border-white/5 rounded-2xl text-base text-white font-bold focus:ring-4 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-700 shadow-inner"
+          (keyup.enter)="confirmBuildingCreation()" autofocus>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="grid grid-cols-2 gap-4 w-full relative z-10">
+        <button (click)="closeBuildingModal()"
+          class="py-4 border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all active:scale-95">
+          Abortar
+        </button>
+        <button (click)="console.log('[HTML] Click Confirmar'); confirmBuildingCreation()"
+          (mousedown)="console.log('[HTML] Mousedown Confirmar')"
+          class="py-4 bg-gradient-premium text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-900/40 hover:shadow-purple-700/60 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+          Confirmar
+          <span class="material-icons text-sm">check_circle</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

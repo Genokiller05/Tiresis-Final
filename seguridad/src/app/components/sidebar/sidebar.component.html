@@ -169,12 +169,9 @@
       <span class="sidebar-tooltip">Entradas y Salidas</span>
     </a>
 
-    <!-- Cámaras — purple + yellow badge if offline -->
-    <a href="#" (click)="navigateTo($event, '/dashboard/camaras')" class="sidebar-nav-item sidebar-color-purple group"
-      [class.sidebar-active]="isActive('/dashboard/camaras')" [class.sidebar-clicked]="isClicked('/dashboard/camaras')">
-      <span class="sidebar-badge sidebar-badge-yellow" *ngIf="offlineCamerasCount > 0">
-        {{ offlineCamerasCount > 9 ? '9+' : offlineCamerasCount }}
-      </span>
+    <!-- Cámaras — purple (Diseño táctico restaurado) -->
+    <a [routerLink]="['/dashboard/camaras']" routerLinkActive="sidebar-active"
+      class="sidebar-nav-item sidebar-color-purple group relative z-50">
       <span class="material-icons text-2xl relative z-10">videocam</span>
       <span class="sidebar-tooltip">Gestión de Cámaras</span>
     </a>

@@ -57,17 +57,24 @@ const authMiddleware = async (req, res, next) => {
 
     // 1b. Si no está en local, buscar en Supabase
     if (!adminExists) {
-        try {
-            const { data, error } = await supabase
-                .from('admins')
-                .select('id, email, fullName')
-                .eq('id', adminId)
-                .single();
-            if (!error && data) {
-                adminExists = data;
+        // Validar si el adminId tiene formato UUID antes de consultar Supabase
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(adminId)) {
+            try {
+                const { data, error } = await supabase
+                    .from('admins')
+                    .select('id, email, fullName')
+                    .eq('id', adminId)
+                    .single();
+                if (!error && data) {
+                    adminExists = data;
+                }
+            } catch (err) {
+                console.warn('[Auth] Error buscando admin en Supabase:', err.message);
             }
-        } catch (err) {
-            console.warn('[Auth] Error buscando admin en Supabase:', err.message);
+        } else {
+            console.warn('[Auth] ID con formato inválido (No es UUID):', adminId);
+            // Si no es UUID y no estaba en local, ya sabemos que no existe de forma válida en DB
         }
     }
 
@@ -80,6 +87,16 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 2. Consultar site_memberships para obtener los sites del admin
+    // Solo si el ID es un UUID válido (Supabase lo requiere para FKs)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(adminId)) {
+        console.warn('[Auth] ID no es UUID, saltando consulta de sites:', adminId);
+        return res.status(403).json({
+            message: 'Tu sesión es antigua o inválida. Por favor, cierra sesión y vuelve a entrar.',
+            code: 'INVALID_ID_FORMAT'
+        });
+    }
+
     try {
         const { data: memberships, error } = await supabase
             .from('site_memberships')
@@ -120,7 +137,7 @@ const authMiddleware = async (req, res, next) => {
         // Site activo: el solicitado o el primero de la lista
         req.activeSiteId = requestedSiteId || req.siteIds[0];
 
-        console.log(`[Auth] ✅ ${adminExists.email} → sites: [${req.siteIds.join(', ')}]`);
+        console.log(`[Auth] ✅ ${adminExists.email} | ID: ${adminId} | Site Activo: ${req.activeSiteId}`);
         next();
     } catch (err) {
         console.error('[Auth] Error en middleware:', err);

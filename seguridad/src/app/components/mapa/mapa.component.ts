@@ -13,11 +13,14 @@ import { GeocodingService } from '../../services/geocoding.service';
   styleUrl: './mapa.component.css' // Note: styleUrl is correct for newer Angular, but stylesUrl is standard. Leaving as is if original was like this.
 })
 export class MapaComponent implements OnInit, OnDestroy {
+  public console = console;
 
   private map: any;
   private adminMarker: any;
   private guardMarkers: Map<string, any> = new Map(); // Map guard ID to marker
   private L: any; // Cache Leaflet instance
+  private adminCenter: { lat: number; lng: number } | null = null; // For 4km bound
+  private firstFix: boolean = true; // For satellite tracking centering
 
   // Zone Management
   private drawnItems: any; // FeatureGroup for the zone
@@ -43,6 +46,9 @@ export class MapaComponent implements OnInit, OnDestroy {
   private customBuildingsLayer: any;
   public isCreatingBuilding: boolean = false;
   public customBuildings: any[] = [];
+  public isBuildingModalVisible: boolean = false;
+  public newBuildingName: string = 'Nuevo Edificio';
+  private pendingBuildingLayer: any = null;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -56,7 +62,7 @@ export class MapaComponent implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       await this.initMap();
       this.loadGuards();
-      this.loadCustomBuildings();
+      // Note: loadCustomBuildings() is called inside createMap() once map is ready
     }
   }
 
@@ -105,6 +111,9 @@ export class MapaComponent implements OnInit, OnDestroy {
         attributionControl: false
       });
 
+      // --- Setup persistent draw listener (ONCE) ---
+      this.map.on('draw:created', (e: any) => this.onDrawCreated(e));
+
       // 3. Add Layer Control (Toggle between views)
       const baseMaps = {
         "Satélite": satelliteLayer,
@@ -118,6 +127,10 @@ export class MapaComponent implements OnInit, OnDestroy {
       // Admin Marker
       this.createAdminMarker(L, latitude, longitude, user);
 
+      // Fix 1: Apply 4km radius limit from admin location immediately
+      this.adminCenter = { lat: latitude, lng: longitude };
+      this.apply4kmBounds(latitude, longitude);
+
       // Map Click Handler
       this.map.on('click', (e: any) => {
         this.ngZone.run(() => {
@@ -130,21 +143,15 @@ export class MapaComponent implements OnInit, OnDestroy {
         });
       });
 
-      // Update cursor class
-      // Note: We use a simple watcher in ngDoCheck or similar if we wanted to be reactive perfectly, 
-      // but simpler is to toggle it in enable/disable methods OR bind it in HTML (would require viewChild).
-      // Since map div is not separate component, let's just use the simpler approach: binding class unavailable on ID, 
-      // so we might need to do it via ViewChild or simple document query if strict angular way is too verbose.
-      // Better way: use [class.picking-mode]="isPickingLocation" on a wrapper div in HTML if possible.
-      // Looking at HTML, #map is a div. We can add [class.cursor-crosshair]="isPickingLocation" in HTML.
-
-
       // Initialize Drawn Items Layer
       this.drawnItems = new L.FeatureGroup();
       this.map.addLayer(this.drawnItems);
 
       // Load existing zone if any
       this.loadAdminZone();
+
+      // Fix 3: Load custom buildings AFTER map is ready
+      this.loadCustomBuildings();
 
       // Force refresh guards (if already loaded, though loadGuards will do it too)
       if (this.guards.length > 0) {
@@ -162,9 +169,18 @@ export class MapaComponent implements OnInit, OnDestroy {
             lng = parseFloat(adminData.lng);
             zoom = 15;
           }
-          // Load zone from backend if available
+          // Load zone from backend - parse if string, filter nulls
           if (adminData.zone) {
-            this.adminZoneCoords = adminData.zone;
+            try {
+              const raw = typeof adminData.zone === 'string'
+                ? JSON.parse(adminData.zone)
+                : adminData.zone;
+              this.adminZoneCoords = (raw as any[]).filter(
+                (c: any) => Array.isArray(c) && c.length >= 2 && c[0] != null && c[1] != null
+              );
+            } catch (e) {
+              this.adminZoneCoords = [];
+            }
           }
           createMap(lat, lng, zoom, adminData);
         },
@@ -290,22 +306,28 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private handleBuildingClick(latlngs: any[], buildingName: string) {
-    // Calculate center
+    // Fix 4: Calculate center from latlngs (Leaflet [lat,lng] format)
+    // Validate geometry before computing bounds
+    if (!latlngs || latlngs.length < 3) {
+      this.showFeedback('Geometría del edificio inválida.', 'error');
+      return;
+    }
+
     const bounds = this.L.latLngBounds(latlngs);
     const center = bounds.getCenter();
 
     if (this.selectedGuard) {
-      // If we are in picking mode, or if a guard is just selected (we can start picking mode automatically)
       if (!this.isPickingLocation) {
         this.enableGuardLocationPick();
       }
 
-      // Move the guard/marker to center
-      // Use setTimeout to ensure picking mode is fully active if just enabled
+      // Fix 4: Add a small random offset so multiple guards in same building don't stack
+      const offsetLat = (Math.random() - 0.5) * 0.0003;
+      const offsetLng = (Math.random() - 0.5) * 0.0003;
+
       setTimeout(() => {
-        this.assignGuardLocation(center.lat, center.lng);
+        this.assignGuardLocation(center.lat + offsetLat, center.lng + offsetLng);
         this.showFeedback(`Guardia asignado a: ${buildingName}`, 'success');
-        // Auto confirm for better UX here?
         this.confirmGuardLocation();
       }, 100);
 
@@ -315,23 +337,45 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private loadAdminZone() {
-    if (!this.adminZoneCoords || this.adminZoneCoords.length === 0 || !this.map || !this.L) return;
+    if (!this.adminZoneCoords || !this.map || !this.L) return;
+
+    // Fix: Parse if the zone came back as a JSON string from the server
+    if (typeof this.adminZoneCoords === 'string') {
+      try {
+        this.adminZoneCoords = JSON.parse(this.adminZoneCoords as any);
+      } catch (e) {
+        console.warn('Zone coords could not be parsed, resetting.');
+        this.adminZoneCoords = [];
+        return;
+      }
+    }
+
+    // Fix: Filter out any null/invalid coordinate pairs before passing to Leaflet
+    const validCoords = (this.adminZoneCoords as any[]).filter(
+      (c: any) => Array.isArray(c) && c.length >= 2 && c[0] != null && c[1] != null
+    );
+
+    if (validCoords.length < 3) return; // Need at least 3 points for a polygon
 
     // Remove existing if any
     if (this.adminZoneLayer) {
       this.drawnItems.removeLayer(this.adminZoneLayer);
     }
 
-    // Create Polygon
-    this.adminZoneLayer = this.L.polygon(this.adminZoneCoords, {
-      color: '#9333ea',
-      fillColor: '#9333ea',
-      fillOpacity: 0.1,
-      weight: 2,
-      dashArray: '5, 5'
-    });
-
-    this.drawnItems.addLayer(this.adminZoneLayer);
+    // Create Polygon with validated coordinates
+    try {
+      this.adminZoneLayer = this.L.polygon(validCoords, {
+        color: '#9333ea',
+        fillColor: '#9333ea',
+        fillOpacity: 0.1,
+        weight: 2,
+        dashArray: '5, 5'
+      });
+      this.drawnItems.addLayer(this.adminZoneLayer);
+    } catch (e) {
+      console.warn('Could not create zone polygon:', e);
+      return;
+    }
 
     // Apply strict bounds + 5km buffer
     this.applyZoneRestriction();
@@ -340,14 +384,23 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.loadBuildingsInZone();
   }
 
+  // Fix 1: Apply 4km radius MaxBounds from admin center
+  private apply4kmBounds(lat: number, lng: number) {
+    if (!this.map || !this.L) return;
+    // ~4km in degrees: 1° latitude ≈ 111km → 4km ≈ 0.036°
+    const delta = 0.036;
+    const sw = this.L.latLng(lat - delta, lng - delta);
+    const ne = this.L.latLng(lat + delta, lng + delta);
+    this.map.setMaxBounds(this.L.latLngBounds(sw, ne));
+    this.map.setMinZoom(13);
+  }
+
   private applyZoneRestriction() {
     if (!this.adminZoneLayer || !this.map || !this.L) return;
 
-    // Calculate ~5km buffer (approx 0.045 degrees)
-    const buffer = 0.045;
+    const buffer = 0.02; // tighter buffer within 4km zone
     const bounds = this.adminZoneLayer.getBounds();
 
-    // Expand bounds
     const southWest = bounds.getSouthWest();
     const northEast = bounds.getNorthEast();
 
@@ -357,14 +410,14 @@ export class MapaComponent implements OnInit, OnDestroy {
     const restrictedBounds = this.L.latLngBounds(paddedSouthWest, paddedNorthEast);
 
     this.map.setMaxBounds(restrictedBounds);
-    this.map.setMinZoom(11);
+    this.map.setMinZoom(13);
     this.map.fitBounds(bounds);
   }
 
   private removeZoneRestriction() {
-    if (!this.map) return;
-    this.map.setMaxBounds(null);
-    this.map.setMinZoom(3);
+    if (!this.map || !this.adminCenter) return;
+    // When removing zone restriction, restore the 4km limit
+    this.apply4kmBounds(this.adminCenter.lat, this.adminCenter.lng);
   }
 
   public toggleZoneEditor() {
@@ -407,77 +460,116 @@ export class MapaComponent implements OnInit, OnDestroy {
     }
   }
 
+  private onDrawCreated(e: any) {
+    const layer = e.layer;
+    const mode = this.isDrawingZone ? 'zone' : (this.isCreatingBuilding ? 'building' : null);
+
+    console.log(`[MAPA] Dibujo completado. Modo detectado: ${mode}`);
+
+    if (mode === 'zone') {
+      if (this.adminZoneLayer) {
+        this.drawnItems.removeLayer(this.adminZoneLayer);
+      }
+      this.drawnItems.addLayer(layer);
+      this.adminZoneLayer = layer;
+      const latlngs = layer.getLatLngs()[0];
+      const coords = latlngs.map((ll: any) => [ll.lat, ll.lng]);
+      this.adminZoneCoords = coords;
+      this.saveAdminZone(coords);
+      this.isDrawingZone = false;
+      this.applyZoneRestriction();
+      this.loadBuildingsInZone();
+      this.disableDrawControl();
+
+    } else if (mode === 'building') {
+      this.pendingBuildingLayer = layer;
+      this.pendingBuildingLayer.addTo(this.map); // Add to map immediately so it's visible
+      this.newBuildingName = 'Nuevo Edificio';
+      this.isBuildingModalVisible = true;
+      // Note: We don't disableDrawControl yet to keep the UI state consistent until confirmation
+    }
+  }
+
   private enableDrawControl(mode: 'zone' | 'building' = 'zone') {
     if (!this.map || !this.L) return;
 
     const Leaflet = this.L.Draw ? this.L : (window as any).L;
 
     if (!Leaflet || !Leaflet.Draw || !Leaflet.Draw.Polygon) {
-      this.showFeedback('Error cargando la herramienta de dibujo.', 'error');
+      console.error('[MAPA] Leaflet Draw no cargado correctamente');
       return;
     }
 
-    const color = mode === 'zone' ? '#9333ea' : '#06b6d4'; // Purple for zone, Cyan for building
+    if (this.drawControl) {
+      this.drawControl.disable();
+    }
 
-    const polygonDrawer = new Leaflet.Draw.Polygon(this.map, {
+    const color = mode === 'zone' ? '#9333ea' : '#06b6d4';
+
+    this.drawControl = new Leaflet.Draw.Polygon(this.map, {
       allowIntersection: false,
-      showArea: false,
-      shapeOptions: {
-        color: color,
-        fillColor: color,
-        fillOpacity: 0.5
-      }
+      shapeOptions: { color: color, fillColor: color, fillOpacity: 0.5 }
     });
 
-    polygonDrawer.enable();
-    this.drawControl = polygonDrawer;
+    this.drawControl.enable();
+  }
 
-    this.map.on(Leaflet.Draw.Event.CREATED, (e: any) => {
-      const layer = e.layer;
+  confirmBuildingCreation() {
+    console.log('[MAPA] Confirmando creación de edificio:', this.newBuildingName);
 
-      if (mode === 'zone') {
-        if (this.adminZoneLayer) {
-          this.drawnItems.removeLayer(this.adminZoneLayer);
+    if (!this.newBuildingName.trim()) {
+      this.showFeedback('Nombre de edificio requerido.', 'error');
+      return;
+    }
+
+    if (!this.pendingBuildingLayer) {
+      console.error('[MAPA] No hay una capa de dibujo pendiente.');
+      this.closeBuildingModal();
+      return;
+    }
+
+    try {
+      // Extraer coordenadas de forma segura
+      let latlngsRaw = this.pendingBuildingLayer.getLatLngs();
+      // Si es un polígono/rectángulo básico, los puntos están en el primer elemento del array anidado
+      let latlngs = Array.isArray(latlngsRaw[0]) ? latlngsRaw[0] : latlngsRaw;
+
+      const geometry = latlngs.map((ll: any) => [ll.lat, ll.lng]);
+
+      const newBuilding = {
+        name: this.newBuildingName,
+        geometry: geometry
+      };
+
+      console.log('[MAPA] Enviando edificio al servidor:', newBuilding);
+
+      this.http.post('http://localhost:3000/api/buildings', newBuilding).subscribe({
+        next: (res: any) => {
+          console.log('[MAPA] Edificio guardado con éxito:', res);
+          this.showFeedback('Edificio guardado correctamente.', 'success');
+          this.loadCustomBuildings();
+          this.closeBuildingModal();
+        },
+        error: (err) => {
+          console.error('[MAPA] Error al guardar edificio:', err);
+          const errorDetail = err.error?.error || err.message || 'Error técnico';
+          this.showFeedback(`Error al guardar: ${errorDetail}`, 'error');
         }
-        this.drawnItems.addLayer(layer);
-        this.adminZoneLayer = layer;
-        const latlngs = layer.getLatLngs()[0];
-        const coords = latlngs.map((ll: any) => [ll.lat, ll.lng]);
-        this.adminZoneCoords = coords;
-        this.saveAdminZone(coords);
+      });
+    } catch (exc) {
+      console.error('[MAPA] Excepción procesando geometría:', exc);
+      this.showFeedback('Geometría inválida.', 'error');
+    }
+  }
 
-        this.isDrawingZone = false;
-
-        // Re-apply restrictions and load buildings
-        this.applyZoneRestriction();
-        this.loadBuildingsInZone();
-
-      } else if (mode === 'building') {
-        const name = prompt('Nombre del Edificio:', 'Nuevo Edificio');
-        if (name) {
-          const latlngs = layer.getLatLngs()[0];
-          const geometry = latlngs.map((ll: any) => [ll.lat, ll.lng]);
-
-          const newBuilding = {
-            name: name,
-            geometry: geometry,
-            type: 'custom'
-          };
-
-          this.http.post('http://localhost:3000/api/buildings', newBuilding).subscribe({
-            next: (res: any) => {
-              this.showFeedback('Edificio creado exitosamente', 'success');
-              this.loadCustomBuildings(); // Reload to draw properly with events
-            },
-            error: () => this.showFeedback('Error guardando edificio', 'error')
-          });
-        }
-        this.isCreatingBuilding = false;
-        // Don't add to map here manually, reload will do it. 
-        // Actually, we should probably remove the drawn layer because real one comes from API
-        // Leaflet Draw doesn't auto-add to map unless we tell it, but e.layer is in memory.
-      }
-    });
+  closeBuildingModal() {
+    if (this.pendingBuildingLayer) {
+      this.map.removeLayer(this.pendingBuildingLayer);
+    }
+    this.isBuildingModalVisible = false;
+    this.newBuildingName = 'Nuevo Edificio';
+    this.pendingBuildingLayer = null;
+    this.isCreatingBuilding = false;
   }
 
   private disableDrawControl() {
@@ -485,8 +577,10 @@ export class MapaComponent implements OnInit, OnDestroy {
       this.drawControl.disable();
       this.drawControl = null;
     }
-    if (this.map && this.L) {
+    if (this.map && this.L && this.L.Draw && this.L.Draw.Event) {
       this.map.off(this.L.Draw.Event.CREATED);
+    } else if (this.map) {
+      this.map.off('draw:created'); // fallback string event name
     }
   }
 
@@ -511,6 +605,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private loadCustomBuildings() {
+    // Fix 3 & 5: Guard against map not ready and invalid geometry
     if (!this.map || !this.L) return;
 
     // Initialize layer group if needed
@@ -523,20 +618,20 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.http.get<any[]>('http://localhost:3000/api/buildings').subscribe({
       next: (buildings) => {
         this.customBuildings = buildings;
-        console.log('Loaded custom buildings:', buildings.length);
         if (buildings.length > 0) {
-          this.showFeedback(`Cargados ${buildings.length} edificios personalizados.`, 'success');
-        } else {
-          this.showFeedback('No hay edificios personalizados guardados.', 'success');
+          this.showFeedback(`Cargados ${buildings.length} edificios guardados.`, 'success');
         }
         buildings.forEach(b => {
-          console.log('Dibujando:', b.name, b.geometry);
+          // Fix 5: Skip buildings with invalid or missing geometry
+          if (!b.geometry || !Array.isArray(b.geometry) || b.geometry.length < 3) {
+            console.warn('Edificio con geometría inválida, omitiendo:', b.name);
+            return;
+          }
           this.drawCustomBuilding(b);
         });
       },
       error: (e) => {
         console.error('Error loading custom buildings', e);
-        this.showFeedback('Error cargando edificios.', 'error');
       }
     });
   }
@@ -745,7 +840,8 @@ export class MapaComponent implements OnInit, OnDestroy {
     }
 
     this.isTracking = true;
-    this.showFeedback('Rastreo automático activado.', 'success');
+    this.firstFix = true; // Fix 2: reset so we center on first GPS fix
+    this.showFeedback('Rastreo satelital activado. Obteniendo posición...', 'success');
 
     this.watchId = navigator.geolocation.watchPosition(
       (position) => {
@@ -753,14 +849,19 @@ export class MapaComponent implements OnInit, OnDestroy {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
 
+          // Fix 2: On first GPS fix, fly to user location AND update 4km bounds
+          if (this.firstFix && this.map) {
+            this.firstFix = false;
+            this.adminCenter = { lat, lng };
+            this.apply4kmBounds(lat, lng);
+            this.map.flyTo([lat, lng], 16);
+            this.showFeedback('Posición GPS obtenida. Mapa centrado en tu ubicación.', 'success');
+          }
+
           // Move marker
           if (this.adminMarker) {
             this.adminMarker.setLatLng([lat, lng]);
-            // Optional: Center map on user periodically or on first fix? 
-            // constant centering can be annoying if user wants to look around.
-            // Let's just update the marker.
           } else if (this.L && this.map) {
-            // Create if missing
             this.createAdminMarker(this.L, lat, lng, this.authService.getCurrentUser());
           }
 
@@ -770,13 +871,13 @@ export class MapaComponent implements OnInit, OnDestroy {
       },
       (err) => {
         console.error(err);
-        this.showFeedback('Error obteniendo ubicación GPS.', 'error');
-        // Don't stop immediately on one error, retry logic exists in watch, 
-        // but if persistent maybe notify user.
+        this.ngZone.run(() => {
+          this.showFeedback('Error obteniendo señal GPS. Verifica los permisos del navegador.', 'error');
+        });
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 15000,
         maximumAge: 0
       }
     );
