@@ -145,6 +145,7 @@ const RegistrationScreen = () => {
                 tipo: isExit ? 'Salida' : 'Entrada', // Modificado a usar el switch de ENTRADA/SALIDA
                 descripcion: `Nombre: ${name}. ${description}${evidenceTag}`,
                 idRelacionado: evidenceId,
+                site_id: user?.site_id || null, // Se asigna el site_id del guardia
             };
 
             await createEntryExit(entryData);

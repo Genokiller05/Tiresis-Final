@@ -166,17 +166,32 @@ app.post('/api/upload', upload.single('photo'), (req, res) => {
 
 // --- Guards (Protegido por authMiddleware, filtrado por site_id) ---
 app.get('/api/guards', authMiddleware, async (req, res) => {
-  // 1. Try Local JSON FIRST (filtrado por site_id)
+  let localGuards = [];
   try {
-    const guards = readJsonFile('guards.json');
-    const filtered = guards.filter(g => req.siteIds.includes(g.site_id));
-    if (filtered.length > 0) return res.json(filtered);
-  } catch (e) { console.error(e); }
+    const allLocal = readJsonFile('guards.json');
+    localGuards = allLocal.filter(g => req.siteIds.includes(g.site_id));
+  } catch (e) { console.error('Error reading local guards:', e); }
 
-  // 2. Fallback to Supabase (filtrado por site_id)
-  const { data, error } = await supabase.from('guards').select('*').in('site_id', req.siteIds);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  let dbGuards = [];
+  try {
+    const { data, error } = await supabase.from('guards').select('*').in('site_id', req.siteIds);
+    if (!error && data) {
+      dbGuards = data;
+    }
+  } catch (err) {
+    console.error('Error reading supabase guards:', err);
+  }
+
+  // Merge lists favoring DB (or avoiding duplicates)
+  const mergedMap = new Map();
+  dbGuards.forEach(g => mergedMap.set(g.idEmpleado || g.document_id, g));
+  localGuards.forEach(g => {
+    if (!mergedMap.has(g.idEmpleado || g.document_id)) {
+      mergedMap.set(g.idEmpleado || g.document_id, g);
+    }
+  });
+
+  res.json(Array.from(mergedMap.values()));
 });
 
 app.get('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
@@ -239,7 +254,19 @@ app.post('/api/guards', authMiddleware, async (req, res) => {
     }
     guards.push(newGuard);
     writeJsonFile('guards.json', guards);
-    console.log('[BE] Guard saved:', userId, 'site:', req.activeSiteId);
+    console.log('[BE] Guard saved locally:', userId, 'site:', req.activeSiteId);
+
+    // Save to Supabase
+    try {
+      const { error: sbError } = await supabase.from('guards').insert([newGuard]);
+      if (sbError) {
+        console.error('[BE] Error guardando guardia en Supabase:', sbError.message);
+      } else {
+        console.log('[BE] Guard saved to Supabase');
+      }
+    } catch (sbEx) {
+      console.error('[BE] Excepción guardando en Supabase:', sbEx.message);
+    }
 
     res.status(201).json({ message: 'Guardia registrado', guard: newGuard, password: tempPassword });
 
@@ -255,7 +282,7 @@ app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   delete updateData.site_id; // No permitir cambio de site_id
 
   try {
-    const { data: updatedGuard } = await supabase
+    const { data: updatedGuard, error: supabaseError } = await supabase
       .from('guards')
       .update(updateData)
       .eq('idEmpleado', idEmpleado)
@@ -263,7 +290,7 @@ app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
       .select();
 
     console.log('PATCH /api/guards', idEmpleado, updateData);
-    if (supabaseError) console.error('Supabase update (idEmpleado) failed:', supabaseError);
+    if (supabaseError) console.error('Supabase update (idEmpleado) failed:', supabaseError.message);
 
     if (updatedGuard && updatedGuard.length > 0) {
       return res.json(updatedGuard[0]);

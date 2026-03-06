@@ -162,9 +162,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Toggle notifications popover
   toggleNotifications(event: Event) {
+    this.isNotificationsOpen = true;
+    this.navigateTo(event, '/dashboard/alertas');
+  }
+
+  // Close notifications popover
+  closeNotifications(event: Event) {
     event.preventDefault();
     event.stopPropagation();
-    this.isNotificationsOpen = !this.isNotificationsOpen;
+    this.isNotificationsOpen = false;
   }
 
   // Filter for Idea 1
@@ -185,6 +191,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.activeFilter = filter;
     if (filter !== 'Estado') {
       this.isStatusDropdownOpen = false;
+    }
+
+    if (this.isActive('/dashboard/alertas')) {
+      let queryParams: any = {};
+      if (filter === 'Pendientes') queryParams.status = 'Pendiente';
+      else if (filter === 'Todas') queryParams.status = 'Todos';
+      this.router.navigate(['/dashboard/alertas'], { queryParams });
     }
   }
 
@@ -208,6 +221,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.selectedStatus = status;
     this.activeFilter = 'Estado';
     this.isStatusDropdownOpen = false;
+
+    if (this.isActive('/dashboard/alertas')) {
+      this.router.navigate(['/dashboard/alertas'], { queryParams: { status } });
+    }
   }
 
   // #11 — Camera offline badge

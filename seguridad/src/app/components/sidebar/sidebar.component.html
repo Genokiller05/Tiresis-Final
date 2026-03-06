@@ -56,6 +56,10 @@
             <div class="flex items-center gap-2">
               <span class="px-2 py-0.5 bg-white/10 rounded-full text-[10px] font-bold text-gray-300">Todas {{
                 alerts.length }}</span>
+              <button (click)="closeNotifications($event)"
+                class="text-gray-400 hover:text-white transition-colors ml-1 flex items-center justify-center">
+                <span class="material-icons text-[18px]">close</span>
+              </button>
             </div>
           </div>
 

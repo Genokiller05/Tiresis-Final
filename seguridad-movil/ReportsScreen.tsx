@@ -57,21 +57,31 @@ const ReportsScreen = () => {
   const statusColors: Record<string, string> = {
     '1': '#F59E0B', // Pendiente
     'Pendiente': '#F59E0B',
-    '2': '#3B82F6', // En Revisión
-    'En Revisión': '#3B82F6',
+    '2': '#3B82F6', // En proceso
+    'En proceso': '#3B82F6',
     'Enviado': colors.accent,
-    '3': '#10B981', // Resuelto
-    'Resuelto': '#10B981',
+    '3': '#10B981', // Completado
+    'Completado': '#10B981',
+    '31': '#EF4444', // Cancelado
+    'Cancelado': '#EF4444',
+    '32': '#6B7280', // Suspendido
+    'Suspendido': '#6B7280',
   };
 
   const statusTranslations: Record<number | string, string> = {
-    1: t('reports.status_sent') || 'Pendiente',
-    'Pendiente': t('reports.status_sent') || 'Pendiente',
-    'Enviado': t('reports.status_sent') || 'Enviado',
-    2: t('reports.status_in_review') || 'En Revisión',
-    'En Revisión': t('reports.status_in_review') || 'En Revisión',
-    3: t('reports.status_resolved') || 'Resuelto',
-    'Resuelto': t('reports.status_resolved') || 'Resuelto',
+    1: 'Pendiente',
+    'Pendiente': 'Pendiente',
+    'Enviado': 'Enviado',
+    2: 'En proceso',
+    'En proceso': 'En proceso',
+    'En Revisión': 'En proceso',
+    3: 'Completado',
+    'Completado': 'Completado',
+    'Resuelto': 'Completado',
+    31: 'Cancelado',
+    'Cancelado': 'Cancelado',
+    32: 'Suspendido',
+    'Suspendido': 'Suspendido',
   };
 
   const renderReportItem = ({ item }: { item: any }) => {

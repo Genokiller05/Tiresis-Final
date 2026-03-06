@@ -55,8 +55,16 @@ const ReportDetailScreen = () => {
   }
 
   // Fallback states since the schema changed
-  const displayStatus = report.status_id ? 'Notificado' : 'Pendiente';
-  const displayType = report.report_type_id ? 'Reporte del Sistema' : 'Incidente de Seguridad';
+  const statusMap: Record<number, string> = {
+    1: 'Pendiente',
+    2: 'En proceso',
+    3: 'Completado',
+    31: 'Cancelado',
+    32: 'Suspendido'
+  };
+
+  const displayStatus = report.status_id ? statusMap[report.status_id] || 'Pendiente' : 'Pendiente';
+  const displayType = report.report_type?.name || (report.report_type_id ? 'Reporte del Sistema' : 'Incidente de Seguridad');
   const displayDate = report.created_at ? new Date(report.created_at).toLocaleString() : 'Fecha desconocida';
 
   // Using short_description as both summary, and parsing out evidence if appended
@@ -86,19 +94,27 @@ const ReportDetailScreen = () => {
   }
 
   const statusColors: Record<string, string> = {
-    Enviado: colors.accent,
+    'Pendiente': '#F59E0B',
+    'En proceso': '#3B82F6',
+    'Completado': '#10B981',
+    'Cancelado': '#EF4444',
+    'Suspendido': '#6B7280',
+    'Notificado': '#3B82F6',
+    'Enviado': colors.accent,
     'En Revisión': '#F59E0B',
-    Resuelto: '#10B981',
-    Pendiente: '#94a3b8',
-    Notificado: '#3B82F6'
+    'Resuelto': '#10B981',
   };
 
   const statusTranslations: Record<string, string> = {
-    Enviado: 'Enviado',
+    'Pendiente': 'Pendiente',
+    'En proceso': 'En proceso',
+    'Completado': 'Completado',
+    'Cancelado': 'Cancelado',
+    'Suspendido': 'Suspendido',
+    'Enviado': 'Enviado',
     'En Revisión': 'En revisión',
-    Resuelto: 'Resuelto',
-    Pendiente: 'Pendiente',
-    Notificado: 'Notificado'
+    'Resuelto': 'Resuelto',
+    'Notificado': 'Notificado'
   };
 
   return (

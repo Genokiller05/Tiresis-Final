@@ -85,6 +85,10 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       }
       if (params['status']) {
         this.filterEstado = params['status'];
+        this.aplicarFiltros();
+      } else if (Object.keys(params).length === 0 || (!params['status'] && !params['alertId'])) {
+        this.filterEstado = 'Todos';
+        this.aplicarFiltros();
       }
     });
 
