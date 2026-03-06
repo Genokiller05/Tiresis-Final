@@ -114,7 +114,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.alerts = mappedReports.sort((a: any, b: any) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime());
 
       this.pendingAlertsCount = mappedReports.filter(
-        (r: any) => r.estado?.toUpperCase() === 'PENDIENTE' || r.estado?.toUpperCase() === 'NUEVO'
+        (r: any) => r.estado?.toUpperCase() === 'PENDIENTE' || r.estado?.toUpperCase() === 'NUEVO' || r.estado?.toUpperCase() === 'SUSPENDIDO'
       ).length;
     } catch {
       // Keep previous count on error
@@ -160,6 +160,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.isNotificationsOpen = !this.isNotificationsOpen;
     this.isStatusDropdownOpen = false;
+    // Navegar y mostrar desplegable al mismo tiempo
+    this.navigateTo(event, '/dashboard/alertas');
   }
 
   // Close notifications popover
@@ -174,9 +176,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
     let filtered = this.alerts;
 
     if (this.activeFilter === 'Pendientes') {
-      filtered = filtered.filter(a => a.estado?.toUpperCase() === 'PENDIENTE' || a.estado?.toUpperCase() === 'NUEVO');
+      filtered = filtered.filter(a => a.estado?.trim().toUpperCase() === 'PENDIENTE' || a.estado?.trim().toUpperCase() === 'NUEVO' || a.estado?.trim().toUpperCase() === 'SUSPENDIDO');
     } else if (this.activeFilter === 'Estado') {
-      filtered = filtered.filter(a => a.estado?.toUpperCase() === this.selectedStatus.toUpperCase());
+      filtered = filtered.filter(a => a.estado?.trim().toUpperCase() === this.selectedStatus.trim().toUpperCase());
     }
 
     return filtered.slice(0, 15);

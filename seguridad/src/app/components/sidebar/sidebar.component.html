@@ -34,7 +34,8 @@
 
     <!-- Alertas — red badge -->
     <div class="relative group">
-      <a href="#" (click)="toggleNotifications($event)" class="sidebar-nav-item sidebar-color-red group"
+      <a href="#" (click)="toggleNotifications($event)" (dblclick)="navigateTo($event, '/dashboard/alertas')"
+        class="sidebar-nav-item sidebar-color-red group"
         [class.sidebar-active]="isActive('/dashboard/alertas') || isNotificationsOpen"
         [class.sidebar-clicked]="isClicked('/dashboard/alertas')">
         <span class="sidebar-badge sidebar-badge-red" *ngIf="pendingAlertsCount > 0">

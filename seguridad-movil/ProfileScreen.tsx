@@ -13,6 +13,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { updateGuardStatus } from './services/dataService';
+import { useUser } from './context/UserContext';
+import { Image } from 'react-native';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -29,7 +31,7 @@ const ProfileScreen = () => {
   const navigation = useNavigation<ProfileScreenNavigationProp>();
   const { colors } = useTheme();
   const { t } = useI18n();
-
+  const { user } = useUser();
 
   const styles = createStyles(colors);
 
@@ -46,6 +48,15 @@ const ProfileScreen = () => {
     navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
+  const guardName = user?.nombre || user?.full_name || 'Agente';
+  const guardId = user?.idEmpleado || user?.document_id || 'ID Desconocido';
+  let guardPhoto = user?.foto || user?.photo_url || null;
+  const guardEmail = user?.email || 'N/A';
+
+  if (guardPhoto && !guardPhoto.startsWith('http')) {
+    guardPhoto = `http://10.0.2.2:3000${guardPhoto}`; // Android emulator localhost alias
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
@@ -59,23 +70,27 @@ const ProfileScreen = () => {
           </View>
 
           <View style={styles.profileHeader}>
-            <View style={styles.avatar} />
-            <Text style={styles.guardName}>Carlos Rodriguez</Text>
-            <Text style={styles.guardId}>ID de Guardia: G734-9B</Text>
+            {guardPhoto ? (
+              <Image source={{ uri: guardPhoto }} style={styles.avatar} />
+            ) : (
+              <View style={styles.avatar} />
+            )}
+            <Text style={styles.guardName}>{guardName}</Text>
+            <Text style={styles.guardId}>ID de Guardia: {guardId}</Text>
           </View>
 
           <View style={styles.infoSection}>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>Nombre Completo</Text>
-              <Text style={styles.infoValue}>Carlos Rodriguez</Text>
+              <Text style={styles.infoValue}>{guardName}</Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>ID de Guardia</Text>
-              <Text style={styles.infoValue}>G734-9B</Text>
+              <Text style={styles.infoValue}>{guardId}</Text>
             </View>
             <View style={styles.infoBox}>
               <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>carlos.r@seguridadpro.com</Text>
+              <Text style={styles.infoValue}>{guardEmail}</Text>
             </View>
           </View>
 

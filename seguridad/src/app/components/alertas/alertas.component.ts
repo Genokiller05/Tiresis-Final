@@ -458,7 +458,16 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       if (this.filterTipo !== 'Todos' && alerta.tipo !== this.filterTipo) return false;
 
       // Apply status filter
-      if (this.filterEstado !== 'Todos' && alerta.estado?.toUpperCase() !== this.filterEstado.toUpperCase()) return false;
+      if (this.filterEstado && this.filterEstado !== 'Todos') {
+        const estadoAlerta = alerta.estado?.trim().toUpperCase();
+        const filtro = this.filterEstado.trim().toUpperCase();
+
+        if (filtro === 'PENDIENTES' || filtro === 'PENDIENTE') {
+          if (estadoAlerta !== 'PENDIENTE' && estadoAlerta !== 'NUEVO' && estadoAlerta !== 'SUSPENDIDO') return false;
+        } else {
+          if (estadoAlerta !== filtro) return false;
+        }
+      }
 
       return true;
     });
