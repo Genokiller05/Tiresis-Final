@@ -160,8 +160,6 @@ export class SidebarComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.isNotificationsOpen = !this.isNotificationsOpen;
     this.isStatusDropdownOpen = false;
-    // Navegar y mostrar desplegable al mismo tiempo
-    this.navigateTo(event, '/dashboard/alertas');
   }
 
   // Close notifications popover
