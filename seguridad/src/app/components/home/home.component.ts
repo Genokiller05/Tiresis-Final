@@ -6,13 +6,14 @@ import { Router } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { TranslationService } from '../../services/translation.service';
 import { AuthService } from '../../services/auth.service'; // Importar el AuthService
-import { GuardService } from '../../services/guard.service'; // Import GuardService
+import { GuardService } from '../../services/guard.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, FormsModule], // Eliminar SidebarComponent de imports
+  imports: [CommonModule, FormsModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
@@ -55,6 +56,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private regSelectedFile: File | null = null;
 
   private currentGuardId: string | null = null;
+  private presenceChannel: any = null;
 
   // Theme property
   public currentTheme: 'light' | 'dark' = 'dark';
@@ -74,7 +76,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private themeService: ThemeService,
     private translationService: TranslationService,
     private authService: AuthService,
-    private guardService: GuardService
+    private guardService: GuardService,
+    private supabaseService: SupabaseService
   ) { }
 
   ngOnInit(): void {
@@ -97,6 +100,8 @@ export class HomeComponent implements OnInit, OnDestroy {
               nombre: payload.new.nombre || payload.new.full_name || this.currentGuard.nombre,
               telefono: payload.new.telefono || payload.new.phone || this.currentGuard.telefono,
               estado: payload.new.estado || this.currentGuard.estado,
+              // Update activity history in real-time
+              actividades: Array.isArray(payload.new.actividades) ? payload.new.actividades : this.currentGuard.actividades,
             };
           }
         }
@@ -113,6 +118,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     if (this.realtimeSubscription) {
       this.realtimeSubscription.unsubscribe();
+    }
+    if (this.presenceChannel) {
+      this.supabaseService.client.removeChannel(this.presenceChannel);
+      this.presenceChannel = null;
     }
   }
 
@@ -255,6 +264,21 @@ export class HomeComponent implements OnInit, OnDestroy {
           estado: guard.estado || (guard.is_active ? 'En servicio' : 'Fuera de servicio')
         };
         this.currentGuardId = this.currentGuard.idEmpleado;
+
+        // Presence Sync
+        if (this.presenceChannel) {
+          this.supabaseService.client.removeChannel(this.presenceChannel);
+        }
+
+        this.presenceChannel = this.supabaseService.client.channel('online-guards-' + this.currentGuardId);
+        this.presenceChannel.on('presence', { event: 'sync' }, () => {
+          const state = this.presenceChannel.presenceState();
+          const isOnline = Object.keys(state).length > 0;
+          if (this.currentGuard) {
+            this.currentGuard.estado = isOnline ? 'En servicio' : 'Fuera de servicio';
+          }
+        }).subscribe();
+
         this.successMessage = 'Guardia encontrado!';
       } else {
         this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
@@ -268,6 +292,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   public clearSearch(): void {
+    if (this.presenceChannel) {
+      this.supabaseService.client.removeChannel(this.presenceChannel);
+      this.presenceChannel = null;
+    }
     this.searchId = '';
     this.errorMessage = '';
     this.successMessage = '';

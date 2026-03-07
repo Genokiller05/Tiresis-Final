@@ -50,7 +50,10 @@ const NewReportScreen = () => {
     { id: 1, name: 'Incidente', code: 'incident' },
     { id: 2, name: 'Novedad', code: 'novelty' },
     { id: 3, name: 'Rondín', code: 'patrol' },
-    { id: 4, name: 'Alerta recibida', code: 'received_alert' }
+    { id: 4, name: 'Alerta recibida', code: 'received_alert' },
+    { id: 37, name: 'Actividad sospechosa', code: 'suspicious_activity' },
+    { id: 38, name: 'Daño a propiedad', code: 'property_damage' },
+    { id: 39, name: 'Emergencia médica', code: 'medical_emergency' },
   ];
 
   // We will still use state for statuses, priorities, and sites, but they will be fetched differently or default.

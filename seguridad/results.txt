@@ -1,0 +1,18 @@
+Iniciando prueba de diferentes tipos de reportes...
+
+⏳ Simulando creación de reporte tipo: Incidente (ID: 1)
+✅ Exitóso: Reporte de Incidente guardado con ID: f44cda34-2bae-47b5-8460-3a28bfa30af5
+   └─ Correcto: El report_type_id se mantuvo como: 1
+--------------------------------------------------
+
+⏳ Simulando creación de reporte tipo: Novedad (ID: 2)
+✅ Exitóso: Reporte de Novedad guardado con ID: 9c4a71f3-2b85-4ffa-8660-aad4e1246bb3
+   └─ Correcto: El report_type_id se mantuvo como: 2
+--------------------------------------------------
+
+⏳ Simulando creación de reporte tipo: Alerta recibida (ID: 4)
+✅ Exitóso: Reporte de Alerta recibida guardado con ID: eb7bcdc8-fcda-4ff5-9e12-c18828a9a0d4
+   └─ Correcto: El report_type_id se mantuvo como: 4
+--------------------------------------------------
+
+✅ Prueba finalizada. Revisa el Dashboard Web para verlos aparecer en tiempo real.
