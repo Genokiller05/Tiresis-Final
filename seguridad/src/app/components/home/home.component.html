@@ -183,13 +183,39 @@
 
             <div class="flex-grow overflow-y-auto space-y-4 pr-2 custom-scrollbar">
               <div *ngIf="currentGuard.actividades && currentGuard.actividades.length > 0; else noActivities">
-                <div *ngFor="let act of currentGuard.actividades"
+                <div *ngFor="let act of paginatedActividades"
                   class="p-4 bg-black/40 rounded-2xl border border-glass-border relative overflow-hidden group">
                   <div class="absolute left-0 top-0 w-1 h-full bg-primary/30 group-hover:bg-primary transition-all">
                   </div>
                   <p class="text-[9px] text-gray-500 font-bold mb-1">{{ act.fechaHora }}</p>
                   <p class="text-[11px] text-white font-black uppercase tracking-tight">{{ act.tipo }}</p>
                   <p class="text-[10px] text-gray-400 mt-1 leading-tight">{{ act.descripcion }}</p>
+                </div>
+
+                <!-- Controles de paginación -->
+                <div *ngIf="totalActividadesPages > 1"
+                  class="flex items-center justify-between mt-4 pt-3 border-t border-glass-border">
+                  <button (click)="setActividadesPage(actividadesPage - 1)" [disabled]="actividadesPage === 1"
+                    class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-black/40 border border-glass-border text-gray-400 hover:text-white hover:border-primary/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold">
+                    <span class="material-icons text-sm">chevron_left</span>
+                    <span>ANT</span>
+                  </button>
+
+                  <div class="flex items-center space-x-1">
+                    <button *ngFor="let p of [].constructor(totalActividadesPages); let i = index"
+                      (click)="setActividadesPage(i + 1)"
+                      [ngClass]="actividadesPage === i + 1 ? 'bg-primary text-white border-primary' : 'bg-black/40 text-gray-500 border-glass-border hover:border-primary/50 hover:text-white'"
+                      class="w-6 h-6 rounded-md border text-[9px] font-black transition-all">
+                      {{ i + 1 }}
+                    </button>
+                  </div>
+
+                  <button (click)="setActividadesPage(actividadesPage + 1)"
+                    [disabled]="actividadesPage === totalActividadesPages"
+                    class="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-black/40 border border-glass-border text-gray-400 hover:text-white hover:border-primary/50 transition-all disabled:opacity-30 disabled:cursor-not-allowed text-[10px] font-bold">
+                    <span>SIG</span>
+                    <span class="material-icons text-sm">chevron_right</span>
+                  </button>
                 </div>
               </div>
               <ng-template #noActivities>
@@ -199,19 +225,6 @@
                     registros de<br>actividad crítica</p>
                 </div>
               </ng-template>
-            </div>
-          </div>
-
-          <div class="glass-card-premium p-8 rounded-[2.5rem] border-l-4 border-l-cyan-600">
-            <h3 class="font-black text-[10px] text-primary uppercase tracking-[0.3em] mb-4">Residencia Registrada</h3>
-            <div class="flex items-start space-x-4">
-              <div class="p-3 bg-cyan-600/10 rounded-xl">
-                <span class="material-icons text-cyan-400">home</span>
-              </div>
-              <p class="text-[11px] text-gray-300 font-medium leading-relaxed">
-                {{ currentGuard.direccion || currentGuard.address || 'Ubicación no declarada en el expediente central.'
-                }}
-              </p>
             </div>
           </div>
         </div>
@@ -280,7 +293,8 @@
         <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
 
         <div class="mb-12 relative">
-          <h2 class="text-4xl font-black text-white text-gradient mb-2">{{ uiRegText.title || 'Alta de Personal' }}</h2>
+          <h2 class="text-4xl font-black text-white text-gradient mb-2">{{ uiRegText.title || 'Alta de Personal' }}
+          </h2>
           <p class="text-gray-400 font-medium tracking-wide">Registro táctico de nuevos operativos de seguridad</p>
         </div>
 

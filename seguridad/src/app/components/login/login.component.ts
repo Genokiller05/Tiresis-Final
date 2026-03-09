@@ -55,4 +55,12 @@ export class LoginComponent {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
+
+  public goBack(): void {
+    this.router.navigate(['/register']);
+  }
+
+  public goToRegister(): void {
+    this.router.navigate(['/register'], { queryParams: { action: 'register' } });
+  }
 }

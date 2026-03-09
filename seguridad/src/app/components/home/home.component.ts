@@ -58,6 +58,26 @@ export class HomeComponent implements OnInit, OnDestroy {
   private currentGuardId: string | null = null;
   private presenceChannel: any = null;
 
+  // Paginación del Historial de Operaciones
+  public actividadesPage: number = 1;
+  public readonly actividadesPageSize: number = 4;
+
+  get paginatedActividades(): any[] {
+    if (!this.currentGuard?.actividades) return [];
+    const start = (this.actividadesPage - 1) * this.actividadesPageSize;
+    return this.currentGuard.actividades.slice(start, start + this.actividadesPageSize);
+  }
+
+  get totalActividadesPages(): number {
+    if (!this.currentGuard?.actividades?.length) return 1;
+    return Math.ceil(this.currentGuard.actividades.length / this.actividadesPageSize);
+  }
+
+  public setActividadesPage(page: number): void {
+    if (page < 1 || page > this.totalActividadesPages) return;
+    this.actividadesPage = page;
+  }
+
   // Theme property
   public currentTheme: 'light' | 'dark' = 'dark';
 
@@ -264,6 +284,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           estado: guard.estado || (guard.is_active ? 'En servicio' : 'Fuera de servicio')
         };
         this.currentGuardId = this.currentGuard.idEmpleado;
+        this.actividadesPage = 1; // Reiniciar paginación al buscar nuevo guardia
 
         // Presence Sync
         if (this.presenceChannel) {

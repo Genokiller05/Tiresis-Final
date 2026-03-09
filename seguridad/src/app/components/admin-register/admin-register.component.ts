@@ -406,6 +406,8 @@ export class AdminRegisterComponent implements OnInit {
             if (params['payment'] === 'success') {
                 this.step = 'success';
                 this.finalizeRegistration();
+            } else if (params['action'] === 'register') {
+                this.step = 'form';
             }
         });
         // Initialize Stripe.js
