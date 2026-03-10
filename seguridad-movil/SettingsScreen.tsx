@@ -23,6 +23,7 @@ type RootStackParamList = {
   LoginScreen: undefined;
   SettingsScreen: undefined;
   NotificationsScreen: undefined;
+  WeeklyRecordScreen: undefined;
 };
 
 type SettingsScreenNavigationProp = NativeStackNavigationProp<
@@ -209,6 +210,14 @@ const SettingsScreen = () => {
                     <Text style={styles.notifBadgeText}>{unreadCount}</Text>
                   </View>
                 )}
+                <Text style={[styles.optionArrow, dynamicStyles.optionArrow]}>›</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.optionRow, dynamicStyles.optionRow]} onPress={() => navigation.navigate('WeeklyRecordScreen')}>
+              <Text style={styles.optionIcon}>📅</Text>
+              <Text style={[styles.optionText, dynamicStyles.optionText]}>Registro Semanal</Text>
+              <View style={styles.optionRightContent}>
                 <Text style={[styles.optionArrow, dynamicStyles.optionArrow]}>›</Text>
               </View>
             </TouchableOpacity>

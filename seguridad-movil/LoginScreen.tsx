@@ -241,7 +241,7 @@ const LoginScreen = () => {
                     style={[styles.loginButton, { shadowColor: colors.accent, marginTop: 10 }]}
                   >
                     <LinearGradient
-                      colors={[colors.accent, '#3b82f6']}
+                      colors={isDarkMode ? [colors.accent, '#3b82f6'] : ['#1e40af', '#3b82f6']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.gradientButton}

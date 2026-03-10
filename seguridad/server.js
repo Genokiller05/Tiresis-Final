@@ -201,19 +201,27 @@ app.get('/api/guards', authMiddleware, async (req, res) => {
 
 app.get('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   try {
+    // 1. Buscar con site_id del admin
     const { data: data1 } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).in('site_id', req.siteIds).single();
     if (data1) return res.json(data1);
 
     const { data: data2 } = await supabase.from('guards').select('*').eq('document_id', req.params.idEmpleado).in('site_id', req.siteIds).single();
     if (data2) return res.json(data2);
+
+    // 2. Fallback: buscar sin filtro de site_id (guardias de app móvil)
+    const { data: data3 } = await supabase.from('guards').select('*').eq('idEmpleado', req.params.idEmpleado).maybeSingle();
+    if (data3) return res.json(data3);
+
+    const { data: data4 } = await supabase.from('guards').select('*').eq('document_id', req.params.idEmpleado).maybeSingle();
+    if (data4) return res.json(data4);
   } catch (err) {
     console.error('Error querying supabase guards:', err);
   }
 
-  // Fallback to Local JSON (filtrado por site_id)
+  // Fallback to Local JSON (sin filtro de site_id)
   try {
     const guards = readJsonFile('guards.json');
-    const guard = guards.find(g => (g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado) && req.siteIds.includes(g.site_id));
+    const guard = guards.find(g => g.document_id === req.params.idEmpleado || g.idEmpleado === req.params.idEmpleado);
     if (guard) return res.json(guard);
   } catch (e) { console.error(e); }
 
@@ -263,7 +271,13 @@ app.post('/api/guards', authMiddleware, async (req, res) => {
 
     // Save to Supabase
     try {
-      const { error: sbError } = await supabase.from('guards').insert([newGuard]);
+      const sbGuard = { ...newGuard };
+      delete sbGuard.full_name;
+      delete sbGuard.document_id;
+      delete sbGuard.phone;
+      delete sbGuard.is_active;
+
+      const { error: sbError } = await supabase.from('guards').insert([sbGuard]);
       if (sbError) {
         console.error('[BE] Error guardando guardia en Supabase:', sbError.message);
       } else {
@@ -284,42 +298,47 @@ app.post('/api/guards', authMiddleware, async (req, res) => {
 app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   const idEmpleado = req.params.idEmpleado;
   const updateData = { ...req.body };
+
+  // Cleanup non-existent DB fields from the payload
   delete updateData.site_id; // No permitir cambio de site_id
+  delete updateData.full_name;
+  delete updateData.phone;
+  delete updateData.document_id;
+  delete updateData.is_active;
+
+  console.log('PATCH /api/guards', idEmpleado, updateData);
+
+  // 1. Intentar actualizar con site_id del admin (idEmpleado)
+  try {
+    const { data: r1, error: e1 } = await supabase.from('guards').update(updateData).eq('idEmpleado', idEmpleado).in('site_id', req.siteIds).select();
+    if (e1) console.error('Supabase update (idEmpleado+site) failed:', e1.message);
+    if (r1 && r1.length > 0) return res.json(r1[0]);
+  } catch (err) { console.error('Error 1:', err); }
+
+  // 2. Intentar actualizar con site_id del admin (document_id)
+  try {
+    const { data: r2, error: e2 } = await supabase.from('guards').update(updateData).eq('document_id', idEmpleado).in('site_id', req.siteIds).select();
+    if (e2) console.error('Supabase update (document_id+site) failed:', e2.message);
+    if (r2 && r2.length > 0) return res.json(r2[0]);
+  } catch (err) { console.error('Error 2:', err); }
+
+  // 3. Fallback: actualizar sin filtro de site_id (guardias de app móvil sin site_id)
+  try {
+    const { data: r3, error: e3 } = await supabase.from('guards').update(updateData).eq('idEmpleado', idEmpleado).select();
+    if (e3) console.error('Supabase update (idEmpleado sin site) failed:', e3.message);
+    if (r3 && r3.length > 0) return res.json(r3[0]);
+  } catch (err) { console.error('Error 3:', err); }
 
   try {
-    const { data: updatedGuard, error: supabaseError } = await supabase
-      .from('guards')
-      .update(updateData)
-      .eq('idEmpleado', idEmpleado)
-      .in('site_id', req.siteIds)
-      .select();
+    const { data: r4, error: e4 } = await supabase.from('guards').update(updateData).eq('document_id', idEmpleado).select();
+    if (e4) console.error('Supabase update (document_id sin site) failed:', e4.message);
+    if (r4 && r4.length > 0) return res.json(r4[0]);
+  } catch (err) { console.error('Error 4:', err); }
 
-    console.log('PATCH /api/guards', idEmpleado, updateData);
-    if (supabaseError) console.error('Supabase update (idEmpleado) failed:', supabaseError.message);
-
-    if (updatedGuard && updatedGuard.length > 0) {
-      return res.json(updatedGuard[0]);
-    }
-
-    const { data: updatedGuardDoc } = await supabase
-      .from('guards')
-      .update(updateData)
-      .eq('document_id', idEmpleado)
-      .in('site_id', req.siteIds)
-      .select();
-
-    if (updatedGuardDoc && updatedGuardDoc.length > 0) {
-      return res.json(updatedGuardDoc[0]);
-    }
-  } catch (err) {
-    console.error('Error updating supabase guards:', err);
-  }
-
-  // Fallback local JSON
+  // 4. Fallback local JSON (sin filtro de site_id)
   try {
     const guards = readJsonFile('guards.json');
-    const index = guards.findIndex(g => (g.document_id === idEmpleado || g.idEmpleado === idEmpleado) && req.siteIds.includes(g.site_id));
-
+    const index = guards.findIndex(g => g.document_id === idEmpleado || g.idEmpleado === idEmpleado);
     if (index !== -1) {
       guards[index] = { ...guards[index], ...updateData };
       if (updateData.nombre) guards[index].full_name = updateData.nombre;
@@ -331,7 +350,7 @@ app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
     console.error('Local update failed:', e);
   }
 
-  return res.status(404).json({ message: 'Guardia no encontrado en tus sitios' });
+  return res.status(404).json({ message: 'Guardia no encontrado' });
 });
 
 app.delete('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {

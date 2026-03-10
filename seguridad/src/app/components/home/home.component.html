@@ -374,7 +374,8 @@
 
             <div class="space-y-3 md:col-span-2">
               <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1"
-                for="reg-address">Dirección de Residencia</label>
+                for="reg-address">Dirección de Residencia <span
+                  class="text-gray-500 normal-case tracking-normal font-medium">(Opcional)</span></label>
               <input
                 class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-gray-700 font-medium"
                 id="reg-address" name="direccion" [(ngModel)]="regForm.direccion" type="text"
@@ -563,9 +564,11 @@
 
         <div class="space-y-1.5 md:col-span-1">
           <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Dirección de
-            Residencia</label>
+            Residencia <span
+              class="text-gray-600 normal-case tracking-normal font-medium text-[9px]">(Opcional)</span></label>
           <input type="text" [(ngModel)]="editForm.direccion"
-            class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all">
+            class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+            placeholder="Calle, número, colonia...">
         </div>
       </div>
 

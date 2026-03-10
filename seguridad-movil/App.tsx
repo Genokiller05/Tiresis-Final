@@ -18,6 +18,7 @@ import NewReportScreen from './NewReportScreen';
 import RegistrationScreen from './RegistrationScreen';
 import ReportDetailScreen from './ReportDetailScreen';
 import NotificationsScreen from './NotificationsScreen';
+import WeeklyRecordScreen from './WeeklyRecordScreen';
 
 // --- Tipos para el Stack Navigator principal ---
 export type RootStackParamList = {
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   SettingsScreen: undefined;
   NewReportScreen: undefined;
   NotificationsScreen: undefined;
+  WeeklyRecordScreen: undefined;
   RegistrationScreen: { type: 'visit' | 'delivery' | 'worker' };
   ReportDetail: { reportId: string };
 };
@@ -115,6 +117,7 @@ const AppNavigator = () => {
         <Stack.Screen name="RegistrationScreen" component={RegistrationScreen} />
         <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
         <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+        <Stack.Screen name="WeeklyRecordScreen" component={WeeklyRecordScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

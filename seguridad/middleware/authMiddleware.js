@@ -90,11 +90,14 @@ const authMiddleware = async (req, res, next) => {
     // Solo si el ID es un UUID válido (Supabase lo requiere para FKs)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(adminId)) {
-        console.warn('[Auth] ID no es UUID, saltando consulta de sites:', adminId);
-        return res.status(403).json({
-            message: 'Tu sesión es antigua o inválida. Por favor, cierra sesión y vuelve a entrar.',
-            code: 'INVALID_ID_FORMAT'
-        });
+        // Admin local (ID no es UUID) — asignar site por defecto
+        const DEFAULT_SITE_ID = '00000000-0000-0000-0000-000000000001';
+        console.warn('[Auth] ID no es UUID, asignando site por defecto para admin local:', adminId);
+        req.adminId = adminId;
+        req.adminEmail = adminExists.email;
+        req.siteIds = [DEFAULT_SITE_ID];
+        req.activeSiteId = DEFAULT_SITE_ID;
+        return next();
     }
 
     try {
