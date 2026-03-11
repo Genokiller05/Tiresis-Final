@@ -145,13 +145,11 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   }
 
   public navigateToGenerateReport(): void {
-    // Placeholder for future navigation
-    console.log('Navegar a generar reporte semanal');
+    this.router.navigate(['/dashboard/informes-semanales']);
   }
 
   public navigateToManageReports(): void {
-    // Placeholder for future navigation
-    console.log('Navegar a administrar reportes');
+    this.router.navigate(['/dashboard/informes-semanales']);
   }
 
   // --- Success Modal Methods ---

@@ -18,6 +18,7 @@ import * as ImageManipulator from 'expo-image-manipulator'; // Added ImageManipu
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { useUser } from './context/UserContext';
+import { Ionicons } from '@expo/vector-icons';
 
 import {
   createReport as addReport,
@@ -66,6 +67,7 @@ const NewReportScreen = () => {
   const [isIncidentModalVisible, setIncidentModalVisible] = useState(false);
   const [description, setDescription] = useState('');
   const [evidence, setEvidence] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Áreas
   const areasList = [
@@ -209,16 +211,10 @@ const NewReportScreen = () => {
         await linkEvidenceToReport(newReport.id, evidenceId);
       }
 
-      Alert.alert(
-        t('new_report.success_title'),
-        t('new_report.success_message'),
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('MainTabs', { screen: 'Reports' }),
-          },
-        ]
-      );
+      setIsSuccess(true);
+      setTimeout(() => {
+        navigation.navigate('MainTabs', { screen: 'Reports' });
+      }, 1800);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'No se pudo enviar el reporte: ' + (error as any).message);
@@ -231,8 +227,19 @@ const NewReportScreen = () => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <View style={styles.container}>
+      {isSuccess ? (
+        <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle" size={100} color="#22c55e" />
+            <Text style={[styles.successTitle, { color: colors.text }]}>
+                {t('new_report.success_title')}
+            </Text>
+            <Text style={[styles.successSubtitle, { color: colors.subtext }]}>
+                {t('new_report.success_message')}
+            </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          <View style={styles.container}>
           <View style={styles.header}>
             <Pressable onPress={handleGoBackToHome} style={styles.backButton}>
               <Text style={styles.backIcon}>←</Text>
@@ -293,6 +300,7 @@ const NewReportScreen = () => {
           </View>
         </View>
       </ScrollView>
+      )}
 
       {/* Modal para seleccionar Tipo de Incidente */}
       <Modal
@@ -368,6 +376,23 @@ const createStyles = (colors: any) =>
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    successContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    successTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginTop: 20,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    successSubtitle: {
+      fontSize: 16,
+      textAlign: 'center',
     },
     scrollViewContent: {
       flexGrow: 1,

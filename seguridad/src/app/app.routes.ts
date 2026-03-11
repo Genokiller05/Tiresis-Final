@@ -8,6 +8,7 @@ import { EntradasSalidasComponent } from './components/entradas-salidas/entradas
 import { CamarasComponent } from './components/camaras/camaras.component';
 import { LoginComponent } from './components/login/login.component';
 import { LayoutComponent } from './components/layout/layout.component';
+import { InformesSemanalesComponent } from './components/informes-semanales/informes-semanales.component';
 import { authGuard } from './guards/auth-guard';
 
 import { AdminRegisterComponent } from './components/admin-register/admin-register.component';
@@ -26,6 +27,7 @@ export const routes: Routes = [
             { path: 'registros', redirectTo: 'home', pathMatch: 'full' },
             { path: 'home', component: HomeComponent },
             { path: 'admin-profile', component: AdminProfileComponent },
+            { path: 'informes-semanales', component: InformesSemanalesComponent },
             { path: 'mapa', component: MapaComponent },
             { path: 'entradas-salidas', component: EntradasSalidasComponent },
             { path: 'camaras', component: CamarasComponent }

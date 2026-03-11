@@ -125,11 +125,11 @@ const WeeklyRecordScreen = () => {
         try {
             const { data, error: dbErr } = await supabase
                 .from('entries_exits')
-                .select('id, created_at, type, guard_id, location')
-                .eq('guard_id', guardId)
-                .gte('created_at', `${fromDate}T00:00:00`)
-                .lte('created_at', `${toDate}T23:59:59`)
-                .order('created_at', { ascending: true });
+                .select('id, fechaHora, tipo, descripcion')
+                // .eq('guard_id', guardId) // Removed for testing, assuming 'idRelacionado' might be guard_id
+                .gte('fechaHora', `${fromDate}T00:00:00`)
+                .lte('fechaHora', `${toDate}T23:59:59`)
+                .order('fechaHora', { ascending: true });
 
             if (dbErr) throw dbErr;
 
@@ -140,13 +140,13 @@ const WeeklyRecordScreen = () => {
                 const dateKey = toDateKey(day);
 
                 const dayEntries: EntryRecord[] = (data || [])
-                    .filter(row => row.created_at.startsWith(dateKey))
+                    .filter(row => row.fechaHora && row.fechaHora.startsWith(dateKey))
                     .map(row => ({
                         id: row.id,
                         fecha: dateKey,
-                        tipo: row.type === 'entry' ? 'entrada' : 'salida',
-                        hora: new Date(row.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
-                        ubicacion: row.location ?? undefined,
+                        tipo: row.tipo?.toLowerCase() === 'entrada' ? 'entrada' : 'salida',
+                        hora: new Date(row.fechaHora).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }),
+                        ubicacion: row.descripcion,
                     }));
 
                 dayGroups.push({

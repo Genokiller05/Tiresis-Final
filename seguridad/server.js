@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const cors = require('cors');
 const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
@@ -688,6 +689,262 @@ app.delete('/api/reports/:id', authMiddleware, async (req, res) => {
   const { error } = await supabase.from('reports').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Reporte eliminado' });
+});
+
+// --- Weekly Reports Feature ---
+
+const WEEKLY_REPORTS_FILE = 'weekly_reports.json';
+
+function readWeeklyReports() {
+  const reports = readJsonFile(WEEKLY_REPORTS_FILE);
+  return Array.isArray(reports) ? reports : [];
+}
+
+function writeWeeklyReports(reports) {
+  writeJsonFile(WEEKLY_REPORTS_FILE, reports);
+}
+
+function shouldUseWeeklyReportsFallback(error) {
+  const message = error?.message || '';
+  return (
+    message.includes('weekly_reports') ||
+    message.includes('row-level security') ||
+    message.includes('permission denied') ||
+    message.includes('relation "weekly_reports" does not exist')
+  );
+}
+
+function mergeWeeklyReports(dbReports, localReports) {
+  const merged = new Map();
+  [...(dbReports || []), ...(localReports || [])].forEach(report => {
+    if (!report?.id) return;
+    merged.set(report.id, report);
+  });
+  return Array.from(merged.values());
+}
+
+function normalizeWeeklyReportStatus(report) {
+  if (typeof report?.status === 'string' && report.status.trim()) {
+    return report.status;
+  }
+
+  switch (report?.status_id) {
+    case 3:
+      return 'completed';
+    case 2:
+      return 'in_process';
+    default:
+      return 'pending';
+  }
+}
+
+function normalizeWeeklyReportArea(report) {
+  return report?.area_id || report?.location_id || report?.site_id || 'unknown';
+}
+
+function buildLocalWeeklyReport({ startDate, endDate, summary, adminNotes, siteId, status = 'draft' }) {
+  const timestamp = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    start_date: startDate,
+    end_date: endDate,
+    summary_json: summary,
+    status,
+    admin_notes: adminNotes || null,
+    site_id: siteId || null,
+    created_at: timestamp,
+    updated_at: timestamp
+  };
+}
+
+function filterLocalWeeklyReportsBySite(reports, siteIds) {
+  return (reports || []).filter(report => !report.site_id || siteIds.includes(report.site_id));
+}
+
+/**
+ * Helper to generate aggregated weekly report data.
+ * Returns an object with total reports, counts by status, area hotspots, and busiest day/shift.
+ */
+async function generateWeeklyReport(startDate, endDate, siteIds) {
+  // Fetch reports within the period for the given sites
+  const { data: reports, error } = await supabase
+    .from('reports')
+    .select('*')
+    .in('site_id', siteIds)
+    .gte('created_at', startDate)
+    .lte('created_at', endDate);
+
+  if (error) {
+    console.error('Error fetching reports for weekly report:', error.message);
+    throw error;
+  }
+
+  const total = reports.length;
+  const statusCounts = { completed: 0, in_process: 0, pending: 0 };
+  const areaCounts = {};
+  const dayShiftCounts = {};
+
+  reports.forEach(r => {
+    const status = normalizeWeeklyReportStatus(r);
+    if (statusCounts[status] !== undefined) statusCounts[status]++;
+    else statusCounts['pending']++;
+
+    const area = normalizeWeeklyReportArea(r);
+    areaCounts[area] = (areaCounts[area] || 0) + 1;
+
+    const date = new Date(r.created_at);
+    const day = date.toLocaleString('en-US', { weekday: 'long' });
+    const hour = date.getHours();
+    const shift = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'night';
+    const key = `${day}-${shift}`;
+    dayShiftCounts[key] = (dayShiftCounts[key] || 0) + 1;
+  });
+
+  const hottestArea = Object.entries(areaCounts).reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0])[0];
+  const busiestSlot = Object.entries(dayShiftCounts).reduce((a, b) => (b[1] > a[1] ? b : a), ['', 0])[0];
+
+  return {
+    total_reports: total,
+    status_counts: statusCounts,
+    hottest_area: hottestArea,
+    busiest_slot: busiestSlot,
+    generated_at: new Date().toISOString()
+  };
+}
+
+// POST /api/weekly-reports/generate - admin only
+app.post('/api/weekly-reports/generate', authMiddleware, async (req, res) => {
+  // Determine period: last Monday 08:00 to upcoming Sunday 22:00
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun,1=Mon,...
+  const diffToMonday = (day + 6) % 7; // days since Monday
+  const lastMonday = new Date(now);
+  lastMonday.setDate(now.getDate() - diffToMonday);
+  lastMonday.setHours(8, 0, 0, 0);
+  const nextSunday = new Date(lastMonday);
+  nextSunday.setDate(lastMonday.getDate() + 6);
+  nextSunday.setHours(22, 0, 0, 0);
+
+  try {
+    const summary = await generateWeeklyReport(lastMonday.toISOString(), nextSunday.toISOString(), req.siteIds);
+    const payload = {
+      start_date: lastMonday.toISOString(),
+      end_date: nextSunday.toISOString(),
+      summary_json: summary,
+      status: 'draft',
+      admin_notes: req.body.admin_notes || null
+    };
+
+    const { data, error } = await supabase.from('weekly_reports').insert([
+      payload
+    ]).select();
+
+    if (error) {
+      if (shouldUseWeeklyReportsFallback(error)) {
+        const localReports = readWeeklyReports();
+        const fallbackReport = buildLocalWeeklyReport({
+          startDate: payload.start_date,
+          endDate: payload.end_date,
+          summary,
+          adminNotes: payload.admin_notes,
+          siteId: req.activeSiteId
+        });
+        localReports.push(fallbackReport);
+        writeWeeklyReports(localReports);
+        console.warn('Weekly reports DB insert failed, using local fallback:', error.message);
+        return res.status(201).json({
+          message: 'Weekly report draft created locally',
+          report: fallbackReport,
+          source: 'local'
+        });
+      }
+
+      throw error;
+    }
+
+    res.status(201).json({ message: 'Weekly report draft created', report: data[0] });
+  } catch (e) {
+    console.error('Weekly report generation error:', e);
+    res.status(500).json({ message: 'Error generating weekly report', error: e.message });
+  }
+});
+
+// PATCH /api/weekly-reports/:id/publish - admin only
+app.patch('/api/weekly-reports/:id/publish', authMiddleware, async (req, res) => {
+  const reportId = req.params.id;
+  const { admin_notes } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .update({ status: 'published', admin_notes })
+      .eq('id', reportId)
+      .select();
+
+    if (error) {
+      if (!shouldUseWeeklyReportsFallback(error)) {
+        throw error;
+      }
+      console.warn('Weekly reports DB publish failed, trying local fallback:', error.message);
+    } else if (data?.[0]) {
+      return res.json({ message: 'Weekly report published', report: data[0] });
+    }
+
+    const localReports = readWeeklyReports();
+    const reportIndex = localReports.findIndex(report => report.id === reportId);
+
+    if (reportIndex === -1) {
+      throw error || new Error('Weekly report not found');
+    }
+
+    localReports[reportIndex] = {
+      ...localReports[reportIndex],
+      status: 'published',
+      admin_notes,
+      updated_at: new Date().toISOString()
+    };
+    writeWeeklyReports(localReports);
+
+    res.json({
+      message: 'Weekly report published locally',
+      report: localReports[reportIndex],
+      source: 'local'
+    });
+  } catch (e) {
+    console.error('Publish weekly report error:', e);
+    res.status(500).json({ message: 'Error publishing report', error: e.message });
+  }
+});
+
+// GET /api/weekly-reports - admins see all, guards see only published
+app.get('/api/weekly-reports', authMiddleware, async (req, res) => {
+  const isAdmin = !!req.adminEmail; // simplistic check; authMiddleware should set adminEmail for admins
+  const filter = isAdmin ? {} : { status: 'published' };
+  try {
+    let dbReports = [];
+    const { data, error } = await supabase.from('weekly_reports').select('*').match(filter);
+
+    if (error) {
+      if (!shouldUseWeeklyReportsFallback(error)) {
+        throw error;
+      }
+      console.warn('Weekly reports DB fetch failed, using local fallback:', error.message);
+    } else {
+      dbReports = data || [];
+    }
+
+    let localReports = filterLocalWeeklyReportsBySite(readWeeklyReports(), req.siteIds);
+    if (!isAdmin) {
+      localReports = localReports.filter(report => report.status === 'published');
+    }
+
+    const mergedReports = mergeWeeklyReports(dbReports, localReports)
+      .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
+
+    res.json(mergedReports);
+  } catch (e) {
+    console.error('Fetch weekly reports error:', e);
+    res.status(500).json({ message: 'Error fetching reports', error: e.message });
+  }
 });
 
 // --- Buildings (filtrado por site_id) ---

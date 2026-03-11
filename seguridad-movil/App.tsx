@@ -19,6 +19,7 @@ import RegistrationScreen from './RegistrationScreen';
 import ReportDetailScreen from './ReportDetailScreen';
 import NotificationsScreen from './NotificationsScreen';
 import WeeklyRecordScreen from './WeeklyRecordScreen';
+import BulletinsScreen from './BulletinsScreen';
 
 // --- Tipos para el Stack Navigator principal ---
 export type RootStackParamList = {
@@ -38,6 +39,7 @@ export type TabParamList = {
   Home: undefined;
   GuardCameras: undefined;
   Reports: undefined;
+  Bulletins: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -77,6 +79,10 @@ const MainTabs = () => {
       <Tab.Screen name="Reports" component={ReportsScreen} options={{
         title: t('reports.management_title'),
         tabBarIcon: ({ color, size }) => (<Ionicons name="stats-chart-outline" size={size} color={color} />),
+      }} />
+      <Tab.Screen name="Bulletins" component={BulletinsScreen} options={{
+        title: 'Boletines',
+        tabBarIcon: ({ color, size }) => (<Ionicons name="document-text-outline" size={size} color={color} />),
       }} />
     </Tab.Navigator>
   );

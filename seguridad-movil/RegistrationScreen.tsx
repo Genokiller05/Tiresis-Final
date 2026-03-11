@@ -56,6 +56,7 @@ const RegistrationScreen = () => {
     const [purpose, setPurpose] = useState(''); // Empresa o Motivo
     const [company, setCompany] = useState(''); // Solo para worker/delivery
     const [evidenceUri, setEvidenceUri] = useState<string | null>(null);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Configuración dinámica según el tipo
     const getScreenConfig = () => {
@@ -150,11 +151,10 @@ const RegistrationScreen = () => {
 
             await createEntryExit(entryData);
 
-            Alert.alert(
-                isExit ? 'Salida Registrada' : 'Entrada Registrada',
-                isExit ? 'La salida ha sido registrada correctamente.' : 'La entrada ha sido registrada correctamente.'
-            );
-            navigation.goBack();
+            setIsSuccess(true);
+            setTimeout(() => {
+                navigation.goBack();
+            }, 1800);
         } catch (error) {
             console.error(error);
             Alert.alert('Error', 'No se pudo registrar la entrada.');
@@ -170,11 +170,22 @@ const RegistrationScreen = () => {
             />
 
             <SafeAreaView style={styles.safeArea}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-                >
+                {isSuccess ? (
+                    <View style={styles.successContainer}>
+                        <Ionicons name="checkmark-circle" size={100} color="#22c55e" />
+                        <Text style={[styles.successTitle, { color: colors.text }]}>
+                            {isExit ? 'Salida Registrada' : 'Entrada Registrada'}
+                        </Text>
+                        <Text style={[styles.successSubtitle, { color: colors.subtext }]}>
+                            {isExit ? 'La salida ha sido registrada correctamente.' : 'La entrada ha sido registrada correctamente.'}
+                        </Text>
+                    </View>
+                ) : (
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        style={{ flex: 1 }}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                    >
                     <View style={styles.header}>
                         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={colors.text} />
@@ -278,6 +289,7 @@ const RegistrationScreen = () => {
 
                     </ScrollView>
                 </KeyboardAvoidingView>
+                )}
             </SafeAreaView>
         </View>
     );
@@ -286,6 +298,23 @@ const RegistrationScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1 },
     safeArea: { flex: 1 },
+    successContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    successTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    successSubtitle: {
+        fontSize: 16,
+        textAlign: 'center',
+    },
     header: {
         padding: 20,
         flexDirection: 'row',
