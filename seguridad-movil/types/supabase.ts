@@ -47,12 +47,21 @@ export interface Guard {
   id?: string; // UUID
   idEmpleado: string; // "00012345"
   nombre: string;     // "Juan Pérez López"
+  full_name?: string; // Alias usado por el backend
+  document_id?: string; // Alias de idEmpleado
   email: string;
   area?: string;      // "Entrada principal – Edificio A"
   foto?: string;
+  photo_url?: string; // Alias usado por algunos endpoints
   estado?: string;
+  telefono?: string;
+  phone?: string;     // Alias
+  direccion?: string;
   created_at?: string;
   fechaContratacion?: string;
+  actividades?: any[];
+  site_id?: string;
+  is_active?: boolean;
 }
 
 export type NotificationType = 'area_change' | 'shift_start' | 'shift_end' | 'general';

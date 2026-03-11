@@ -162,11 +162,49 @@ app.post('/api/migrate', async (req, res) => {
 // POST: Login (Proxy to Supabase Auth)
 // [REMOVED DUPLICATE LOGIN ENDPOINT]
 
-// POST: Upload photo (Keeps local storage for now, returns URL)
-app.post('/api/upload', upload.single('photo'), (req, res) => {
+// POST: Upload photo — sube a Supabase Storage y retorna URL pública
+app.post('/api/upload', upload.single('photo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: 'No se subió ningún archivo.' });
-  const fileUrl = `/uploads/${req.file.filename}`;
-  res.status(200).json({ url: fileUrl, message: 'Archivo subido correctamente.' });
+
+  try {
+    // Read the file from disk (multer already saved it)
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const fileName = `guards/${req.file.filename}`;
+    const contentType = req.file.mimetype || 'image/jpeg';
+
+    // Upload to Supabase Storage bucket 'guard-photos'
+    const { data, error } = await supabase.storage
+      .from('guard-photos')
+      .upload(fileName, fileBuffer, {
+        contentType,
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Supabase Storage upload error:', error.message);
+      // Fallback: return local URL
+      const localUrl = `/uploads/${req.file.filename}`;
+      return res.status(200).json({ url: localUrl, message: 'Guardado localmente (Supabase Storage falló).' });
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('guard-photos')
+      .getPublicUrl(fileName);
+
+    const publicUrl = urlData?.publicUrl;
+    console.log('Photo uploaded to Supabase Storage:', publicUrl);
+
+    // Clean up local file after successful upload
+    try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+
+    res.status(200).json({ url: publicUrl, message: 'Archivo subido correctamente a la nube.' });
+  } catch (err) {
+    console.error('Upload error:', err);
+    // Fallback to local
+    const localUrl = `/uploads/${req.file.filename}`;
+    res.status(200).json({ url: localUrl, message: 'Guardado localmente (error en la nube).' });
+  }
 });
 
 // --- Guards (Protegido por authMiddleware, filtrado por site_id) ---

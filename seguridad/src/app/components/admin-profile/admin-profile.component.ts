@@ -17,7 +17,6 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   // State management properties
   public isEditingProfile: boolean = false;
-  public isChangingPassword: boolean = false;
 
   // Form data models
   public adminName: string = 'Administrator Name';
@@ -28,10 +27,11 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   public location: string = '';
   public lastLoginDate: string | null = null;
 
-  // Password change models
-  public newPassword: string = '';
-  public confirmPassword: string = '';
-  public passwordErrorMessage: string = '';
+  // Weekly report
+  public weekNumber: number = 0;
+  public weekDateRange: string = '';
+
+  // Modals
   public isSuccessModalVisible: boolean = false;
   public isLogoutConfirmationVisible: boolean = false;
 
@@ -43,6 +43,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.calculateCurrentWeek();
   }
 
   ngOnDestroy(): void {
@@ -120,40 +121,37 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
     }
   }
 
-  // --- Password Change Methods ---
-  public showChangePassword(): void {
-    this.isChangingPassword = true;
+  // --- Weekly Report Methods ---
+  private calculateCurrentWeek(): void {
+    const now = new Date();
+    // Get ISO week number
+    const tempDate = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    tempDate.setUTCDate(tempDate.getUTCDate() + 4 - (tempDate.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1));
+    this.weekNumber = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+
+    // Calculate Monday of the current week
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diffToMonday);
+
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const formatDate = (d: Date) => `${d.getDate()} ${months[d.getMonth()]}`;
+    this.weekDateRange = `${formatDate(monday)} - ${formatDate(sunday)}, ${sunday.getFullYear()}`;
   }
 
-  public cancelChangePassword(): void {
-    this.isChangingPassword = false;
-    this.newPassword = '';
-    this.confirmPassword = '';
-    this.passwordErrorMessage = '';
+  public navigateToGenerateReport(): void {
+    // Placeholder for future navigation
+    console.log('Navegar a generar reporte semanal');
   }
 
-  public confirmChangePassword(): void {
-    // 1. Check if passwords match
-    if (this.newPassword !== this.confirmPassword) {
-      this.passwordErrorMessage = 'Las contraseñas no coinciden.';
-      return;
-    }
-
-    // 2. Validate password complexity (letters and numbers only)
-    const validPasswordRegex = /^[a-zA-Z0-9]+$/;
-    if (!validPasswordRegex.test(this.newPassword)) {
-      this.passwordErrorMessage = 'La contraseña solo puede contener letras y números.';
-      return;
-    }
-
-    // 3. Save the new password to localStorage
-    if (isPlatformBrowser(this.platformId)) {
-      localStorage.setItem('adminPassword', this.newPassword);
-    }
-
-    // 4. Reset and hide the form, then show success
-    this.cancelChangePassword();
-    this.showSuccessModal();
+  public navigateToManageReports(): void {
+    // Placeholder for future navigation
+    console.log('Navegar a administrar reportes');
   }
 
   // --- Success Modal Methods ---

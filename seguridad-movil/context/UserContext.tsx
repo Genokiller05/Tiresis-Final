@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { Guard } from '../types/supabase';
 import { updateGuardStatus } from '../services/dataService';
@@ -17,6 +17,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const [presenceChannel, setPresenceChannel] = useState<any>(null);
+    const [realtimeChannel, setRealtimeChannel] = useState<any>(null);
     useEffect(() => {
         const handleAppStateChange = async (nextAppState: AppStateStatus) => {
             if (!user) return;
@@ -40,6 +41,46 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
             subscription.remove();
         };
     }, [user]);
+
+    // Realtime subscription: listen for profile changes made by admin on web
+    const realtimeIdRef = user?.idEmpleado || (user as any)?.document_id || '';
+    useEffect(() => {
+        if (!realtimeIdRef) return;
+
+        let channel: any = null;
+        const setupRealtime = async () => {
+            const { supabase } = await import('../lib/supabase');
+            channel = supabase
+                .channel('guard-profile-' + realtimeIdRef)
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'guards',
+                        filter: `idEmpleado=eq.${realtimeIdRef}`,
+                    },
+                    (payload: any) => {
+                        console.log('[Realtime] Guard profile updated from web:', payload.new);
+                        if (payload.new) {
+                            setUser((prev: any) => {
+                                if (!prev) return prev;
+                                return { ...prev, ...payload.new };
+                            });
+                        }
+                    }
+                )
+                .subscribe();
+            setRealtimeChannel(channel);
+        };
+        setupRealtime();
+
+        return () => {
+            if (channel) {
+                channel.unsubscribe();
+            }
+        };
+    }, [realtimeIdRef]);
 
     const recordActivity = async (userId: string, tipo: string, descripcionPrefix: string, existingActivities?: any[]) => {
         try {
@@ -99,6 +140,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         if (presenceChannel) {
             presenceChannel.unsubscribe();
             setPresenceChannel(null);
+        }
+        if (realtimeChannel) {
+            realtimeChannel.unsubscribe();
+            setRealtimeChannel(null);
         }
         if (user) {
             try {

@@ -4,15 +4,13 @@ import {
   View,
   Text,
   Pressable,
-  TouchableOpacity,
-  Alert,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
-import { updateGuardStatus } from './services/dataService';
 import { useUser } from './context/UserContext';
 import { Image } from 'react-native';
 
@@ -35,111 +33,128 @@ const ProfileScreen = () => {
 
   const styles = createStyles(colors);
 
-  const updateStatus = async (id: string, status: string) => {
-    try {
-      await updateGuardStatus(id, status);
-      Alert.alert('Éxito', `Estado actualizado a: ${status}`);
-    } catch (error) {
-      Alert.alert('Error', 'Fallo al actualizar estado en Supabase');
-    }
-  };
-
   const handleGoBackToHome = () => {
     navigation.navigate('MainTabs', { screen: 'Home' });
   };
 
+  // Read all fields with fallbacks for both naming conventions
   const guardName = user?.nombre || user?.full_name || 'Agente';
   const guardId = user?.idEmpleado || user?.document_id || 'ID Desconocido';
   let guardPhoto = user?.foto || user?.photo_url || null;
   const guardEmail = user?.email || 'N/A';
+  const guardArea = user?.area || 'Sin área asignada';
+  const guardTelefono = user?.telefono || user?.phone || 'No registrado';
+  const guardDireccion = user?.direccion || 'No registrada';
+  const guardEstado = user?.estado || 'Sin estado';
 
+  // Fix photo URL for local server / emulator / physical device
   if (guardPhoto && !guardPhoto.startsWith('http')) {
-    guardPhoto = `http://10.0.2.2:3000${guardPhoto}`; // Android emulator localhost alias
+    // Local server path like /uploads/photo-123.jpg
+    // For Android emulator use 10.0.2.2, for physical device use your computer's local IP
+    const Platform = require('react-native').Platform;
+    const localHost = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+    guardPhoto = `http://${localHost}:3000${guardPhoto}`;
   }
+
+  // Status color logic
+  const getStatusColor = (estado: string) => {
+    switch (estado) {
+      case 'En servicio': return '#22c55e';
+      case 'Fuera de servicio': return '#ef4444';
+      case 'En descanso': return '#f59e0b';
+      default: return '#94a3b8';
+    }
+  };
+
+  const statusColor = getStatusColor(guardEstado);
+
+  // Initials for avatar fallback
+  const initials = guardName
+    .split(' ')
+    .slice(0, 2)
+    .map((n: string) => n.charAt(0))
+    .join('')
+    .toUpperCase();
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.panel}>
-          <View style={styles.header}>
-            <Pressable onPress={handleGoBackToHome} style={styles.backButton}>
-              <Text style={styles.backIcon}>←</Text>
-            </Pressable>
-            <Text style={styles.headerTitle}>{t('home.profile_button')}</Text>
-            <View style={{ width: 24 }} />
-          </View>
-
-          <View style={styles.profileHeader}>
-            {guardPhoto ? (
-              <Image source={{ uri: guardPhoto }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatar} />
-            )}
-            <Text style={styles.guardName}>{guardName}</Text>
-            <Text style={styles.guardId}>ID de Guardia: {guardId}</Text>
-          </View>
-
-          <View style={styles.infoSection}>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoLabel}>Nombre Completo</Text>
-              <Text style={styles.infoValue}>{guardName}</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.container}>
+          <View style={styles.panel}>
+            <View style={styles.header}>
+              <Pressable onPress={handleGoBackToHome} style={styles.backButton}>
+                <Text style={styles.backIcon}>←</Text>
+              </Pressable>
+              <Text style={styles.headerTitle}>{t('home.profile_button')}</Text>
+              <View style={{ width: 24 }} />
             </View>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoLabel}>ID de Guardia</Text>
-              <Text style={styles.infoValue}>{guardId}</Text>
+
+            {/* Profile Header with Avatar */}
+            <View style={styles.profileHeader}>
+              {guardPhoto ? (
+                <Image source={{ uri: guardPhoto }} style={styles.avatar} />
+              ) : (
+                <View style={[styles.avatar, styles.avatarFallback]}>
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </View>
+              )}
+              <Text style={styles.guardName}>{guardName}</Text>
+              <Text style={styles.guardId}>ID: {guardId}</Text>
+
+              {/* Status Badge */}
+              <View style={[styles.statusBadge, { backgroundColor: statusColor + '20', borderColor: statusColor + '60' }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                <Text style={[styles.statusText, { color: statusColor }]}>{guardEstado}</Text>
+              </View>
             </View>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoLabel}>Email</Text>
-              <Text style={styles.infoValue}>{guardEmail}</Text>
+
+            {/* Info Cards */}
+            <View style={styles.infoSection}>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Nombre Completo</Text>
+                <Text style={styles.infoValue}>{guardName}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>ID de Guardia</Text>
+                <Text style={styles.infoValue}>{guardId}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Email</Text>
+                <Text style={styles.infoValue}>{guardEmail}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Área Asignada</Text>
+                <Text style={styles.infoValue}>{guardArea}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Teléfono</Text>
+                <Text style={styles.infoValue}>{guardTelefono}</Text>
+              </View>
+              <View style={styles.infoBox}>
+                <Text style={styles.infoLabel}>Dirección</Text>
+                <Text style={styles.infoValue}>{guardDireccion}</Text>
+              </View>
             </View>
           </View>
-
-          <TouchableOpacity
-            style={[styles.statusButton, { backgroundColor: '#3b82f6' }]}
-            onPress={async () => {
-              try {
-                // Hardcoded ID for testing (matches one in DB if possible, or '00012345' from guards.json)
-                // Using '00012345' (Juan Perez) as test subject or '00054321'
-                const testId = '00012345';
-                const newStatus = 'En servicio'; // Toggle logic could be better but sticking to simple set for now
-                // Ideally check current status first. For this demo, let's just set to 'En servicio' button and 'Fuera' button
-                // or just a toggle.
-
-                // Let's make it a Toggle with Alert options
-                Alert.alert(
-                  'Cambiar Estado',
-                  'Selecciona tu nuevo estado:',
-                  [
-                    { text: 'En servicio', onPress: () => updateStatus(testId, 'En servicio') },
-                    { text: 'Fuera de servicio', onPress: () => updateStatus(testId, 'Fuera de servicio') },
-                    { text: 'Cancelar', style: 'cancel' }
-                  ]
-                );
-              } catch (e) {
-                Alert.alert('Error', 'No se pudo cambiar el estado');
-              }
-            }}
-          >
-            <Text style={styles.statusButtonText}>Cambiar Estado (Demo)</Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
-// 4. Función que genera los estilos dinámicamente.
-// Los componentes ahora usarán los colores del tema y se adaptarán.
 const createStyles = (colors: any) =>
   StyleSheet.create({
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
     },
+    scrollContent: {
+      flexGrow: 1,
+      padding: 20,
+    },
     container: {
       flex: 1,
       justifyContent: 'center',
-      padding: 20,
     },
     panel: {
       backgroundColor: colors.card,
@@ -155,7 +170,7 @@ const createStyles = (colors: any) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 30,
+      marginBottom: 20,
     },
     backButton: {
       padding: 5,
@@ -171,27 +186,57 @@ const createStyles = (colors: any) =>
     },
     profileHeader: {
       alignItems: 'center',
-      marginBottom: 30,
+      marginBottom: 24,
     },
     avatar: {
       width: 100,
       height: 100,
       borderRadius: 50,
-      backgroundColor: colors.border, // Placeholder para el avatar
+      backgroundColor: colors.border,
       marginBottom: 15,
+    },
+    avatarFallback: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.accent,
+    },
+    avatarInitials: {
+      color: '#ffffff',
+      fontSize: 36,
+      fontWeight: 'bold',
     },
     guardName: {
       fontSize: 24,
       fontWeight: 'bold',
       color: colors.text,
+      textAlign: 'center',
     },
     guardId: {
       fontSize: 16,
       color: colors.subtext,
       marginTop: 4,
     },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    statusDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: 8,
+    },
+    statusText: {
+      fontSize: 14,
+      fontWeight: '700',
+    },
     infoSection: {
-      marginBottom: 30,
+      marginBottom: 10,
     },
     infoBox: {
       backgroundColor: colors.inputBackground,
@@ -202,25 +247,17 @@ const createStyles = (colors: any) =>
       borderColor: colors.border,
     },
     infoLabel: {
-      fontSize: 14,
+      fontSize: 12,
       color: colors.subtext,
       marginBottom: 4,
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
     },
     infoValue: {
       fontSize: 16,
       color: colors.text,
       fontWeight: '500',
-    },
-    statusButton: {
-      padding: 15,
-      borderRadius: 12,
-      alignItems: 'center',
-      marginTop: 20,
-    },
-    statusButtonText: {
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: 16,
     },
   });
 

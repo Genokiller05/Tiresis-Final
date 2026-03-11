@@ -156,71 +156,53 @@
               </div>
             </section>
 
-            <!-- Security Card -->
+            <!-- Weekly Report Card -->
             <section
               class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-glass-border relative overflow-hidden">
               <div class="flex justify-between items-center mb-10">
-                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Protocolos de Identidad</p>
+                <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Reporte Semanal</p>
                 <div
                   class="flex items-center bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20 shadow-emerald-500/10 shadow-lg">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-3"></span>
-                  <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Nivel 5
-                    Autorizado</span>
+                  <span class="material-icons text-emerald-400 text-sm mr-2">date_range</span>
+                  <span class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Semana {{ weekNumber }} · {{ weekDateRange }}</span>
                 </div>
               </div>
 
-              <div *ngIf="!isChangingPassword"
-                class="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-glass-border hover:border-primary/50 transition-all cursor-pointer group"
-                (click)="showChangePassword()">
-                <div class="flex items-center space-x-5">
-                  <div
-                    class="w-14 h-14 rounded-2xl bg-gradient-premium flex items-center justify-center text-white shadow-xl shadow-purple-900/20 group-hover:scale-110 transition-transform">
-                    <span class="material-icons text-2xl">vps</span>
+              <div class="space-y-4">
+                <!-- Generar Reporte -->
+                <div
+                  class="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-glass-border hover:border-primary/50 transition-all cursor-pointer group"
+                  (click)="navigateToGenerateReport()">
+                  <div class="flex items-center space-x-5">
+                    <div
+                      class="w-14 h-14 rounded-2xl bg-gradient-premium flex items-center justify-center text-white shadow-xl shadow-purple-900/20 group-hover:scale-110 transition-transform">
+                      <span class="material-icons text-2xl">note_add</span>
+                    </div>
+                    <div>
+                      <p class="text-base font-black text-white">Generar Reporte</p>
+                      <p class="text-xs text-gray-400 font-medium">Crear un nuevo reporte de la semana actual</p>
+                    </div>
                   </div>
-                  <div>
-                    <p class="text-base font-black text-white">Clave Maestra</p>
-                    <p class="text-xs text-gray-400 font-medium">Actualización obligatoria cada 90 días</p>
-                  </div>
-                </div>
-                <span
-                  class="material-icons text-primary scale-125 group-hover:translate-x-1 transition-all">chevron_right</span>
-              </div>
-
-              <!-- Change Password Form -->
-              <div *ngIf="isChangingPassword" class="space-y-8 animate-in slide-in-from-top-4 duration-300">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-primary uppercase tracking-widest ml-1">Nueva
-                      Secuencia</label>
-                    <input type="password" [(ngModel)]="newPassword"
-                      class="w-full bg-black/60 border border-glass-border text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/50 outline-none text-sm font-mono tracking-widest"
-                      placeholder="••••••••">
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-primary uppercase tracking-widest ml-1">Validación
-                      de Firma</label>
-                    <input type="password" [(ngModel)]="confirmPassword"
-                      class="w-full bg-black/60 border border-glass-border text-white rounded-2xl px-6 py-4 focus:ring-2 focus:ring-primary/50 outline-none text-sm font-mono tracking-widest"
-                      placeholder="••••••••">
-                  </div>
+                  <span
+                    class="material-icons text-primary scale-125 group-hover:translate-x-1 transition-all">chevron_right</span>
                 </div>
 
-                <div *ngIf="passwordErrorMessage"
-                  class="p-4 bg-rose-600/10 border border-rose-500/20 rounded-2xl flex items-center gap-3">
-                  <span class="material-icons text-rose-500 text-lg">error_outline</span>
-                  <p class="text-rose-500 text-[10px] font-black uppercase tracking-widest">{{ passwordErrorMessage }}
-                  </p>
-                </div>
-
-                <div class="flex items-center space-x-6 pt-6">
-                  <button (click)="confirmChangePassword()"
-                    class="flex-1 py-5 bg-gradient-premium text-white font-black uppercase tracking-widest rounded-2xl shadow-2xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm">
-                    EJECUTAR CAMBIO
-                  </button>
-                  <button (click)="cancelChangePassword()"
-                    class="px-8 py-5 glass-effect text-gray-400 hover:text-white font-black uppercase tracking-widest rounded-2xl border border-glass-border transition-all text-sm">
-                    ABORTAR
-                  </button>
+                <!-- Administrar Reporte -->
+                <div
+                  class="flex items-center justify-between p-6 bg-black/40 rounded-3xl border border-glass-border hover:border-primary/50 transition-all cursor-pointer group"
+                  (click)="navigateToManageReports()">
+                  <div class="flex items-center space-x-5">
+                    <div
+                      class="w-14 h-14 rounded-2xl bg-gradient-premium flex items-center justify-center text-white shadow-xl shadow-purple-900/20 group-hover:scale-110 transition-transform">
+                      <span class="material-icons text-2xl">folder_open</span>
+                    </div>
+                    <div>
+                      <p class="text-base font-black text-white">Administrar Reporte</p>
+                      <p class="text-xs text-gray-400 font-medium">Ver, editar o eliminar reportes existentes</p>
+                    </div>
+                  </div>
+                  <span
+                    class="material-icons text-primary scale-125 group-hover:translate-x-1 transition-all">chevron_right</span>
                 </div>
               </div>
             </section>
