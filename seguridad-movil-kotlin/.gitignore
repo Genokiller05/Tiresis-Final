@@ -1,0 +1,37 @@
+# Gradle files
+.gradle/
+build/
+
+# Local configuration file (SDK path, etc)
+local.properties
+
+# Android Studio generated files and folders
+*.iml
+.idea/
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore files (NEVER commit these)
+*.jks
+*.keystore
+
+# Google Services (API keys - keep out of source control)
+google-services.json
+
+# Proguard
+proguard/
+
+# Generated files
+bin/
+gen/
+out/
+
+# APK/AAB outputs
+*.apk
+*.aab
+*.ap_
+
+# Test coverage reports
+report/

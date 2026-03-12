@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Tiresis Movil</string>
+
+    <!-- Login -->
+    <string name="login_subtitle">VIGILANCIA INTELIGENTE</string>
+    <string name="login_email_label">Correo Electrónico</string>
+    <string name="login_email_placeholder">usuario@tiresis.com</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="login_enter_email">Por favor ingresa tu correo electrónico</string>
+    <string name="login_access_error">Error de acceso</string>
+    <string name="login_email_not_found">Correo no encontrado. Verifica que esté registrado.</string>
+    <string name="login_generic_error">Ocurrió un error al intentar iniciar sesión.</string>
+    <string name="login_error_title">Error</string>
+    <string name="login_version">Version 2.1.0 • Access Control</string>
+
+    <!-- Home -->
+    <string name="home_guard_button">Centro de Monitoreo</string>
+    <string name="home_dashboard_title">Panel de Control</string>
+    <string name="home_register_activity">Registrar Actividad</string>
+    <string name="home_new_visit">Nueva Visita</string>
+    <string name="home_register_action">+ REGISTRAR</string>
+    <string name="home_delivery">Paquetería</string>
+    <string name="home_delivery_desc">Amazon, DHL…</string>
+    <string name="home_services">Servicios</string>
+    <string name="home_services_desc">Mantenimiento</string>
+    <string name="home_report_incident">Reportar Incidente</string>
+    <string name="home_report_desc">Robo, Daños, Emergencia</string>
+    <string name="home_profile_button">Perfil</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_es">Español</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_notifications">Notificaciones</string>
+    <string name="settings_dark_mode">Modo Oscuro</string>
+    <string name="settings_logout">Cerrar Sesión</string>
+    <string name="settings_member_since">Miembro desde</string>
+    <string name="settings_area">Área</string>
+    <string name="settings_weekly_record">Registro Semanal</string>
+
+    <!-- Reports -->
+    <string name="reports_management_title">Gestión de Reportes</string>
+
+    <!-- New Report -->
+    <string name="new_report_title">Nuevo Reporte</string>
+    <string name="new_report_incident_type">Tipo de Incidente</string>
+    <string name="new_report_select_incident_type">Seleccionar tipo de incidente</string>
+    <string name="new_report_assigned_area">Área Asignada</string>
+    <string name="new_report_select_area">Seleccionar Área</string>
+    <string name="new_report_detailed_description">Descripción Detallada</string>
+    <string name="new_report_add_details">Añada todos los detalles relevantes…</string>
+    <string name="new_report_evidence">Evidencia (Fotos/Videos)</string>
+    <string name="new_report_take_evidence_button">Tomar Foto/Video</string>
+    <string name="new_report_evidence_helper_camera">Toca para usar la cámara del dispositivo.</string>
+    <string name="new_report_file_selected">Archivo seleccionado:</string>
+    <string name="new_report_send_button">Enviar Reporte</string>
+    <string name="new_report_success_title">Reporte enviado</string>
+    <string name="new_report_success_message">El reporte ha sido registrado exitosamente.</string>
+    <string name="new_report_error_title">Error</string>
+    <string name="new_report_permission_required">Permiso requerido</string>
+    <string name="new_report_permission_message">Necesitamos permiso para acceder a tu cámara.</string>
+
+    <!-- Notifications -->
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_mark_all_read">Marcar todo como leído</string>
+    <string name="notifications_no_notifications">No tienes notificaciones</string>
+    <string name="notifications_unread">sin leer</string>
+    <string name="notifications_just_now">Ahora</string>
+
+    <!-- General -->
+    <string name="general_cancel">Cancelar</string>
+    <string name="general_loading">Cargando…</string>
+    <string name="general_error">Error</string>
+    <string name="general_retry">Reintentar</string>
+    <string name="general_no_description">Sin descripción</string>
+
+    <!-- Registration -->
+    <string name="registration_visit_title">Registrar Visita</string>
+    <string name="registration_delivery_title">Paquetería / Entrega</string>
+    <string name="registration_worker_title">Trabajador / Mantenimiento</string>
+    <string name="registration_visit_desc">Registro de invitados a la residencia.</string>
+    <string name="registration_delivery_desc">Registro de entregas (Amazon, DHL, Comida…)</string>
+    <string name="registration_worker_desc">Registro de reparaciones y personal de servicio.</string>
+    <string name="registration_evidence_required">Evidencia Obligatoria (INE/Rostro)</string>
+    <string name="registration_tap_camera">Toque para escanear Identificación</string>
+    <string name="registration_full_name">Nombre Completo</string>
+    <string name="registration_company">Empresa / Compañía</string>
+    <string name="registration_visit_purpose">A quién visita / Departamento</string>
+    <string name="registration_other_purpose">Motivo / Descripción</string>
+    <string name="registration_entry">ENTRADA</string>
+    <string name="registration_exit">SALIDA</string>
+    <string name="registration_register_entry">Registrar Entrada</string>
+    <string name="registration_register_exit">Registrar Salida</string>
+    <string name="registration_entry_registered">Entrada Registrada</string>
+    <string name="registration_exit_registered">Salida Registrada</string>
+    <string name="registration_entry_success">La entrada ha sido registrada correctamente.</string>
+    <string name="registration_exit_success">La salida ha sido registrada correctamente.</string>
+    <string name="registration_missing_data">Faltan Datos</string>
+    <string name="registration_missing_data_msg">El nombre y la fotografía (INE/Rostro) son obligatorios.</string>
+
+    <!-- Weekly Record -->
+    <string name="weekly_record_title">Registro Semanal</string>
+    <string name="weekly_record_current_week">Semana actual</string>
+    <string name="weekly_record_records">Registros</string>
+    <string name="weekly_record_active_days">Días activos</string>
+    <string name="weekly_record_inactive_days">Días sin mov.</string>
+    <string name="weekly_record_no_movements">— Sin movimientos —</string>
+    <string name="weekly_record_no_record">Sin registro</string>
+    <string name="weekly_record_entry">Entrada</string>
+    <string name="weekly_record_exit">Salida</string>
+    <string name="weekly_record_loading">Cargando registro…</string>
+    <string name="weekly_record_error">Error al cargar el registro. Intenta de nuevo.</string>
+    <string name="weekly_record_guard_error">No se pudo identificar al guardia.</string>
+
+    <!-- Bulletins -->
+    <string name="bulletins_title">Boletines Semanales</string>
+    <string name="bulletins_subtitle">Reportes operativos e instrucciones</string>
+    <string name="bulletins_empty">No hay boletines publicados aún.</string>
+    <string name="bulletins_activity_summary">Resumen de Actividad</string>
+    <string name="bulletins_reports">Reportes</string>
+    <string name="bulletins_completed">Completados</string>
+    <string name="bulletins_in_process">En Proceso</string>
+    <string name="bulletins_pending">Pendientes</string>
+    <string name="bulletins_critical_area">Área Crítica:</string>
+    <string name="bulletins_risk_shift">Turno de Riesgo:</string>
+    <string name="bulletins_no_data">Sin datos</string>
+    <string name="bulletins_admin_instructions">Instrucciones del Administrador</string>
+    <string name="bulletins_week_of">Semana del %1$s</string>
+    <string name="bulletins_published">Publicado el %1$s</string>
+
+    <!-- Guard/Camera screen -->
+    <string name="guard_system_active">SISTEMA ACTIVO</string>
+    <string name="guard_permission_required">Permiso Requerido</string>
+    <string name="guard_activate_camera">Activar Cámara</string>
+    <string name="guard_signal_lost">SEÑAL PERDIDA</string>
+    <string name="guard_not_streaming">La cámara no está transmitiendo video.</string>
+    <string name="guard_live">LIVE</string>
+    <string name="guard_offline">OFFLINE</string>
+    <string name="guard_live_view">VISTA EN VIVO</string>
+
+    <!-- Report Detail -->
+    <string name="report_detail_title">Detalle del Reporte</string>
+    <string name="report_detail_id">ID del Reporte</string>
+    <string name="report_detail_guard">Guardia / Usuario</string>
+    <string name="report_detail_type">Tipo de Incidente</string>
+    <string name="report_detail_area">Área Asignada</string>
+    <string name="report_detail_date">Fecha</string>
+    <string name="report_detail_status">Estado</string>
+    <string name="report_detail_summary">Resumen</string>
+    <string name="report_detail_evidence">Evidencia</string>
+    <string name="report_detail_no_evidence">Sin evidencia adjunta</string>
+    <string name="report_detail_loading">Cargando reporte…</string>
+    <string name="report_detail_not_found">Reporte no encontrado</string>
+
+    <!-- Profile -->
+    <string name="profile_full_name">Nombre Completo</string>
+    <string name="profile_guard_id">ID de Guardia</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_assigned_area">Área Asignada</string>
+    <string name="profile_phone">Teléfono</string>
+    <string name="profile_address">Dirección</string>
+    <string name="profile_no_area">Sin área asignada</string>
+    <string name="profile_no_phone">No registrado</string>
+    <string name="profile_no_address">No registrada</string>
+
+    <!-- Statuses -->
+    <string name="status_pending">Pendiente</string>
+    <string name="status_in_process">En proceso</string>
+    <string name="status_completed">Completado</string>
+    <string name="status_cancelled">Cancelado</string>
+    <string name="status_suspended">Suspendido</string>
+    <string name="status_sent">Enviado</string>
+</resources>
