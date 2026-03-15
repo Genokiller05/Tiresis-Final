@@ -489,6 +489,7 @@ app.post('/api/register-admin', async (req, res) => {
       zone: newUser.zone,
       document_id: 'ADMIN-' + Date.now(),
       role: 'admin',
+      plan: req.body.plan || 'Básico',
       is_active: true,
       created_at: new Date().toISOString()
     };
@@ -619,6 +620,7 @@ app.post('/api/login', async (req, res) => {
       lng: adminUser.lng,
       zone: adminUser.zone,
       role: adminUser.role,
+      plan: adminUser.plan || 'Básico',
       sites: sites
     }
   });
@@ -631,6 +633,36 @@ app.patch('/api/admins/update', async (req, res) => {
   const { data, error } = await supabase.from('admins').update(updates).eq('email', email).select();
   if (error) return res.status(500).json({ message: 'Error actualizando admin', error: error.message });
   res.json({ message: 'Administrador actualizado', admin: data[0] });
+});
+
+/**
+ * Activa el modo Premium para un administrador tras un pago exitoso.
+ */
+app.post('/api/upgrade-admin-plan', async (req, res) => {
+  const { email, plan } = req.body;
+  if (!email || !plan) return res.status(400).json({ message: 'Email y Plan son requeridos.' });
+
+  try {
+    const admins = readJsonFile('admins.json');
+    const adminIndex = admins.findIndex(a => a.email === email);
+
+    if (adminIndex !== -1) {
+      admins[adminIndex].plan = plan;
+      writeJsonFile('admins.json', admins);
+      console.log(`[BE] Plan actualizado a ${plan} para:`, email);
+      
+      // Sincronizar con Supabase si existe allí
+      try {
+        await supabase.from('admins').update({ plan }).eq('email', email);
+      } catch (e) { /* silent sync error */ }
+
+      return res.json({ ok: true, message: `Plan actualizado exitosamente a ${plan}` });
+    }
+
+    return res.status(404).json({ ok: false, message: 'Administrador no encontrado.' });
+  } catch (err) {
+    return res.status(500).json({ ok: false, message: 'Error al actualizar el plan.', error: err.message });
+  }
 });
 
 // --- Cameras (filtrado por site_id) ---
@@ -812,8 +844,16 @@ async function generateWeeklyReport(startDate, endDate, siteIds) {
   };
 }
 
-// POST /api/weekly-reports/generate - admin only
+// POST /api/weekly-reports/generate - admin only (PREMIUM)
 app.post('/api/weekly-reports/generate', authMiddleware, async (req, res) => {
+  // Verificar si el usuario es PREMIUM
+  if (req.userPlan !== 'Premium') {
+    return res.status(403).json({ 
+      ok: false, 
+      message: 'Función no disponible. La generación de reportes semanales es una característica exclusiva del Plan Premium. Por favor, realiza un Upgrade para continuar.' 
+    });
+  }
+
   // Determine period: last Monday 08:00 to upcoming Sunday 22:00
   const now = new Date();
   const day = now.getDay(); // 0=Sun,1=Mon,...
@@ -1023,9 +1063,17 @@ app.get("/api/stripe/config", (req, res) => {
  * Crea un PaymentIntent para pago con TARJETA (inline con Stripe Elements).
  */
 app.post("/api/stripe/create-payment-intent", async (req, res) => {
-  if (!stripe) return res.status(500).json({ ok: false, message: 'Stripe no configurado. Agrega STRIPE_SECRET_KEY en .env' });
   try {
     const { amountMXN, email } = req.body;
+    console.log(`[DEBU-STRIPE] Iniciando PaymentIntent para: ${email} | Monto: ${amountMXN} MXN`);
+
+    if (!stripe) {
+      console.error('[STRIPE-CONFIG-ERROR] Falta STRIPE_SECRET_KEY en el .env');
+      return res.status(500).json({ 
+        ok: false, 
+        message: 'Stripe no configurado. Falta completar STRIPE_PUBLISHABLE_KEY y/o STRIPE_SECRET_KEY en el .env' 
+      });
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(Number(amountMXN) * 100),
@@ -1110,20 +1158,42 @@ app.get("/api/stripe/payment-status/:paymentIntentId", async (req, res) => {
 });
 
 /**
+ * Helper para actualizar el plan de un administrador.
+ */
+async function updateAdminPlanStatus(email, plan) {
+  try {
+    const admins = readJsonFile('admins.json');
+    const adminIndex = admins.findIndex(a => a.email === email);
+    if (adminIndex !== -1) {
+      admins[adminIndex].plan = plan;
+      writeJsonFile('admins.json', admins);
+      console.log(`[PLAN-SYNC] Plan ${plan} activado para ${email}`);
+      try {
+        await supabase.from('admins').update({ plan }).eq('email', email);
+      } catch (e) { /* silent supabase sync error */ }
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error('[PLAN-UPDATE-ERROR]', err.message);
+    return false;
+  }
+}
+
+/**
  * Webhook de Stripe
  */
 app.post(
   "/api/stripe/webhook",
   express.raw({ type: "application/json" }),
-  (req, res) => {
+  async (req, res) => {
     const sig = req.headers["stripe-signature"];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "whsec_PLACEHOLDER";
 
     let event;
     try {
-      // In production, verify signature. In dev without valid secret, we might skip or warn.
       if (webhookSecret === "whsec_PLACEHOLDER") {
-        event = req.body; // Bypass verification if secret is not set (INSECURE - DEV ONLY)
+        event = JSON.parse(req.body); 
       } else {
         event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
       }
@@ -1132,12 +1202,21 @@ app.post(
     }
 
     switch (event.type) {
-      case "checkout.session.async_payment_succeeded":
-        console.log("💰 OXXO Payment Succeeded:", event.data.object);
-        // Here you would find the user by email and setting them to active
+      case "payment_intent.succeeded":
+        const pi = event.data.object;
+        const email = pi.receipt_email || pi.metadata?.customer_email || pi.billing_details?.email;
+        console.log(`💰 Pago Exitoso detectado via Webhook para: ${email}`);
+        if (email) {
+          await updateAdminPlanStatus(email, 'Premium');
+        }
         break;
-      case "checkout.session.async_payment_failed":
-        console.log("❌ OXXO Payment Failed", event.data.object);
+      case "checkout.session.completed":
+        const session = event.data.object;
+        const customerEmail = session.customer_details?.email || session.metadata?.email;
+        console.log(`✅ Checkout completado para: ${customerEmail}`);
+        if (customerEmail) {
+          await updateAdminPlanStatus(customerEmail, 'Premium');
+        }
         break;
     }
 

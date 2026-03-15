@@ -1,0 +1,106 @@
+<div class="p-8 min-h-screen">
+  <header class="mb-10 flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-700">
+    <div>
+      <h1 class="text-4xl font-black tracking-tighter text-prism-gradient italic">Dashboard de Analítica</h1>
+      <p class="text-blue-400/60 font-bold tracking-[0.2em] uppercase text-xs mt-1">Inteligencia de Datos y Tendencias</p>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <div class="px-6 py-2 glass-effect rounded-2xl border border-white/5 flex items-center gap-3">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs font-black text-gray-400 uppercase tracking-widest">Real-Time Sync</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 overflow-hidden">
+    <div class="glass-card-premium p-6 rounded-3xl border border-white/5 relative group hover:border-purple-500/30 transition-all">
+      <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-600/10 blur-3xl rounded-full"></div>
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Total Incidentes</p>
+      <div class="flex items-end justify-between">
+        <h2 class="text-4xl font-black text-white italic tracking-tighter">{{ totalIncidentes }}</h2>
+        <span class="material-icons text-purple-500 text-3xl">analytics</span>
+      </div>
+      <div class="mt-4 h-1 bg-white/5 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-purple-600 to-blue-500 w-[70%]"></div>
+      </div>
+    </div>
+
+    <div class="glass-card-premium p-6 rounded-3xl border border-white/5 relative group hover:border-emerald-500/30 transition-all">
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Guardia del Mes</p>
+      <div class="flex items-end justify-between">
+        <h2 class="text-2xl font-black text-white italic tracking-tighter truncate max-w-[180px]">{{ topGuardia }}</h2>
+        <span class="material-icons text-emerald-500 text-3xl">stars</span>
+      </div>
+      <p class="text-[10px] text-emerald-400 font-bold mt-2 uppercase tracking-widest">Mayor volumen de reportes</p>
+    </div>
+
+    <div class="glass-card-premium p-6 rounded-3xl border border-white/5 relative group hover:border-blue-500/30 transition-all">
+      <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Zona Caliente</p>
+      <div class="flex items-end justify-between">
+        <h2 class="text-2xl font-black text-white italic tracking-tighter truncate max-w-[180px]">{{ zonaMasActiva }}</h2>
+        <span class="material-icons text-blue-500 text-3xl">gps_fixed</span>
+      </div>
+      <p class="text-[10px] text-blue-400 font-bold mt-2 uppercase tracking-widest">Punto de mayor incidencia</p>
+    </div>
+  </div>
+
+  <!-- Charts Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+    <!-- Hourly Trend -->
+    <div class="glass-card-premium p-8 rounded-[2rem] border border-white/5 h-full">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h3 class="text-white font-black uppercase tracking-widest text-sm">Frecuencia por Horario</h3>
+          <p class="text-[10px] text-gray-500 font-bold">Distribución de incidentes en 24h</p>
+        </div>
+        <span class="material-icons text-purple-400 bg-purple-400/10 p-2 rounded-xl">schedule</span>
+      </div>
+      <div class="relative h-[300px]">
+        <canvas #hourlyChart></canvas>
+      </div>
+    </div>
+
+    <!-- Top Guardias -->
+    <div class="glass-card-premium p-8 rounded-[2rem] border border-white/5 h-full">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h3 class="text-white font-black uppercase tracking-widest text-sm">Eficiencia Operativa</h3>
+          <p class="text-[10px] text-gray-500 font-bold">Top 5 Guardias con más actividad</p>
+        </div>
+        <span class="material-icons text-blue-400 bg-blue-400/10 p-2 rounded-xl">shield</span>
+      </div>
+      <div class="relative h-[300px]">
+        <canvas #guardsChart></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Distribution by Type -->
+    <div class="glass-card-premium p-8 rounded-[2rem] border border-white/5 lg:col-span-1">
+      <h3 class="text-white font-black uppercase tracking-widest text-sm mb-6">Tipología</h3>
+      <div class="relative h-[250px]">
+        <canvas #categoryChart></canvas>
+      </div>
+    </div>
+
+    <!-- Future Heatmap Placeholder / Info -->
+    <div class="glass-card-premium p-8 rounded-[2rem] border border-white/5 lg:col-span-2 flex flex-col justify-center items-center text-center relative overflow-hidden bg-gradient-to-br from-black/20 to-blue-900/10">
+      <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+      <div class="relative z-10">
+        <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-4 mx-auto">
+          <span class="material-icons text-blue-400 text-3xl">map</span>
+        </div>
+        <h3 class="text-white font-black uppercase tracking-widest text-lg mb-2 italic">Mapa de Calor Geoespacial</h3>
+        <p class="text-gray-400 text-xs max-w-sm leading-relaxed">
+          Los puntos de calor se visualizan directamente en el <span class="text-blue-400 font-bold">Mapa de Despliegue</span> para una respuesta táctica inmediata.
+        </p>
+        <button (click)="viewMap()" class="mt-6 px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 transition-all">
+          Ver en Mapa
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -11,11 +11,25 @@ import { GeocodingService } from '../../services/geocoding.service';
     standalone: true,
     imports: [CommonModule, FormsModule],
     template: `
-    <div class="min-h-screen bg-[#0a192f] text-gray-100 flex flex-col font-sans relative overflow-hidden">
+    <div class="min-h-screen text-gray-100 flex flex-col font-sans relative overflow-x-hidden bg-transparent">
       
-      <!-- Background Effects (Subtle Blue Glows) -->
-      <div class="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[100px] pointer-events-none"></div>
-      <div class="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-indigo-900/10 rounded-full blur-[100px] pointer-events-none"></div>
+      <!-- Background Layer (Base) -->
+      <div class="fixed top-0 left-0 w-full h-full bg-[#081121] z-[-4] pointer-events-none"></div>
+
+      <!-- Background Image -->
+      <div class="fixed top-0 left-0 w-full h-full z-[-3] pointer-events-none">
+          <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop" 
+               class="w-full h-full object-cover opacity-30" alt="Security Background">
+      </div>
+      
+      <!-- Overlays -->
+      <div class="fixed top-0 left-0 w-full h-full bg-gradient-to-b from-[#081121]/40 to-[#081121]/90 z-[-2] pointer-events-none"></div>
+      <div class="fixed top-0 left-0 w-full h-full z-[-2] opacity-10 pointer-events-none" 
+           style="background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 50px 50px;">
+      </div>
+      
+      <div class="fixed top-[-100px] left-[-100px] w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
+      <div class="fixed bottom-[-100px] right-[-100px] w-[800px] h-[800px] bg-emerald-600/5 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
 
       <!-- Navbar -->
       <nav class="p-6 flex justify-between items-center z-10 w-full max-w-7xl mx-auto border-b border-white/5">
@@ -34,98 +48,132 @@ import { GeocodingService } from '../../services/geocoding.service';
       <div class="flex-grow flex items-center justify-center p-4 z-10 relative">
         
         <!-- STEP 1: LANDING -->
-        <div *ngIf="step === 'landing'" class="text-center max-w-5xl animate-fade-in-up">
-            <h1 class="text-5xl md:text-7xl font-bold mb-6 text-white leading-tight">
-                Vigilancia inteligente <br> <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">en tiempo real</span>
+        <div *ngIf="step === 'landing'" class="flex flex-col items-center justify-center text-center animate-fade-in-up py-10">
+            
+            <!-- Badge -->
+            <div class="mb-8 px-5 py-2 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-300 text-sm font-medium flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                Nueva Plataforma de Seguridad 2026
+            </div>
+
+            <h1 class="text-6xl md:text-8xl font-extrabold mb-8 text-white leading-tight tracking-tight">
+                Vigilancia Inteligente <br> 
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 drop-shadow-[0_0_25px_rgba(56,189,248,0.3)]">
+                   en Tiempo Real
+                </span>
             </h1>
-            <p class="text-lg md:text-xl text-gray-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-                Sistema integral de seguridad y monitoreo para residenciales, condominios y empresas.
+            
+            <p class="text-xl md:text-2xl text-gray-400 mb-14 max-w-3xl mx-auto leading-relaxed font-light">
+                Sistema operativo integral para <strong class="text-white font-medium">residenciales y empresas</strong>. Controla accesos, monitorea guardias y genera reportes en segundos.
             </p>
 
-            <div class="flex flex-col sm:flex-row gap-6 justify-center">
-                <button (click)="step = 'info'" class="px-8 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 font-medium transition backdrop-blur-sm">
+            <div class="flex flex-col sm:flex-row gap-8 justify-center w-full max-w-3xl px-4">
+                <button (click)="step = 'info'" class="flex-1 py-6 rounded-2xl bg-white/5 border border-white/10 text-gray-200 font-semibold transition backdrop-blur-md hover:bg-white/10 hover:border-white/20 hover:-translate-y-1 flex items-center justify-center gap-4 text-2xl shadow-lg">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                     Leer más
                 </button>
-                <button (click)="step = 'form'" class="px-8 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold shadow-lg shadow-blue-500/20 transition transform hover:-translate-y-1">
+                <button (click)="step = 'form'" class="flex-1 py-6 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-white font-bold shadow-[0_20px_50px_rgba(37,99,235,0.4)] transition hover:from-blue-500 hover:to-indigo-500 hover:-translate-y-1.5 hover:scale-[1.03] flex items-center justify-center gap-4 text-2xl group">
                     Registrar empresa
+                    <svg class="w-7 h-7 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                </button>
+            </div>
+
+        </div>
+
+        <!-- STEP 2: INFO -->
+        <div *ngIf="step === 'info'" class="max-w-6xl w-full animate-fade-in p-4 mt-8 pb-16">
+             <button (click)="step = 'landing'" class="mb-8 text-gray-400 hover:text-white flex items-center gap-2 transition text-sm cursor-pointer hover:-translate-x-1 transform duration-200">
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                 Volver
+             </button>
+
+             <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Qué hace <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">TIRESIS</span></h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">Sistema integral que une a los guardias en campo con los administradores en una sola plataforma en la nube. Reportes rápidos, bitácoras digitales y mapas interactivos.</p>
+            </div>
+
+            <!-- 4 CARACTERÍSTICAS (Grid) -->
+            <div class="grid md:grid-cols-2 gap-6 mb-12 max-w-5xl mx-auto">
+                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-blue-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 flex-shrink-0">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-xl font-bold mb-3">App Móvil para Guardias</h3>
+                        <p class="text-gray-400 text-base leading-relaxed">Reportan incidencias desde su celular en 30-60 segundos. Adjuntan fotos, videos y notas de voz al instante, optimizando el trabajo en campo.</p>
+                    </div>
+                </div>
+                
+                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-emerald-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
+                    <div class="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 flex-shrink-0">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-xl font-bold mb-3">Mapeo Satelital Interactivo</h3>
+                        <p class="text-gray-400 text-base leading-relaxed">Dibuja tu fraccionamiento o empresa. Observa en tiempo real dónde ocurren las incidencias y visualiza puntos de control y estructuras.</p>
+                    </div>
+                </div>
+
+                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-amber-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-xl font-bold mb-3">Control y Bitácoras Digitales</h3>
+                        <p class="text-gray-400 text-base leading-relaxed">Olvida las libretas de papel. Registra visitantes, proveedores, vehículos y novedades de turnos de forma rápida, segura y 100% auditable.</p>
+                    </div>
+                </div>
+
+                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-purple-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
+                    <div class="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 flex-shrink-0">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-white text-xl font-bold mb-3">Dashboard Administrativo</h3>
+                        <p class="text-gray-400 text-base leading-relaxed">Los administradores visualizan todo 24/7 y exportan reportes formales en PDF o Excel (con logo de empresa) para aseguradoras o condóminos.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN DE PLANES PREVIA (Información) -->
+            <div class="mt-16 mb-12 animate-fade-in" style="animation-delay: 0.2s">
+                <div class="w-full h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent mb-12 opacity-30"></div>
+                <h3 class="text-3xl font-bold text-center text-white mb-10">Planes diseñados para tu Seguridad</h3>
+                
+                <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto px-4">
+                    <!-- MINI-TARJETA BÁSICA -->
+                    <div class="pricing-card basic !p-7 border-blue-500/20 bg-blue-500/5 hover:border-blue-500/40 transition-all duration-300">
+                        <div class="text-lg font-semibold text-blue-400 mb-1">Plan Básico</div>
+                        <div class="text-4xl font-bold text-white mb-4">$10 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
+                        <ul class="text-xs text-gray-400 space-y-3 mb-0">
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Hasta 2 guardias vinculados al sitio</span></li>
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Reportes digitales con marca de agua</span></li>
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Historial de incidencias de 15 días</span></li>
+                        </ul>
+                    </div>
+
+                    <!-- MINI-TARJETA PREMIUM -->
+                    <div class="pricing-card premium !p-7 scale-105 border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_40px_rgba(16,185,129,0.1)]">
+                        <div class="absolute -top-3 right-4 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Más Popular</div>
+                        <div class="text-lg font-semibold text-emerald-400 mb-1">Plan Premium</div>
+                        <div class="text-4xl font-bold text-white mb-4">$15 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
+                        <ul class="text-xs text-gray-400 space-y-3 mb-0">
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Guardias y Usuarios Ilimitados</span></li>
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Marca Blanca (Usa tu propio Logo)</span></li>
+                            <li class="flex items-start gap-2"><svg class="w-4 h-4 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Evidencia de Video y Reportes PDF/Excel</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-center">
+                <button (click)="step = 'form'" class="px-12 py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white font-bold text-xl shadow-xl hover:scale-105 transition transform">
+                   Comenzar Registro Gratis
                 </button>
             </div>
         </div>
 
-        <!-- STEP 2: INFO -->
-        <div *ngIf="step === 'info'" class="max-w-6xl w-full animate-fade-in p-4">
-             <button (click)="step = 'landing'" class="mb-8 text-gray-400 hover:text-white flex items-center gap-2 transition">
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                 Volver
-             </button>
-
-             <div class="grid lg:grid-cols-2 gap-12 items-center mb-16">
-                 <div>
-                    <h2 class="text-4xl font-bold mb-6 text-white">Qué hace <span class="text-blue-400">TIRESIS</span></h2>
-                    <p class="text-gray-400 text-lg mb-8 leading-relaxed">
-                        TIRESIS es un sistema de vigilancia diseñado para residenciales, condominios, oficinas y empresas, 
-                        integrando reportes operativos, monitoreo en tiempo real e inteligencia artificial.
-                    </p>
-                    
-                    <div class="space-y-6">
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 flex-shrink-0">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white">Inteligencia Artificial Integrada</h3>
-                                <p class="text-gray-400 text-sm mt-1">Sistema de detección automática de eventos críticos con análisis en tiempo real.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-400 flex-shrink-0">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white">Respuesta Rápida</h3>
-                                <p class="text-gray-400 text-sm mt-1">Reportes manuales completados en 30-60 segundos, optimizados para guardias en campo.</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-4">
-                            <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 flex-shrink-0">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white">Alertas Accionables</h3>
-                                <p class="text-gray-400 text-sm mt-1">Notificaciones inteligentes con priorización automática y evidencia visual.</p>
-                            </div>
-                        </div>
-                    </div>
-                 </div>
-                 
-                 <!-- Stats Cards -->
-                 <div class="grid sm:grid-cols-2 gap-4">
-                     <div class="bg-[#112240] p-6 rounded-2xl border border-blue-500/20 hover:border-blue-500/40 transition group">
-                         <div class="text-4xl font-bold text-blue-400 mb-2 group-hover:scale-105 transition-transform">30-60s</div>
-                         <div class="text-gray-300 font-medium">Tiempo de reporte</div>
-                         <p class="text-gray-500 text-xs mt-2">Optimizado para velocidad</p>
-                     </div>
-                     <div class="bg-[#112240] p-6 rounded-2xl border border-indigo-500/20 hover:border-indigo-500/40 transition group">
-                         <div class="text-4xl font-bold text-indigo-400 mb-2 group-hover:scale-105 transition-transform">24/7</div>
-                         <div class="text-gray-300 font-medium">Monitoreo continuo</div>
-                         <p class="text-gray-500 text-xs mt-2">Sin interrupciones</p>
-                     </div>
-                     <div class="bg-[#112240] p-6 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition group sm:col-span-2">
-                         <div class="text-4xl font-bold text-purple-400 mb-2 group-hover:scale-105 transition-transform">100%</div>
-                         <div class="text-gray-300 font-medium">Trazabilidad</div>
-                         <p class="text-gray-500 text-xs mt-2">Historial completo de eventos y acciones</p>
-                     </div>
-                 </div>
-             </div>
-
-             <div class="text-center">
-                 <button (click)="step = 'form'" class="px-12 py-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-lg shadow-xl shadow-blue-500/20 transition transform hover:-translate-y-1">
-                    Comenzar Ahora - Registrar Empresa
-                </button>
-             </div>
-        </div>
-
-        <!-- STEP 3: FORM -->
+        <!-- STEP 3: FORM (Datos de Empresa) -->
         <div *ngIf="step === 'form'" class="w-full max-w-lg bg-[#0f203c] border border-blue-500/10 rounded-2xl shadow-2xl p-8 animate-fade-in relative overflow-hidden">
              <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
 
@@ -135,9 +183,9 @@ import { GeocodingService } from '../../services/geocoding.service';
              </button>
              
              <h2 class="text-2xl font-bold mb-2 text-white">Registro de Empresa</h2>
-             <p class="text-gray-400 text-sm mb-6">Configura tu cuenta de administrador en segundos.</p>
+             <p class="text-gray-400 text-sm mb-6">Paso 1: Configura tu cuenta de administrador.</p>
 
-             <form (ngSubmit)="goToPayment()" class="space-y-4">
+             <form (ngSubmit)="goToPlans()" class="space-y-4">
                  <div>
                      <label class="block text-gray-400 text-xs font-bold uppercase mb-1 ml-1">Nombre Completo</label>
                      <input type="text" [(ngModel)]="adminData.fullName" name="fullName" required placeholder="Ej. Juan Pérez" 
@@ -167,36 +215,128 @@ import { GeocodingService } from '../../services/geocoding.service';
                      {{ error }}
                  </div>
 
-                 <button type="submit" class="w-full mt-4 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-0.5">
-                     Continuar al Pago
+                 <button type="submit" class="w-full mt-4 py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                     Continuar a Planes
+                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
                  </button>
              </form>
         </div>
 
-        <!-- STEP 4: PAYMENT -->
+        <!-- STEP 4: SELECCIÓN DE PLAN -->
+        <div *ngIf="step === 'plans'" class="max-w-6xl w-full animate-fade-in p-4 mt-8 pb-16">
+             <button (click)="step = 'form'" class="mb-8 text-gray-400 hover:text-white flex items-center gap-2 transition text-sm cursor-pointer">
+                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                 Cambiar mis datos
+             </button>
+
+             <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Elige tu Plan de Protección</h2>
+                <p class="text-gray-400">Paso 2: Selecciona el nivel de seguridad que tu empresa necesita.</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!-- TARJETA BÁSICA -->
+                <div class="pricing-card basic">
+                    <div class="text-xl font-semibold text-blue-400 mb-2">Básico / Demo</div>
+                    <div class="text-4xl font-extrabold text-white mb-2 flex items-baseline">
+                        $10 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-6 pb-6 border-b border-gray-700/50">Ideal para conocer el sistema o sitios con pocos requerimientos.</p>
+                    
+                    <div class="flex-grow">
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#3b82f6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Hasta 2 guardias y reportes con marca de agua</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#3b82f6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">1 fotografía por reporte (sin video)</span>
+                        </div>
+                        <div class="feature-item mb-4">
+                            <svg class="feature-icon" stroke="#3b82f6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Retención de historial de 15 días</span>
+                        </div>
+                        
+                        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-4">NO INCLUYE:</div>
+                        <div class="feature-item disabled">
+                            <svg class="feature-icon" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            Marca Blanca y exportación a Excel/PDF
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button (click)="selectPlan('Básico', 10)" class="w-full glow-btn-basic text-white py-4 px-4 rounded-xl font-bold text-lg cursor-pointer">
+                            Seleccionar Básico
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TARJETA PREMIUM -->
+                <div class="pricing-card premium scale-105 border-2">
+                    <div class="absolute -top-3 right-6 bg-gradient-to-r from-emerald-500 to-emerald-700 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide shadow-lg">Recomendado</div>
+                    
+                    <div class="text-xl font-semibold text-emerald-400 mb-2">Premium</div>
+                    <div class="text-4xl font-extrabold text-white mb-2 flex items-baseline">
+                        $15 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-6 pb-6 border-b border-gray-700/50">Control total, auditorías y evidencia multimedia ilimitada.</p>
+                    
+                    <div class="flex-grow">
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#10b981" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Guardias y usuarios <strong class="text-emerald-400 font-medium">ilimitados</strong></span>
+                        </div>
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#10b981" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Evidencia extra: <strong class="text-emerald-400 font-medium">5 fotos y 1 video</strong></span>
+                        </div>
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#10b981" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Exportación formal: <strong class="text-emerald-400 font-medium">Excel y PDF con tu Logo</strong></span>
+                        </div>
+                        <div class="feature-item">
+                            <svg class="feature-icon" stroke="#10b981" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span class="text-white">Retención de historial: <strong class="text-emerald-400 font-medium">1 año completo</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <button (click)="selectPlan('Premium', 15)" class="w-full glow-btn text-white py-4 px-4 rounded-xl font-bold text-lg cursor-pointer">
+                            Activar Premium con 30 Días Gratis
+                        </button>
+                        <p class="text-center text-xs text-gray-500 mt-3">Sin compromiso. Cancela cuando quieras.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STEP 5: PAYMENT -->
         <div *ngIf="step === 'payment'" class="w-full max-w-lg bg-[#0f203c] border border-blue-500/10 rounded-2xl shadow-2xl p-8 animate-fade-in relative overflow-hidden">
              <div class="absolute top-0 right-0 w-24 h-24 bg-yellow-500/10 rounded-bl-full blur-[40px] pointer-events-none"></div>
 
-             <button (click)="backFromPayment()" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm z-10 relative">
+             <button (click)="step = 'plans'" class="mb-6 text-gray-400 hover:text-white flex items-center gap-2 text-sm z-10 relative">
                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                 Volver
+                 Elegir otro plan
              </button>
              
              <div class="text-center mb-8">
-                <h2 class="text-3xl font-bold mb-2 text-white">Activar Cuenta</h2>
-                <p class="text-blue-300/60 text-sm uppercase tracking-widest font-semibold">Plan Premium Empresarial</p>
+                <h2 class="text-3xl font-bold mb-1 text-white">Activar Cuenta</h2>
+                <p class="text-blue-300/80 text-sm font-semibold uppercase tracking-widest">Plan {{ selectedPlan.name }}</p>
              </div>
 
              <!-- Price Card -->
              <div class="bg-[#0a192f] border border-blue-500/20 rounded-xl p-6 mb-8 shadow-inner">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-gray-400 text-sm">Costo de activación</span>
-                    <span class="text-white font-bold text-xl">$10.00 MXN</span>
+                    <span class="text-gray-400 text-sm">Mensualidad del plan</span>
+                    <span class="text-white font-bold text-xl">$ {{ selectedPlan.price }}.00 MXN</span>
                 </div>
                 <div class="flex justify-between items-center border-t border-gray-800 mt-4 pt-4">
-                    <span class="text-gray-300 font-medium">Total a pagar:</span>
-                    <span class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">$10.00</span>
+                    <span class="text-gray-300 font-medium">Total a pagar ahora:</span>
+                    <span class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">$ {{ selectedPlan.price }}.00</span>
                 </div>
+                <p *ngIf="selectedPlan.name === 'Premium'" class="mt-4 text-xs text-emerald-400 text-center font-bold">
+                   Tu primer mes es totalmente GRATIS. No se te cobrará nada hoy.
+                </p>
              </div>
 
              <!-- SUB-STEP: SELECT METHOD -->
@@ -243,6 +383,11 @@ import { GeocodingService } from '../../services/geocoding.service';
                     </button>
                  </div>
 
+                 <div *ngIf="cardError" class="mb-4 p-3 bg-red-900/20 border border-red-500/20 rounded text-red-300 text-xs flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {{ cardError }}
+                 </div>
+
                  <button (click)="processPayment()" [disabled]="isProcessingPayment || !selectedMethod"
                         class="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         [ngClass]="{
@@ -268,7 +413,7 @@ import { GeocodingService } from '../../services/geocoding.service';
                  <button (click)="confirmCardPayment()" [disabled]="isProcessingPayment"
                         class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50">
                     <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                    {{ isProcessingPayment ? 'Procesando pago...' : 'Pagar $10.00 MXN' }}
+                    {{ isProcessingPayment ? 'Procesando pago...' : 'Pagar $' + selectedPlan.price + '.00 MXN' }}
                  </button>
                  <p class="text-center text-[10px] text-gray-600 mt-4 flex items-center justify-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -366,12 +511,77 @@ import { GeocodingService } from '../../services/geocoding.service';
     .animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
     @keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    .pricing-card {
+        background: rgba(20, 27, 45, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(12px);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .pricing-card:hover { transform: translateY(-5px); }
+    .pricing-card.premium {
+        border-color: rgba(16, 185, 129, 0.4);
+        box-shadow: 0 0 35px rgba(16, 185, 129, 0.15);
+    }
+    .pricing-card.basic {
+        border-color: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 0 35px rgba(59, 130, 246, 0.15);
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 0.8rem;
+        font-size: 0.9rem;
+        color: #cbd5e1;
+    }
+
+    .feature-item.disabled {
+        color: #475569;
+        text-decoration: line-through;
+    }
+
+    .feature-icon {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .glow-btn {
+        background: linear-gradient(135deg, #10b981, #059669);
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        transition: all 0.2s ease;
+    }
+    .glow-btn:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .glow-btn-basic {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        transition: all 0.2s ease;
+    }
+    .glow-btn-basic:hover {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+    }
   `]
 })
 export class AdminRegisterComponent implements OnInit {
-    step: 'landing' | 'info' | 'form' | 'payment' | 'success' = 'landing';
+    step: 'landing' | 'info' | 'form' | 'plans' | 'payment' | 'success' = 'landing';
     paymentSubStep: 'select' | 'card-form' | 'oxxo-voucher' = 'select';
     adminData: any = { fullName: '', email: '', companyName: '' };
+    selectedPlan: { name: string, price: number } = { name: 'Premium', price: 15 };
     street: string = '';
     error = '';
     cardError = '';
@@ -402,25 +612,64 @@ export class AdminRegisterComponent implements OnInit {
     ) { }
 
     ngOnInit() {
+        // Precargar datos si el usuario ya está autenticado (Flujo Upgrade)
+        if (isPlatformBrowser(this.platformId)) {
+            const currentUser = this.authService.getCurrentUser();
+            if (currentUser) {
+                this.adminData = {
+                    fullName: currentUser.fullName || currentUser.name || '',
+                    email: currentUser.email || '',
+                    companyName: currentUser.companyName || ''
+                };
+                this.street = currentUser.location || '';
+                this.displayEmail = currentUser.email || '';
+            }
+        }
+
         this.route.queryParams.subscribe(params => {
             if (params['payment'] === 'success') {
                 this.step = 'success';
                 this.finalizeRegistration();
             } else if (params['action'] === 'register') {
-                this.step = 'form';
+                // Si ya tenemos datos (Upgrade), podemos ir directo a planes si se especifica
+                if (params['step'] === 'plans' && this.adminData.email) {
+                    this.step = 'plans';
+                } else {
+                    this.step = 'form';
+                }
             }
         });
-        // Initialize Stripe.js
+
         if (isPlatformBrowser(this.platformId)) {
-            this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
-                next: (res) => {
-                    if (res.publishableKey && (window as any).Stripe) {
-                        this.stripeInstance = (window as any).Stripe(res.publishableKey);
-                    }
-                },
-                error: () => console.warn('Could not load Stripe config')
+            this.loadStripeScript().then(() => {
+                this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
+                    next: (res) => {
+                        if (res.publishableKey && (window as any).Stripe) {
+                            this.stripeInstance = (window as any).Stripe(res.publishableKey);
+                        }
+                    },
+                    error: () => console.warn('Could not load Stripe config')
+                });
             });
         }
+    }
+
+    private loadStripeScript(): Promise<void> {
+        return new Promise((resolve) => {
+            if ((window as any).Stripe) {
+                resolve();
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://js.stripe.com/v3/';
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => {
+                console.error('Error al cargar Stripe.js');
+                resolve(); // Resolve anyway to not block
+            };
+            document.head.appendChild(script);
+        });
     }
 
     goToLogin() { this.router.navigate(['/login']); }
@@ -430,17 +679,33 @@ export class AdminRegisterComponent implements OnInit {
             this.paymentSubStep = 'select';
             this.cardError = '';
         } else {
-            this.step = 'form';
+            // Si es un upgrade (ya logueado), volver al perfil o a planes
+            const currentUser = this.authService.getCurrentUser();
+            if (currentUser) {
+                this.step = 'plans';
+            } else {
+                this.step = 'form';
+            }
         }
     }
 
-    goToPayment() {
+    goToPlans() {
         if (!this.adminData.fullName || !this.adminData.email || !this.adminData.companyName || !this.street) {
             this.error = "Completa todos los campos"; return;
         }
         this.error = '';
+        this.step = 'plans';
+    }
+
+    selectPlan(name: string, price: number) {
+        this.selectedPlan = { name, price };
         if (isPlatformBrowser(this.platformId)) {
-            sessionStorage.setItem('tempAdminData', JSON.stringify({ ...this.adminData, street: this.street }));
+            sessionStorage.setItem('tempAdminData', JSON.stringify({ 
+                ...this.adminData, 
+                street: this.street,
+                plan: name,
+                amount: price
+            }));
         }
         this.paymentSubStep = 'select';
         this.step = 'payment';
@@ -455,7 +720,7 @@ export class AdminRegisterComponent implements OnInit {
     initCardForm() {
         this.isProcessingPayment = true;
         this.cardError = '';
-        const payload = { amountMXN: 10, email: this.adminData.email };
+        const payload = { amountMXN: this.selectedPlan.price, email: this.adminData.email };
 
         this.http.post<any>('http://localhost:3000/api/stripe/create-payment-intent', payload).subscribe({
             next: (res) => {
@@ -510,7 +775,7 @@ export class AdminRegisterComponent implements OnInit {
     initOxxoPayment() {
         this.isProcessingPayment = true;
         this.error = '';
-        const payload = { amountMXN: 10, email: this.adminData.email, name: this.adminData.fullName };
+        const payload = { amountMXN: this.selectedPlan.price, email: this.adminData.email, name: this.adminData.fullName };
 
         this.http.post<any>('http://localhost:3000/api/stripe/create-oxxo-payment', payload).subscribe({
             next: (res) => {
@@ -550,7 +815,7 @@ export class AdminRegisterComponent implements OnInit {
             .instructions p{margin:8px 0;} hr{margin:20px 0;} .footer{text-align:center;color:#999;margin-top:30px;font-size:12px;}
             </style></head><body>
             <div class="title">OXXO - Ficha de Pago</div>
-            <div class="amount">MXN $10.00</div>
+            <div class="amount">MXN $${this.selectedPlan.price}.00</div>
             <div class="expires">Vence el ${this.oxxoExpiresAt}</div>
             <div class="ref">${this.oxxoReference}</div>
             <div class="instructions">
@@ -580,16 +845,40 @@ export class AdminRegisterComponent implements OnInit {
         this.displayEmail = userData.email;
         this.isLoading = true;
 
-        this.authService.registerAdmin(userData).subscribe({
-            next: (res: any) => {
-                this.isLoading = false;
-                this.generatedPassword = res.password;
-                sessionStorage.removeItem('tempAdminData');
-            },
-            error: (err) => {
-                this.error = err.error?.message || "Error al crear la cuenta. Intenta con otro correo o contacta soporte.";
-                this.isLoading = false;
-            }
-        });
+        // Si el usuario ya está logueado, es un Upgrade, no un registro nuevo.
+        const currentUser = this.authService.getCurrentUser();
+        
+        if (currentUser && currentUser.email === userData.email) {
+            // Lógica de UPGRADE para usuario existente
+            this.http.post<any>('http://localhost:3000/api/upgrade-admin-plan', { 
+                email: userData.email, 
+                plan: userData.plan 
+            }).subscribe({
+                next: (res) => {
+                    this.isLoading = false;
+                    // Actualizar el plan en el usuario local
+                    const updatedUser = { ...currentUser, plan: userData.plan };
+                    this.authService.setCurrentUser(updatedUser);
+                    sessionStorage.removeItem('tempAdminData');
+                },
+                error: (err) => {
+                    this.error = err.error?.message || "Error al activar el plan Premium. Por favor contacta soporte.";
+                    this.isLoading = false;
+                }
+            });
+        } else {
+            // Lógica de REGISTRO NUEVO
+            this.authService.registerAdmin(userData).subscribe({
+                next: (res: any) => {
+                    this.isLoading = false;
+                    this.generatedPassword = res.password;
+                    sessionStorage.removeItem('tempAdminData');
+                },
+                error: (err) => {
+                    this.error = err.error?.message || "Error al crear la cuenta. Intenta con otro correo o contacta soporte.";
+                    this.isLoading = false;
+                }
+            });
+        }
     }
 }

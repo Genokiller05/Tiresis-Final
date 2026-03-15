@@ -85,4 +85,9 @@ export class AuthService {
     const user = this.getCurrentUser();
     return user ? user.id : null;
   }
+
+  isPremium(): boolean {
+    const user = this.getCurrentUser();
+    return user && user.plan === 'Premium';
+  }
 }

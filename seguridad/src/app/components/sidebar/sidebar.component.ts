@@ -29,6 +29,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Click animation tracking
   public clickedRoute: string | null = null;
+  public isPremiumUser: boolean = false;
 
   // Notifications Popover
   public isNotificationsOpen: boolean = false;
@@ -60,6 +61,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.isPremiumUser = this.authService.isPremium();
     this.loadAdminProfile();
     this.loadAllBadges();
     this.measurePing();

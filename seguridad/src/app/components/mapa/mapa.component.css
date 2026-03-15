@@ -1,12 +1,28 @@
 .map-container {
   height: 100vh;
   width: 100%;
+  background: #1a1a1a; /* Fondo oscuro mientras carga */
+  position: relative;
 }
 
 #map {
   height: 100%;
+  width: 100%;
+  min-height: 400px;
+  visibility: visible !important;
 }
 
 :host ::ng-deep .leaflet-container.picking-mode {
     cursor: crosshair !important;
+}
+
+/* Aplicar filtro táctico SOLO a los tiles base, no al heatmap */
+:host ::ng-deep .leaflet-tile-container img.tactical-tile {
+    filter: grayscale(0.2) invert(0.9) hue-rotate(200deg) !important;
+}
+
+/* Asegurar que el canvas del heatmap NO tenga filtros que lo hagan invisible */
+:host ::ng-deep .leaflet-heatmap-layer {
+    filter: none !important;
+    opacity: 1 !important;
 }
