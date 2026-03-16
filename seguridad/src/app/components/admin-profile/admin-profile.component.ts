@@ -26,6 +26,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   public companyName: string = '';
   public location: string = '';
   public lastLoginDate: string | null = null;
+  public userPlan: string = 'Básico'; // Default to Basic
 
   // Weekly report
   public weekNumber: number = 0;
@@ -59,6 +60,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
         this.adminEmail = currentUser.email || this.adminEmail;
         this.companyName = currentUser.companyName || 'Sin Compañía';
         this.location = currentUser.location || 'Sin Ubicación';
+        this.userPlan = currentUser.plan || 'Básico';
       }
 
       if (savedProfile) {
@@ -150,6 +152,11 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   public navigateToManageReports(): void {
     this.router.navigate(['/dashboard/informes-semanales']);
+  }
+
+  public navigateToPlans(): void {
+    // Redirigir al registro en modo planes o a una ruta de planes si existe
+    this.router.navigate(['/register'], { queryParams: { action: 'register', step: 'plans' } });
   }
 
   // --- Success Modal Methods ---

@@ -1,0 +1,208 @@
+.planes-wrapper {
+    --bg-color: #0b0f19;
+    --card-bg: rgba(20, 27, 45, 0.6);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --premium: #10b981;
+    --premium-hover: #059669;
+    --premium-glow: rgba(16, 185, 129, 0.2);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.planes-header {
+    text-align: center;
+    padding: 4rem 2rem 2rem;
+    max-width: 800px;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    background: linear-gradient(to right, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.planes-header h1 {
+    font-size: 2.5rem;
+    margin: 0 0 1rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+p.subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.pricing-container {
+    display: flex;
+    gap: 2rem;
+    padding: 2rem;
+    max-width: 1000px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+}
+
+.pricing-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 2.5rem;
+    width: 340px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.pricing-card:hover {
+    transform: translateY(-8px);
+}
+
+.pricing-card.premium {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 40px var(--premium-glow);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    right: 24px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.plan-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+}
+
+.premium .plan-name {
+    color: #34d399;
+}
+
+.plan-price {
+    font-size: 3rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: baseline;
+}
+
+.plan-price span {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 8px;
+}
+
+.plan-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+    min-height: 45px;
+}
+
+.features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    flex-grow: 1;
+}
+
+.features li {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: flex-start;
+    color: #cbd5e1;
+}
+
+.features li svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.features li.disabled {
+    color: #475569;
+    text-decoration: line-through;
+}
+
+.features li.disabled svg {
+    color: #475569;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    padding: 1rem;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    text-decoration: none;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--card-border);
+    color: var(--text-main);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-premium {
+    background: linear-gradient(135deg, var(--premium), var(--premium-hover));
+    color: white;
+    box-shadow: 0 4px 15px var(--premium-glow);
+}
+
+.btn-premium:hover {
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.trial-text {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 1rem;
+}

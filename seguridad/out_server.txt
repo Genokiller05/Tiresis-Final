@@ -1,0 +1,89 @@
+﻿[dotenv@17.2.3] injecting env (3) from .env -- tip: ÔÜÖ´©Å  write to custom object with { processEnv: myObject }
+node : C:\Users\DeLL\.
+gemini\antigravity\scr
+atch\Tiresis-Final\seg
+uridad\node_modules\@s
+upabase\supabase-js\di
+st\index.cjs:147
+En línea: 1 Carácter: 
+1
++ node server.js 2>&1 
+| Out-File -FilePath 
+out_server.txt 
+-Encoding utf ...
++ ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (C:\Users\D   
+ eLL\....t\index.c    
+js:147:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+	if (!trimmedUrl.match
+(/^https?:\/\//i)) 
+throw new 
+Error("Invalid 
+supabaseUrl: Must be 
+a valid HTTP or HTTPS 
+URL.");
+	                     
+                   ^
+
+Error: Invalid 
+supabaseUrl: Must be 
+a valid HTTP or HTTPS 
+URL.
+    at 
+validateSupabaseUrl (C
+:\Users\DeLL\.gemini\a
+ntigravity\scratch\Tir
+esis-Final\seguridad\n
+ode_modules\@supabase\
+supabase-js\dist\index
+.cjs:147:48)
+    at new 
+SupabaseClient (C:\Use
+rs\DeLL\.gemini\antigr
+avity\scratch\Tiresis-
+Final\seguridad\node_m
+odules\@supabase\supab
+ase-js\dist\index.cjs:
+195:19)
+    at createClient (C
+:\Users\DeLL\.gemini\a
+ntigravity\scratch\Tir
+esis-Final\seguridad\n
+ode_modules\@supabase\
+supabase-js\dist\index
+.cjs:386:9)
+    at 
+Object.<anonymous> (C:
+\Users\DeLL\.gemini\an
+tigravity\scratch\Tire
+sis-Final\seguridad\mi
+ddleware\authMiddlewar
+e.js:26:18)
+    at 
+Module._compile (node:
+internal/modules/cjs/l
+oader:1761:14)
+    at Object..js (nod
+e:internal/modules/cjs
+/loader:1893:10)
+    at Module.load (no
+de:internal/modules/cj
+s/loader:1481:32)
+    at Module._load (n
+ode:internal/modules/c
+js/loader:1300:12)
+    at TracingChannel.
+traceSync (node:diagno
+stics_channel:328:14)
+    at wrapModuleLoad 
+(node:internal/modules
+/cjs/loader:245:24)
+
+Node.js v24.13.0

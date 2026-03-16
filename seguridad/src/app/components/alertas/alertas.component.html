@@ -17,7 +17,44 @@
             </div>
           </div>
 
-          <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2 relative">
+            <!-- Multi-format Export Dropdown -->
+            <div class="relative">
+              <button (click)="toggleExportDropdown()"
+                class="p-2 glass-card-premium rounded-xl text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition-all duration-300 shadow-xl border border-white/5 flex items-center gap-2 px-4 group"
+                title="Exportar Reporte">
+                <span class="material-icons text-sm group-hover:scale-110">download</span>
+                <span class="text-[10px] font-black uppercase tracking-widest hidden md:inline">Exportar Reporte</span>
+                <span class="material-icons text-xs group-hover:translate-y-0.5 transition-transform" [class.rotate-180]="isExportDropdownOpen">expand_more</span>
+              </button>
+
+              <!-- Export Options Menu -->
+              <div *ngIf="isExportDropdownOpen"
+                class="absolute top-full right-0 mt-2 w-56 bg-[#0a0a1a]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-[120] py-3 animate-in fade-in zoom-in duration-200">
+                
+                <ng-container *ngIf="isPremiumUser">
+                  <button (click)="exportToExcel(); isExportDropdownOpen = false"
+                    class="w-full px-6 py-3 text-[10px] font-black text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400 cursor-pointer transition-colors flex items-center gap-3 uppercase tracking-widest">
+                    <span class="material-icons text-sm">table_view</span>
+                    Excel (XLSX)
+                  </button>
+                  <button (click)="exportToPDF(); isExportDropdownOpen = false"
+                    class="w-full px-6 py-3 text-[10px] font-black text-gray-400 hover:bg-red-500/10 hover:text-red-400 cursor-pointer transition-colors flex items-center gap-3 uppercase tracking-widest">
+                    <span class="material-icons text-sm">picture_as_pdf</span>
+                    PDF Document
+                  </button>
+                </ng-container>
+
+                <div *ngIf="!isPremiumUser" class="px-4 py-2">
+                  <p class="text-[9px] text-yellow-500/80 font-bold uppercase tracking-tighter mb-2 text-center">Función Premium</p>
+                  <button (click)="router.navigate(['/dashboard/admin-profile'])"
+                    class="w-full px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-lg text-[10px] font-black text-white hover:scale-105 active:scale-95 transition-all uppercase tracking-widest">
+                    Hacer Upgrade
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <button (click)="aplicarFiltros()"
               class="p-2 glass-card-premium rounded-xl text-purple-400 hover:rotate-180 hover:bg-purple-500/20 active:scale-95 transition-all duration-500 shadow-xl border border-white/5">
               <span class="material-icons text-sm">sync</span>

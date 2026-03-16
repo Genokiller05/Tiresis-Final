@@ -9,13 +9,16 @@ import { CamarasComponent } from './components/camaras/camaras.component';
 import { LoginComponent } from './components/login/login.component';
 import { LayoutComponent } from './components/layout/layout.component';
 import { InformesSemanalesComponent } from './components/informes-semanales/informes-semanales.component';
+import { AnalyticsComponent } from './components/analytics/analytics.component';
 import { authGuard } from './guards/auth-guard';
 
 import { AdminRegisterComponent } from './components/admin-register/admin-register.component';
+import { Planes } from './components/planes/planes';
 
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
     { path: 'register', component: AdminRegisterComponent },
+    { path: 'planes', component: Planes },
     { path: '', redirectTo: 'register', pathMatch: 'full' },
     {
         path: 'dashboard', // Moved Layout to explicit path
@@ -28,6 +31,7 @@ export const routes: Routes = [
             { path: 'home', component: HomeComponent },
             { path: 'admin-profile', component: AdminProfileComponent },
             { path: 'informes-semanales', component: InformesSemanalesComponent },
+            { path: 'analitica', component: AnalyticsComponent },
             { path: 'mapa', component: MapaComponent },
             { path: 'entradas-salidas', component: EntradasSalidasComponent },
             { path: 'camaras', component: CamarasComponent }

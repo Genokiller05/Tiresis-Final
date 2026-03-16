@@ -11,23 +11,40 @@ export class ReportService {
     private reportUpdates = new Subject<any>();
 
     constructor(private http: HttpClient, private supabaseService: SupabaseService) {
+        console.error('[CRÍTICO-DEBUG] ReportService inicializado (V3-HEATMAP-FIX)');
         this.setupRealtimeSubscription();
     }
 
+    private subscriptionAttempts = 0;
+    private maxAttempts = 5;
+
     private setupRealtimeSubscription() {
-        this.supabaseService.client
+        if (this.subscriptionAttempts >= this.maxAttempts) {
+            console.warn('[REPORTS] Máximo de reintentos de suscripción alcanzado.');
+            return;
+        }
+
+        const channel = this.supabaseService.client
             .channel('reports-channel')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'reports' },
                 (payload) => {
-                    console.log('Realtime change received!', payload);
+                    // Solo loguear en depuración profunda
+                    // console.debug('[REPORTS] Cambio en tiempo real recibido:', payload);
                     this.reportUpdates.next(payload);
                 }
             )
             .subscribe((status, err) => {
-                if (err) console.error('Supabase Realtime subscription error:', err);
-                else console.log('Supabase Realtime subscription status:', status);
+                if (err || status === 'TIMED_OUT') {
+                    // Silencio absoluto en consola a menos que sea error fatal
+                    this.subscriptionAttempts++;
+                    setTimeout(() => this.setupRealtimeSubscription(), 5000);
+                } else {
+                    if (status === 'SUBSCRIBED') {
+                        this.subscriptionAttempts = 0; // Reset on success
+                    }
+                }
             });
     }
 

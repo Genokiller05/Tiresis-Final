@@ -27,6 +27,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public isDeleteModalVisible: boolean = false;
   public isEditModalVisible: boolean = false;
   public isLoading: boolean = false;
+  public isPremiumUser: boolean = false;
 
   // Edit Form
   public editForm = {
@@ -105,9 +106,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.currentTheme = theme;
     });
     this.langSubscription = this.translationService.uiText.subscribe(translations => {
-      this.uiText = translations.home || {};
       this.uiRegText = translations.registros || {}; // Load registration translations
     });
+    this.isPremiumUser = this.authService.isPremium();
     if (isPlatformBrowser(this.platformId)) {
       this.realtimeSubscription = this.guardService.getGuardUpdates().subscribe(payload => {
         if (this.currentGuardId && payload.new) {
@@ -175,7 +176,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private validateRegForm(): boolean {
     this.regFieldErrors = {};
     let isValid = true;
-    const nameRegex = /^[a-zA-Z\s]+$/;
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
 
     if (!this.regForm.nombre.trim() || this.regForm.nombre.trim().length < 3 || !nameRegex.test(this.regForm.nombre)) {
       this.regFieldErrors['nombre'] = 'El nombre es obligatorio y solo debe contener letras.';
@@ -204,6 +205,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.regStatusMessage = `<span class="text-blue-500">${this.uiRegText.submitting || 'Registrando guardia...'}</span>`;
     this.regSummaryCardData = null;
+
+    // Plan Basic Limit Check (Max 2 guards)
+    if (!this.isPremiumUser) {
+        try {
+            const currentGuards = await this.guardService.getGuards();
+            if (currentGuards && currentGuards.length >= 2) {
+                this.isLoading = false;
+                this.regStatusMessage = `<span class="text-yellow-500 font-bold">LÍMITE ALCANZADO: El Plan Básico solo permite 2 guardias. Haz Upgrade a Premium para registrar más.</span>`;
+                return;
+            }
+        } catch (e) {
+            console.warn('Error checking guard limit:', e);
+        }
+    }
 
     try {
       let photoUrl: string | null = null;
@@ -463,6 +478,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     const phoneRegex = /^\d{10}$/;
     if (this.editForm.telefono && !phoneRegex.test(this.editForm.telefono)) {
       this.errorMessage = 'El teléfono debe tener exactamente 10 dígitos numéricos.';
+      this.isLoading = false;
+      setTimeout(() => this.errorMessage = '', 3000);
+      return;
+    }
+
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s]+$/;
+    if (!this.editForm.nombre.trim() || this.editForm.nombre.trim().length < 3 || !nameRegex.test(this.editForm.nombre)) {
+      this.errorMessage = 'El nombre es obligatorio y solo debe contener letras (mínimo 3).';
       this.isLoading = false;
       setTimeout(() => this.errorMessage = '', 3000);
       return;

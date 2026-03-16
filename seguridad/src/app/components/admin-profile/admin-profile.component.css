@@ -1,1 +1,24 @@
-/* Add any component-specific styles here */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.95; transform: scale(1.005); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s infinite ease-in-out;
+}
+
+.premium-promo-banner {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-promo-banner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px rgba(16, 185, 129, 0.3) !important;
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #ffffff, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

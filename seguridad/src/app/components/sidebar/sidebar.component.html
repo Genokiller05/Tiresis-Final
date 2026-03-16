@@ -158,8 +158,13 @@
     <!-- Mapa — green -->
     <a href="#" (click)="navigateTo($event, '/dashboard/mapa')" class="sidebar-nav-item sidebar-color-green group"
       [class.sidebar-active]="isActive('/dashboard/mapa')" [class.sidebar-clicked]="isClicked('/dashboard/mapa')">
+      
+      <div *ngIf="!isPremiumUser" class="absolute -top-1 -right-1 z-[20] w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg border border-black/20">
+        <span class="material-icons text-[10px] text-black font-bold">lock</span>
+      </div>
+
       <span class="material-icons text-2xl relative z-10">map</span>
-      <span class="sidebar-tooltip">Mapa de Operaciones</span>
+      <span class="sidebar-tooltip">Mapa de Operaciones {{ !isPremiumUser ? '(Premium)' : '' }}</span>
     </a>
 
     <!-- Entradas/Salidas — blue -->
@@ -175,6 +180,19 @@
       class="sidebar-nav-item sidebar-color-purple group relative z-50">
       <span class="material-icons text-2xl relative z-10">videocam</span>
       <span class="sidebar-tooltip">Gestión de Cámaras</span>
+    </a>
+
+    <!-- Analítica — indigo -->
+    <a [routerLink]="isPremiumUser ? ['/dashboard/analitica'] : ['/dashboard/admin-profile']" 
+      routerLinkActive="sidebar-active"
+      class="sidebar-nav-item sidebar-color-indigo group relative z-50">
+      
+      <div *ngIf="!isPremiumUser" class="absolute -top-1 -right-1 z-[20] w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg border border-black/20">
+        <span class="material-icons text-[10px] text-black font-bold">lock</span>
+      </div>
+
+      <span class="material-icons text-2xl relative z-10">bar_chart</span>
+      <span class="sidebar-tooltip">Analítica Avanzada {{ !isPremiumUser ? '(Premium)' : '' }}</span>
     </a>
 
   </nav>

@@ -8,6 +8,7 @@
  * 5. Rechaza con 401 si no hay admin o no tiene sites asignados
  */
 
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
@@ -19,11 +20,19 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://uwhlbpaabyfoomnlkktt.su
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseServiceKey) {
-    console.error('[Auth Middleware] FATAL: SUPABASE_SERVICE_KEY no configurada en .env');
-    process.exit(1);
+    console.warn('[Auth Middleware] WARNING: SUPABASE_SERVICE_KEY no encontrada. La autenticación podría fallar.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+let supabase;
+try {
+    if (supabaseUrl && supabaseUrl.startsWith('http')) {
+        supabase = createClient(supabaseUrl, supabaseServiceKey || 'placeholder');
+    } else {
+        console.error('[Auth Middleware] URL de Supabase inválida:', supabaseUrl);
+    }
+} catch (err) {
+    console.error('[Auth Middleware] Error al inicializar Supabase:', err.message);
+}
 
 const readJsonFile = (filename) => {
     try {
@@ -63,7 +72,7 @@ const authMiddleware = async (req, res, next) => {
             try {
                 const { data, error } = await supabase
                     .from('admins')
-                    .select('id, email, fullName')
+                    .select('id, email, fullName, plan')
                     .eq('id', adminId)
                     .single();
                 if (!error && data) {
@@ -95,6 +104,7 @@ const authMiddleware = async (req, res, next) => {
         console.warn('[Auth] ID no es UUID, asignando site por defecto para admin local:', adminId);
         req.adminId = adminId;
         req.adminEmail = adminExists.email;
+        req.userPlan = adminExists.plan || 'Básico';
         req.siteIds = [DEFAULT_SITE_ID];
         req.activeSiteId = DEFAULT_SITE_ID;
         return next();
@@ -126,6 +136,7 @@ const authMiddleware = async (req, res, next) => {
         // 3. Inyectar datos en el request
         req.adminId = adminId;
         req.adminEmail = adminExists.email;
+        req.userPlan = adminExists.plan || 'Básico';
         req.siteIds = memberships.map(m => m.site_id);
 
         // Si el frontend envía un site_id específico, validar que el admin tenga acceso

@@ -22,6 +22,7 @@ export class App implements OnInit {
     private jsonStorageService: JsonStorageService,
     private authService: AuthService
   ) {
+    console.error('%c🚀 TIRESIS V3 - SISTEMA SINCRONIZADO', 'background: #00ffff; color: #000; font-size: 20px; font-weight: bold; padding: 10px;');
     this.isLoggedIn$ = this.authService.isLoggedIn$; // Asignar aquí
   }
 

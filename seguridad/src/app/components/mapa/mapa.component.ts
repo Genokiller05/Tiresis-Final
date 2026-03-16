@@ -4,6 +4,8 @@ import { AuthService } from '../../services/auth.service';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { GeocodingService } from '../../services/geocoding.service';
+import { ActivatedRoute } from '@angular/router';
+import { ReportService } from '../../services/report.service';
 
 @Component({
   selector: 'app-mapa',
@@ -16,6 +18,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   public console = console;
 
   private map: any;
+  private isMapReady: boolean = false;
   private adminMarker: any;
   private guardMarkers: Map<string, any> = new Map(); // Map guard ID to marker
   private L: any; // Cache Leaflet instance
@@ -50,19 +53,30 @@ export class MapaComponent implements OnInit, OnDestroy {
   public newBuildingName: string = 'Nuevo Edificio';
   private pendingBuildingLayer: any = null;
 
+  // Heatmap
+  private heatmapLayer: any = null;
+  public isHeatmapActive: boolean = false;
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private authService: AuthService,
     private http: HttpClient,
     private ngZone: NgZone,
-    private geocodingService: GeocodingService
+    private geocodingService: GeocodingService,
+    private route: ActivatedRoute,
+    private reportService: ReportService
   ) { }
 
   async ngOnInit(): Promise<void> {
     if (isPlatformBrowser(this.platformId)) {
       await this.initMap();
       this.loadGuards();
-      // Note: loadCustomBuildings() is called inside createMap() once map is ready
+      
+      this.route.queryParams.subscribe(params => {
+        if (params['heatmap'] === 'true' && !this.isHeatmapActive) {
+          this.toggleHeatmap(true);
+        }
+      });
     }
   }
 
@@ -78,123 +92,108 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private async initMap(): Promise<void> {
-    this.L = await import('leaflet');
-    // Dynamically import leaflet-draw only on client side
-    await import('leaflet-draw');
-    const L = this.L;
+    try {
+      if (this.map) return; // Seguridad extrema: no re-inicializar
+      
+      const LeafletModule: any = await import('leaflet');
+      this.L = LeafletModule.default || LeafletModule;
+      const L = this.L;
 
-    // Default location
-    let lat = 19.4326;
-    let lng = -99.1332;
-    let zoom = 12;
+      if (typeof window !== 'undefined') {
+        (window as any).L = L;
+      }
 
-    // Helper to initialize map once coordinates are settled
-    const createMap = (latitude: number, longitude: number, z: number, user: any) => {
+      await import('leaflet-draw');
+      await import('leaflet.heat');
+      this.L = (window as any).L || L;
 
-      // 1. Define Base Layers
-      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        minZoom: 3,
-        attribution: 'OpenStreetMap'
-      });
+      // Variables de ubicación por defecto
+      let lat = 19.4326;
+      let lng = -99.1332;
+      let zoom = 12;
 
-      const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-        maxZoom: 19
-      });
+      const createMap = (latitude: number, longitude: number, z: number, user: any) => {
+        if (this.map) return;
 
-      // 2. Create Map with Default Layer
-      this.map = L.map('map', {
-        center: [latitude, longitude],
-        zoom: z,
-        layers: [satelliteLayer], // Defaulting to Satellite as requested ("me gusta la vista satelitar")
-        attributionControl: false
-      });
+        console.debug('[MAPA] Creando instancia de mapa en:', latitude, longitude);
+        
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19, minZoom: 3, attribution: 'OpenStreetMap', className: 'tactical-tile'
+        });
 
-      // --- Setup persistent draw listener (ONCE) ---
-      this.map.on('draw:created', (e: any) => this.onDrawCreated(e));
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles &copy; Esri', maxZoom: 19, className: 'tactical-tile'
+        });
 
-      // 3. Add Layer Control (Toggle between views)
-      const baseMaps = {
-        "Satélite": satelliteLayer,
-        "Mapa Normal": osmLayer
+        this.map = L.map('map', {
+          center: [latitude, longitude],
+          zoom: z,
+          layers: [satelliteLayer],
+          attributionControl: false
+        });
+
+        this.map.on('draw:created', (e: any) => this.onDrawCreated(e));
+
+        const baseMaps = { "Satélite": satelliteLayer, "Mapa Normal": osmLayer };
+        L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(this.map);
+
+        this.drawnItems = new L.FeatureGroup();
+        this.map.addLayer(this.drawnItems);
+
+        if (user && user.lat && user.lng) {
+          this.createAdminMarker(L, parseFloat(user.lat), parseFloat(user.lng), user);
+        }
+
+        this.adminCenter = { lat: latitude, lng: longitude };
+        this.apply4kmBounds(latitude, longitude);
+
+        this.map.on('click', (e: any) => {
+          this.ngZone.run(() => {
+            if (this.isPickingLocation && this.selectedGuard) {
+              this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
+            }
+          });
+        });
+
+        this.loadAdminZone();
+        this.loadCustomBuildings();
+
+        if (this.guards.length > 0) {
+          this.refreshGuardMarkers();
+        }
+
+        this.isMapReady = true;
+        
+        // Fix de dimensiones inmediato + retardado
+        this.map.invalidateSize();
+        setTimeout(() => this.map.invalidateSize(), 500);
       };
 
-      L.control.layers(baseMaps, null, { position: 'bottomright' }).addTo(this.map);
-
-      // this.map.attributionControl.setPrefix(''); // Removed to prevent crash when attributionControl is false
-
-      // Admin Marker
-      this.createAdminMarker(L, latitude, longitude, user);
-
-      // Fix 1: Apply 4km radius limit from admin location immediately
-      this.adminCenter = { lat: latitude, lng: longitude };
-      this.apply4kmBounds(latitude, longitude);
-
-      // Map Click Handler
-      this.map.on('click', (e: any) => {
-        this.ngZone.run(() => {
-          if (this.isPickingLocation && this.selectedGuard) {
-            this.assignGuardLocation(e.latlng.lat, e.latlng.lng);
-          }
-          if (this.isEditingAdmin && this.adminMarker) {
-            this.adminMarker.setLatLng(e.latlng);
-          }
-        });
-      });
-
-      // Initialize Drawn Items Layer
-      this.drawnItems = new L.FeatureGroup();
-      this.map.addLayer(this.drawnItems);
-
-      // Load existing zone if any
-      this.loadAdminZone();
-
-      // Fix 3: Load custom buildings AFTER map is ready
-      this.loadCustomBuildings();
-
-      // Force refresh guards (if already loaded, though loadGuards will do it too)
-      if (this.guards.length > 0) {
-        this.refreshGuardMarkers();
-      }
-    };
-
-    // Check for user location - Fetch fresh from API
-    const localUser = this.authService.getCurrentUser();
-    if (localUser && localUser.email) {
-      this.http.get<any>(`http://localhost:3000/api/admins/${localUser.email}`).subscribe({
-        next: (adminData) => {
-          if (adminData.lat && adminData.lng) {
-            lat = parseFloat(adminData.lat);
-            lng = parseFloat(adminData.lng);
-            zoom = 15;
-          }
-          // Load zone from backend - parse if string, filter nulls
-          if (adminData.zone) {
-            try {
-              const raw = typeof adminData.zone === 'string'
-                ? JSON.parse(adminData.zone)
-                : adminData.zone;
-              this.adminZoneCoords = (raw as any[]).filter(
-                (c: any) => Array.isArray(c) && c.length >= 2 && c[0] != null && c[1] != null
-              );
-            } catch (e) {
-              this.adminZoneCoords = [];
+      // Obtener usuario y arrancar
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser && currentUser.email) {
+        this.http.get<any>(`http://localhost:3000/api/admins/${currentUser.email}`).subscribe({
+          next: (adminData) => {
+            let fLat = lat, fLng = lng, fZoom = zoom;
+            if (adminData.lat && adminData.lng) {
+              fLat = parseFloat(adminData.lat); fLng = parseFloat(adminData.lng); fZoom = 15;
             }
-          }
-          createMap(lat, lng, zoom, adminData);
-        },
-        error: () => {
-          if (localUser && localUser.lat && localUser.lng) {
-            lat = parseFloat(localUser.lat);
-            lng = parseFloat(localUser.lng);
-            zoom = 15;
-          }
-          createMap(lat, lng, zoom, localUser);
-        }
-      });
-    } else {
-      createMap(lat, lng, zoom, null);
+            if (adminData.zone) {
+              try {
+                const raw = typeof adminData.zone === 'string' ? JSON.parse(adminData.zone) : adminData.zone;
+                this.adminZoneCoords = (raw as any[]).filter((c: any) => Array.isArray(c) && c.length >= 2);
+              } catch (e) { this.adminZoneCoords = []; }
+            }
+            // Esperar un frame al DOM
+            setTimeout(() => createMap(fLat, fLng, fZoom, adminData), 100);
+          },
+          error: () => setTimeout(() => createMap(lat, lng, zoom, currentUser), 100)
+        });
+      } else {
+        setTimeout(() => createMap(lat, lng, zoom, null), 100);
+      }
+    } catch (e) {
+      console.error('[MAPA] Error en initMap:', e);
     }
   }
 
@@ -298,9 +297,9 @@ export class MapaComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        console.warn('Overpass API busy or error, skipping OSM buildings.', err);
+        // Overpass can be hit or miss depending on their server load.
+        // We handle this gracefully by showing a feedback message and not logging as a warning/error.
         this.showFeedback('Aviso: Servidor de mapas saturado. Mostrando solo edificios locales.', 'success');
-        // Do not block other logic
       }
     });
   }
@@ -744,6 +743,11 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   private createAdminMarker(L: any, lat: number, lng: number, user: any) {
+    if (!L || !L.divIcon || !L.marker) {
+      console.warn('[MAPA] L.marker o L.divIcon no disponibles para AdminMarker');
+      return;
+    }
+
     const adminIcon = L.divIcon({
       className: 'custom-div-icon',
       html: `<div style="background-color: #9333ea; width: 1.5rem; height: 1.5rem; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
@@ -1141,5 +1145,109 @@ export class MapaComponent implements OnInit, OnDestroy {
 
   private updateGuard(guard: any) {
     return this.http.patch(`http://localhost:3000/api/guards/${guard.idEmpleado}`, guard);
+  }
+
+  // --- Heatmap Logic ---
+  public async toggleHeatmap(active?: boolean) {
+    const shouldActivate = active !== undefined ? active : !this.isHeatmapActive;
+    
+    // Si ya estamos en el estado deseado, no hacer nada (previene bucles)
+    if (shouldActivate === this.isHeatmapActive && this.heatmapLayer) return;
+
+    this.isHeatmapActive = shouldActivate;
+
+    if (this.isHeatmapActive) {
+      await this.loadHeatmapData();
+    } else {
+      if (this.heatmapLayer) {
+        this.map.removeLayer(this.heatmapLayer);
+        this.heatmapLayer = null;
+      }
+    }
+  }
+
+  private isHeatmapLoading = false;
+  private async loadHeatmapData() {
+    if (this.isHeatmapLoading) return;
+    this.isHeatmapLoading = true;
+    
+    console.log('[DEBUG-HEATMAP] Iniciando carga de datos...');
+    
+    try {
+      let attempts = 0;
+      while (!this.isMapReady && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!this.map || !this.L) {
+        console.error('[DEBUG-HEATMAP] Error: Mapa o Leaflet no inicializados.');
+        return;
+      }
+
+      // Verificar si el plugin de calor está cargado
+      const LHeat = (window as any).L || this.L;
+      if (typeof LHeat.heatLayer !== 'function') {
+        console.error('[DEBUG-HEATMAP] CRÍTICO: heatLayer no disponible');
+        this.showFeedback('Error: Plugin de calor no cargado.', 'error');
+        return;
+      }
+
+      const [reports, guards] = await Promise.all([
+        this.reportService.getReports(),
+        new Promise<any[]>((resolve) => {
+          this.http.get<any[]>('http://localhost:3000/api/guards').subscribe({
+            next: (data) => resolve(data),
+            error: (err) => {
+              console.error('[DEBUG-HEATMAP] Error cargando guardias:', err);
+              resolve([]);
+            }
+          });
+        })
+      ]);
+
+      const guardLocations = new Map();
+      guards.forEach((g: any) => {
+        if (g.lat && g.lng) {
+          guardLocations.set(String(g.idEmpleado).trim(), { lat: parseFloat(g.lat), lng: parseFloat(g.lng) });
+        }
+      });
+
+      const points = reports
+        .map((r: any) => {
+          let lat = r.gps_lat ? parseFloat(r.gps_lat) : (r.lat ? parseFloat(r.lat) : null);
+          let lng = r.gps_lng ? parseFloat(r.gps_lng) : (r.lng ? parseFloat(r.lng) : null);
+          if (!lat || !lng) {
+            const guardId = String(r.created_by_guard_id || '').trim();
+            const loc = guardLocations.get(guardId);
+            if (loc) { lat = loc.lat; lng = loc.lng; }
+          }
+          return (lat && lng) ? [lat, lng, 1.0] : null;
+        })
+        .filter((p: any) => p !== null);
+
+      if (this.heatmapLayer) {
+        this.map.removeLayer(this.heatmapLayer);
+      }
+
+      if (points.length > 0) {
+        // @ts-ignore
+        this.heatmapLayer = LHeat.heatLayer(points, {
+          radius: 65,
+          blur: 15,
+          maxZoom: 15,
+          gradient: { 0.2: 'blue', 0.4: 'cyan', 0.6: 'lime', 0.8: 'yellow', 1: 'red' }
+        }).addTo(this.map);
+        this.showFeedback(`Calor activo: ${points.length} incidentes detectados.`, 'success');
+      } else {
+        this.showFeedback('Sin incidentes recientes en esta región.', 'success');
+      }
+
+    } catch (error) {
+      console.error('[DEBUG-HEATMAP] Error:', error);
+      this.showFeedback('Error al procesar mapa de calor.', 'error');
+    } finally {
+      this.isHeatmapLoading = false;
+    }
   }
 }

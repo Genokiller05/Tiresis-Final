@@ -323,6 +323,7 @@
               <input
                 class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-gray-700 font-medium"
                 id="reg-nombre" name="nombre" [(ngModel)]="regForm.nombre" type="text" placeholder="Ej. Carlos Mendoza"
+                (keypress)="($event.charCode >= 65 && $event.charCode <= 90) || ($event.charCode >= 97 && $event.charCode <= 122) || $event.charCode === 32 || ($event.charCode >= 192 && $event.charCode <= 255)"
                 required />
               <small *ngIf="regFieldErrors['nombre']" class="text-rose-500 text-[10px] font-bold ml-1">{{
                 regFieldErrors['nombre'] }}</small>
@@ -517,6 +518,7 @@
           <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nombre
             Completo</label>
           <input type="text" [(ngModel)]="editForm.nombre"
+            (keypress)="($event.charCode >= 65 && $event.charCode <= 90) || ($event.charCode >= 97 && $event.charCode <= 122) || $event.charCode === 32 || ($event.charCode >= 192 && $event.charCode <= 255)"
             class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all">
         </div>
 
