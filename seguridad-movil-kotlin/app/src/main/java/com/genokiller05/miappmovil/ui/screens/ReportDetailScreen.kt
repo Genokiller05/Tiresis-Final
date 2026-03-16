@@ -13,16 +13,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.model.Report
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,12 +49,12 @@ fun ReportDetailScreen(
         7 to "Falla eléctrica", 8 to "Otro"
     )
 
-    var evidenceUrls by remember { mutableStateOf<List<String>>(emptyList()) }
-
     LaunchedEffect(reportId) {
-        report = repo.getReportById(reportId)
-        evidenceUrls = repo.fetchReportEvidences(reportId)
-        isLoading = false
+        while(true) {
+            report = repo.getReportById(reportId)
+            isLoading = false
+            delay(5000) // Poll every 5s for realtime emulation
+        }
     }
 
     Scaffold(
@@ -96,6 +97,21 @@ fun ReportDetailScreen(
             val r = report!!
             val (statusText, statusColor) = statusNames[r.status_id] ?: Pair("—", StatusGray)
             val typeName = typeNames[r.report_type_id] ?: "—"
+            
+            var descriptionText = r.short_description ?: stringResource(R.string.general_no_description)
+            var evidenceUri: String? = null
+            
+            // Extraer Evidencia de la descripción
+            val evidenceRegex = Regex("Evidencia: (http[s]?://[^\\s|]+)")
+            val matchResult = evidenceRegex.find(descriptionText)
+            if (matchResult != null) {
+                evidenceUri = matchResult.groupValues[1]
+                descriptionText = descriptionText.replace(matchResult.value, "").trim()
+            }
+            // Limpiar separadores vacíos
+            if (descriptionText.endsWith("|")) {
+                descriptionText = descriptionText.dropLast(1).trim()
+            }
 
             Column(
                 modifier = Modifier
@@ -137,7 +153,7 @@ fun ReportDetailScreen(
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         Text(
-                            text = r.short_description ?: stringResource(R.string.general_no_description),
+                            text = descriptionText,
                             fontSize = 14.sp,
                             color = colors.subtext,
                             lineHeight = 22.sp
@@ -145,7 +161,7 @@ fun ReportDetailScreen(
                     }
                 }
 
-                if (evidenceUrls.isNotEmpty()) {
+                if (evidenceUri != null) {
                     Spacer(modifier = Modifier.height(20.dp))
                     Text(
                         text = "Evidencia Adjunta",
@@ -153,17 +169,14 @@ fun ReportDetailScreen(
                         color = colors.text,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    
-                    evidenceUrls.forEach { url ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().height(250.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
                         AsyncImage(
-                            model = url,
-                            contentDescription = "Evidencia del reporte",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                                .padding(bottom = 12.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.card),
+                            model = evidenceUri,
+                            contentDescription = "Evidencia",
+                            modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
                     }

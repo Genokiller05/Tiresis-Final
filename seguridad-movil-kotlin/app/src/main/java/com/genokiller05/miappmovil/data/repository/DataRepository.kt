@@ -60,11 +60,38 @@ class DataRepository @Inject constructor() {
         supabase.postgrest.from("entries_exits").insert(entryData)
     }
 
-    suspend fun updateGuardStatus(idEmpleado: String, status: String) {
-        supabase.postgrest.from("guards")
-            .update(buildJsonObject { put("estado", status) }) {
-                filter { eq("idEmpleado", idEmpleado) }
+    suspend fun updateGuardStatus(guard: Guard, status: String) {
+        try {
+            // Generar nuevo Log de Actividad
+            val sdf = java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+            val currentDate = sdf.format(java.util.Date())
+            
+            val newActivity = buildJsonObject {
+                put("fechaHora", currentDate)
+                put("tipo", if (status == "En servicio") "INICIO DE TURNO" else "FIN DE TURNO")
+                put("descripcion", "El guardia " + (if (status == "En servicio") "inició" else "finalizó") + " su turno a las " + currentDate.split(" ")[1] + ".")
             }
+            
+            val currentActivities = guard.actividades?.toMutableList() ?: mutableListOf()
+            currentActivities.add(0, newActivity) // Agregar al inicio de la lista
+            val newActivitiesJsonArray = kotlinx.serialization.json.JsonArray(currentActivities)
+
+            supabase.postgrest.from("guards")
+                .update(buildJsonObject { 
+                    put("estado", status) 
+                    put("actividades", newActivitiesJsonArray)
+                }) {
+                    filter {
+                        if (!guard.id.isNullOrEmpty()) {
+                            eq("id", guard.id)
+                        } else {
+                            eq("idEmpleado", guard.idEmpleado)
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            // Silently fail on network error, status update shouldn't crash app
+        }
     }
 
     suspend fun loginByEmail(email: String): Guard? {

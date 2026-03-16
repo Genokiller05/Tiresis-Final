@@ -22,6 +22,7 @@ import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.model.Report
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -36,8 +37,11 @@ fun ReportsScreen(
     val repo = remember { DataRepository() }
 
     LaunchedEffect(Unit) {
-        reports = repo.fetchReports()
-        isLoading = false
+        while(true) {
+            reports = repo.fetchReports()
+            isLoading = false
+            delay(5000) // 5 second polling matching simulated realtime
+        }
     }
 
     val statusNames = mapOf(
@@ -152,8 +156,11 @@ fun ReportsScreen(
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
+                                val reportDesc = report.short_description ?: stringResource(R.string.general_no_description)
+                                val cleanedDesc = reportDesc.replace(Regex("Evidencia: (http[s]?://[^\\s|]+)"), "").replace("| |", "|").trimEnd('|', ' ').trim()
+
                                 Text(
-                                    text = report.short_description ?: stringResource(R.string.general_no_description),
+                                    text = cleanedDesc,
                                     color = colors.subtext,
                                     fontSize = 14.sp,
                                     maxLines = 2

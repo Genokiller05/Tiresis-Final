@@ -1,5 +1,5 @@
 // Force re-compile
-import { Component, PLATFORM_ID, Inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, PLATFORM_ID, Inject, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { isPlatformBrowser, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -98,7 +98,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     private translationService: TranslationService,
     private authService: AuthService,
     private guardService: GuardService,
-    private supabaseService: SupabaseService
+    private supabaseService: SupabaseService,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef
   ) { }
 
   ngOnInit(): void {
@@ -111,21 +113,24 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isPremiumUser = this.authService.isPremium();
     if (isPlatformBrowser(this.platformId)) {
       this.realtimeSubscription = this.guardService.getGuardUpdates().subscribe(payload => {
-        if (this.currentGuardId && payload.new) {
-          const isSameGuard = payload.new.document_id === this.currentGuardId || payload.new.idEmpleado === this.currentGuardId;
-          if (isSameGuard) {
-            this.currentGuard = {
-              ...this.currentGuard,
-              ...payload.new,
-              // Normalize fields to ensure compatibility with UI requirements
-              nombre: payload.new.nombre || payload.new.full_name || this.currentGuard.nombre,
-              telefono: payload.new.telefono || payload.new.phone || this.currentGuard.telefono,
-              estado: payload.new.estado || this.currentGuard.estado,
-              // Update activity history in real-time
-              actividades: Array.isArray(payload.new.actividades) ? payload.new.actividades : this.currentGuard.actividades,
-            };
+        this.ngZone.run(() => {
+          if (this.currentGuardId && payload.new) {
+            const isSameGuard = payload.new.document_id === this.currentGuardId || payload.new.idEmpleado === this.currentGuardId;
+            if (isSameGuard) {
+              this.currentGuard = {
+                ...this.currentGuard,
+                ...payload.new,
+                // Normalize fields to ensure compatibility with UI requirements
+                nombre: payload.new.nombre || payload.new.full_name || this.currentGuard.nombre,
+                telefono: payload.new.telefono || payload.new.phone || this.currentGuard.telefono,
+                estado: payload.new.estado || this.currentGuard.estado,
+                // Update activity history in real-time
+                actividades: Array.isArray(payload.new.actividades) ? payload.new.actividades : this.currentGuard.actividades,
+              };
+              this.cdr.detectChanges();
+            }
           }
-        }
+        });
       });
     }
   }
@@ -301,18 +306,21 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.currentGuardId = this.currentGuard.idEmpleado;
         this.actividadesPage = 1; // Reiniciar paginación al buscar nuevo guardia
 
-        // Presence Sync
+        // Subscribe to Presence specifically for this guard
         if (this.presenceChannel) {
           this.supabaseService.client.removeChannel(this.presenceChannel);
         }
 
         this.presenceChannel = this.supabaseService.client.channel('online-guards-' + this.currentGuardId);
         this.presenceChannel.on('presence', { event: 'sync' }, () => {
-          const state = this.presenceChannel.presenceState();
-          const isOnline = Object.keys(state).length > 0;
-          if (this.currentGuard) {
-            this.currentGuard.estado = isOnline ? 'En servicio' : 'Fuera de servicio';
-          }
+          this.ngZone.run(() => {
+            const state = this.presenceChannel.presenceState();
+            const isOnline = Object.keys(state).length > 0;
+            if (this.currentGuard) {
+              this.currentGuard.estado = isOnline ? 'En servicio' : 'Fuera de servicio';
+              this.cdr.detectChanges();
+            }
+          });
         }).subscribe();
 
         this.successMessage = 'Guardia encontrado!';

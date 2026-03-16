@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, Inject, PLATFORM_ID, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -10,9 +10,6 @@ import { Subscription } from 'rxjs';
 import * as flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
 import { ViewChild, ElementRef } from '@angular/core';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 
 @Component({
   selector: 'app-alertas',
@@ -45,7 +42,6 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   // Dropdown States
   public isTipoDropdownOpen: boolean = false;
   public isModalStatusDropdownOpen: boolean = false;
-  public isExportDropdownOpen: boolean = false;
 
   // Properties for status modification modal
   public isStatusModalVisible: boolean = false;
@@ -70,15 +66,16 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   private realtimeSubscription!: Subscription;
   private querySub!: Subscription;
   public initialOpenAlertId: string | null = null;
-  public isPremiumUser: boolean = false;
 
   constructor(
-    public router: Router,
+    private router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
     private reportService: ReportService,
     private authService: AuthService,
     private route: ActivatedRoute,
+    private ngZone: NgZone,
+    private cdr: ChangeDetectorRef,
     @Inject(PLATFORM_ID) private platformId: Object
   ) { }
 
@@ -98,7 +95,6 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     if (isPlatformBrowser(this.platformId)) {
-      this.isPremiumUser = this.authService.isPremium();
       this.fetchReports();
     }
     this.langSubscription = this.translationService.uiText.subscribe(translations => {
@@ -115,14 +111,26 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private async handleRealtimeEvent(payload: any) {
-    if (payload.eventType === 'DELETE') {
-      this.allAlerts = this.allAlerts.filter(a => a.id !== payload.old.id);
+  private handleRealtimeEvent(payload: any) {
+    this.ngZone.run(() => {
+      if (payload.eventType === 'INSERT') {
+        const mappedNew = this.mapReportFromDB(payload.new);
+        const exists = this.allAlerts.find(a => a.id === mappedNew.id);
+        if (!exists) {
+          this.allAlerts.unshift(mappedNew);
+        }
+      } else if (payload.eventType === 'UPDATE') {
+        const mappedUpdate = this.mapReportFromDB(payload.new);
+        const index = this.allAlerts.findIndex(a => a.id === mappedUpdate.id);
+        if (index !== -1) {
+          this.allAlerts[index] = mappedUpdate;
+        }
+      } else if (payload.eventType === 'DELETE') {
+        this.allAlerts = this.allAlerts.filter(a => a.id !== payload.old.id);
+      }
       this.aplicarFiltros();
-      return;
-    }
-
-    await this.fetchReports();
+      this.cdr.detectChanges();
+    });
   }
 
   ngAfterViewInit() {
@@ -175,10 +183,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
     let parsedArea = 'Área Asignada';
     let parsedDescription = dbReport.short_description || 'Sin descripción detallada.';
-    const directEvidenceUrls = Array.isArray(dbReport.evidence_urls)
-      ? dbReport.evidence_urls.filter((url: unknown): url is string => typeof url === 'string' && url.trim().length > 0)
-      : [];
-    const parsedEvidences: string[] = [...directEvidenceUrls];
+    let parsedEvidence = null;
     let parsedGuardName = 'Guardia Registrado';
     let parsedGuardID = dbReport.created_by_guard_id || 'N/A';
 
@@ -186,8 +191,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       let tempDesc = dbReport.short_description;
 
       const evidenceMatch = tempDesc.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
-      if (evidenceMatch && evidenceMatch[1] && parsedEvidences.length === 0) {
-        parsedEvidences.push(evidenceMatch[1]);
+      if (evidenceMatch && evidenceMatch[1]) {
+        parsedEvidence = evidenceMatch[1];
         tempDesc = tempDesc.replace(evidenceMatch[0], '').replace(/\|\s*$/, '').trim();
       }
 
@@ -221,8 +226,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         descripcion: parsedDescription,
         nombreGuardia: parsedGuardName,
         idGuardia: parsedGuardID,
-        evidencia: parsedEvidences[0] || null,
-        evidencias: parsedEvidences
+        evidencia: parsedEvidence
       },
       _rawDBData: dbReport
     };
@@ -315,10 +319,6 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     this.filterTipo = tipo;
     this.isTipoDropdownOpen = false;
     this.aplicarFiltros();
-  }
-
-  public toggleExportDropdown(): void {
-    this.isExportDropdownOpen = !this.isExportDropdownOpen;
   }
 
   // --- Modal Dropdowns ---
@@ -517,111 +517,6 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
       default:
         return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
-    }
-  }
-
-  // --- Export Methods ---
-  public exportToExcel(): void {
-    if (this.displayedAlerts.length === 0) {
-      alert('No hay datos para exportar.');
-      return;
-    }
-
-    try {
-      // 1. Preparar los datos para Excel (Aplanar objetos complejos)
-      const dataToExport = this.displayedAlerts.map(alerta => ({
-        'ID Vector': (new Date(alerta.fechaHora).getTime() / 1000).toString().slice(-6),
-        'Fecha y Hora': new Date(alerta.fechaHora).toLocaleString(),
-        'Origen': alerta.origen,
-        'Tipo': alerta.tipo,
-        'Sitio/Área': alerta.sitioArea,
-        'Estado': alerta.estado,
-        'Guardia': alerta.detalles?.nombreGuardia || 'IA System',
-        'ID Guardia': alerta.detalles?.idGuardia || 'N/A',
-        'Descripción': alerta.detalles?.descripcion || ''
-      }));
-
-      // 2. Crear el libro de trabajo (Workbook)
-      const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
-      const workbook: XLSX.WorkBook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Incidentes');
-
-      // 3. Estilo básico (Ajustar anchos de columna)
-      const wscols = [
-        { wch: 15 }, // ID
-        { wch: 20 }, // Fecha
-        { wch: 10 }, // Origen
-        { wch: 15 }, // Tipo
-        { wch: 20 }, // Sitio
-        { wch: 15 }, // Estado
-        { wch: 20 }, // Guardia
-        { wch: 12 }, // ID Guardia
-        { wch: 50 }, // Descripción
-      ];
-      worksheet['!cols'] = wscols;
-
-      // 4. Generar el archivo y activar descarga
-      const fileName = `Reporte_Incidentes_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
-
-      console.log('Exportación a Excel completada con éxito.');
-    } catch (error) {
-      console.error('Error al exportar a Excel:', error);
-      alert('Ocurrió un error al generar el archivo Excel.');
-    }
-  }
-
-  public exportToPDF(): void {
-    if (this.displayedAlerts.length === 0) {
-      alert('No hay datos para exportar.');
-      return;
-    }
-
-    try {
-      const doc = new jsPDF('landscape');
-      
-      // Título del Reporte
-      doc.setFontSize(22);
-      doc.setTextColor(112, 0, 255); // Color Prism Purple
-      doc.text('Reporte de Incidentes de Seguridad - Tiresis', 14, 20);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Fecha de exportación: ${new Date().toLocaleString()}`, 14, 28);
-      
-      // Preparar filas para la tabla
-      const rows = this.displayedAlerts.map(alerta => [
-        (new Date(alerta.fechaHora).getTime() / 1000).toString().slice(-6),
-        new Date(alerta.fechaHora).toLocaleString(),
-        alerta.origen,
-        alerta.tipo,
-        alerta.sitioArea,
-        alerta.estado,
-        alerta.detalles?.nombreGuardia || 'IA System',
-        alerta.detalles?.descripcion || ''
-      ]);
-
-      // Generar tabla
-      autoTable(doc, {
-        startY: 35,
-        head: [['ID', 'Fecha/Hora', 'Origen', 'Tipo', 'Área', 'Estado', 'Guardia', 'Descripción']],
-        body: rows,
-        headStyles: { fillColor: [112, 0, 255] },
-        alternateRowStyles: { fillColor: [240, 240, 240] },
-        styles: { fontSize: 8, cellPadding: 2 },
-        columnStyles: {
-          7: { cellWidth: 80 } // Descripción más ancha
-        }
-      });
-
-      // Guardar PDF
-      const fileName = `Reporte_Incidentes_${new Date().toISOString().split('T')[0]}.pdf`;
-      doc.save(fileName);
-      
-      console.log('Exportación a PDF completada con éxito.');
-    } catch (error) {
-      console.error('Error al exportar a PDF:', error);
-      alert('Ocurrió un error al generar el archivo PDF.');
     }
   }
 }

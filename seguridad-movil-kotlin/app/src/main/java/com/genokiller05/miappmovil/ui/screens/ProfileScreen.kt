@@ -42,7 +42,10 @@ fun ProfileScreen(
     val telefono = user?.telefono ?: user?.phone ?: stringResource(R.string.profile_no_phone)
     val direccion = user?.direccion ?: stringResource(R.string.profile_no_address)
     val estado = user?.estado ?: "—"
-    val photoUrl = user?.foto ?: user?.photo_url
+    val photoUrlRaw = user?.foto ?: user?.photo_url
+    val photoUrl = photoUrlRaw?.let {
+        if (it.startsWith("/")) "http://10.0.2.2:3000$it" else it
+    }
 
     val initials = nombre.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")
 

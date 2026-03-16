@@ -1,9 +1,6 @@
 package com.genokiller05.miappmovil.ui.screens
 
-import android.Manifest
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,21 +24,23 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+import android.util.Log
+import com.genokiller05.miappmovil.ui.components.CameraView
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import android.Manifest
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun RegistrationScreen(
     type: String,
@@ -77,30 +76,32 @@ fun RegistrationScreen(
     var company by remember { mutableStateOf("") }
     var purpose by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    fun createTempImageUri(): Uri {
-        val tempFile = File.createTempFile("camera_evidence_", ".jpg", context.cacheDir)
-        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
-    }
+    var showCamera by remember { mutableStateOf(false) }
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) {
-            imageUri = tempCameraUri
+    if (showCamera) {
+        if (cameraPermissionState.status.isGranted) {
+            CameraView(
+                onImageCaptured = { uri -> 
+                    imageUri = uri
+                    showCamera = false
+                },
+                onError = { Log.e("Camera", "Error capturing: ${it.message}") },
+                onClose = { showCamera = false }
+            )
         } else {
-            tempCameraUri = null
+            LaunchedEffect(Unit) {
+                cameraPermissionState.launchPermissionRequest()
+            }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Button(onClick = { cameraPermissionState.launchPermissionRequest() }) {
+                    Text("Conceder Permiso de Cámara")
+                }
+            }
         }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-        if (isGranted) {
-            val uri = createTempImageUri()
-            tempCameraUri = uri
-            cameraLauncher.launch(uri)
-        } else {
-            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
-        }
+        return
     }
 
     Scaffold(
@@ -202,16 +203,11 @@ fun RegistrationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
-                        .clickable { 
-                            when {
-                                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
-                                    val uri = createTempImageUri()
-                                    tempCameraUri = uri
-                                    cameraLauncher.launch(uri)
-                                }
-                                else -> {
-                                    permissionLauncher.launch(Manifest.permission.CAMERA)
-                                }
+                        .clickable {
+                            if (cameraPermissionState.status.isGranted) {
+                                showCamera = true
+                            } else {
+                                cameraPermissionState.launchPermissionRequest()
                             }
                         },
                     shape = RoundedCornerShape(16.dp),
@@ -251,27 +247,29 @@ fun RegistrationScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Company
-            OutlinedTextField(
-                value = company,
-                onValueChange = { company = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.registration_company)) },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = colors.accent,
-                    unfocusedBorderColor = colors.border,
-                    focusedContainerColor = colors.inputBackground,
-                    unfocusedContainerColor = colors.inputBackground,
-                    focusedTextColor = colors.text,
-                    unfocusedTextColor = colors.text,
-                    focusedLabelColor = colors.accent,
-                    unfocusedLabelColor = colors.subtext
-                ),
-                singleLine = true
-            )
+            if (type != "visit") {
+                // Company
+                OutlinedTextField(
+                    value = company,
+                    onValueChange = { company = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.registration_company)) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.border,
+                        focusedContainerColor = colors.inputBackground,
+                        unfocusedContainerColor = colors.inputBackground,
+                        focusedTextColor = colors.text,
+                        unfocusedTextColor = colors.text,
+                        focusedLabelColor = colors.accent,
+                        unfocusedLabelColor = colors.subtext
+                    ),
+                    singleLine = true
+                )
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             // Purpose
             OutlinedTextField(
@@ -313,37 +311,57 @@ fun RegistrationScreen(
                             val guardId = user?.id ?: user?.document_id ?: ""
                             val now = LocalDateTime.now()
                             val tipoStr = if (isEntry) "Entrada" else "Salida"
-                            val desc = "$tipoStr - $type: $fullName" +
-                                    (if (company.isNotBlank()) " | $company" else "") +
+                            var desc = "$tipoStr - $type: $fullName" +
+                                    (if (type != "visit" && company.isNotBlank()) " | $company" else "") +
                                     (if (purpose.isNotBlank()) " | $purpose" else "")
 
-                            // 1. Read bytes on IO dispatcher to not block UI
-                            var imageBytes: ByteArray? = null
-                            if (imageUri != null) {
-                                withContext(Dispatchers.IO) {
-                                    val inputStream = context.contentResolver.openInputStream(imageUri!!)
-                                    imageBytes = inputStream?.readBytes()
-                                    inputStream?.close()
+                            // Upload photo
+                            try {
+                                val inputStream = context.contentResolver.openInputStream(imageUri!!)
+                                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
+                                inputStream?.close()
+
+                                if (bitmap != null) {
+                                    val maxDim = 1024f
+                                    val scale = kotlin.math.min(maxDim / bitmap.width, maxDim / bitmap.height)
+                                    val scaledBitmap = if (scale < 1) {
+                                        android.graphics.Bitmap.createScaledBitmap(
+                                            bitmap,
+                                            (bitmap.width * scale).toInt(),
+                                            (bitmap.height * scale).toInt(),
+                                            true
+                                        )
+                                    } else bitmap
+
+                                    val outputStream = java.io.ByteArrayOutputStream()
+                                    scaledBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, outputStream)
+                                    val bytes = outputStream.toByteArray()
+
+                                    if (scaledBitmap != bitmap) {
+                                        scaledBitmap.recycle()
+                                    }
+
+                                    if (bytes.isNotEmpty()) {
+                                        val (evidenceId, publicUrl) = repo.uploadEntryEvidence(bytes, guardId)
+                                        if (publicUrl != null) {
+                                            desc = "$desc | Evidencia: $publicUrl"
+                                        }
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                android.util.Log.e("RegistrationScreen", "Error preparing image", e)
                             }
 
-                            // 2. Upload and Create Record on IO dispatcher
-                            withContext(Dispatchers.IO) {
-                                if (imageBytes != null && imageBytes!!.isNotEmpty()) {
-                                    repo.uploadEntryEvidence(imageBytes!!, guardId)
-                                }
-
-                                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                                val entryData = com.genokiller05.miappmovil.data.model.EntryExit(
-                                    id = java.util.UUID.randomUUID().toString(),
-                                    fechaHora = now.format(formatter),
-                                    tipo = tipoStr,
-                                    descripcion = desc,
-                                    idRelacionado = guardId,
-                                    site_id = user?.site_id
-                                )
-                                repo.createEntryExit(entryData)
-                            }
+                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+                            val entryData = com.genokiller05.miappmovil.data.model.EntryExit(
+                                id = java.util.UUID.randomUUID().toString(),
+                                fechaHora = now.format(formatter),
+                                tipo = tipoStr,
+                                descripcion = desc,
+                                idRelacionado = guardId,
+                                site_id = user?.site_id
+                            )
+                            repo.createEntryExit(entryData)
 
                             val msg = if (isEntry) context.getString(R.string.registration_entry_success)
                                       else context.getString(R.string.registration_exit_success)

@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.genokiller05.miappmovil.data.remote.SupabaseClient
+import io.github.jan.supabase.realtime.channel
+import io.github.jan.supabase.realtime.RealtimeChannel
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 @HiltViewModel
 class UserViewModel @Inject constructor(
@@ -22,14 +27,20 @@ class UserViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private var presenceChannel: RealtimeChannel? = null
+
     fun login(userData: Guard) {
         _user.value = userData
         viewModelScope.launch {
             try {
-                val userId = userData.idEmpleado.ifEmpty { userData.document_id ?: userData.id ?: "" }
-                if (userId.isNotEmpty()) {
-                    dataRepository.updateGuardStatus(userId, "En servicio")
-                }
+                dataRepository.updateGuardStatus(userData, "En servicio")
+                
+                // Track online presence via WebSocket (solves issue when app is swiped away)
+                val id = userData.idEmpleado.ifEmpty { userData.document_id ?: userData.id ?: "unknown" }
+                val channel = SupabaseClient.client.channel("online-guards-$id")
+                channel.subscribe()
+                channel.track(buildJsonObject { put("online", true) })
+                presenceChannel = channel
             } catch (e: Exception) {
                 // ignore
             }
@@ -41,12 +52,9 @@ class UserViewModel @Inject constructor(
         if (currentUser != null) {
             viewModelScope.launch {
                 try {
-                    val userId = currentUser.idEmpleado.ifEmpty {
-                        currentUser.document_id ?: currentUser.id ?: ""
-                    }
-                    if (userId.isNotEmpty()) {
-                        dataRepository.updateGuardStatus(userId, "Fuera de servicio")
-                    }
+                    presenceChannel?.unsubscribe()
+                    presenceChannel = null
+                    dataRepository.updateGuardStatus(currentUser, "Fuera de servicio")
                 } catch (e: Exception) {
                     // ignore
                 }
