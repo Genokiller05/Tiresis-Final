@@ -2,8 +2,6 @@
   <div class="flex flex-col h-screen overflow-y-auto custom-scrollbar">
     <main class="flex-1 p-8">
       <div class="mx-auto max-w-5xl">
-
-        <!-- Header -->
         <header class="mb-10 flex justify-between items-center">
           <div class="flex items-center space-x-4">
             <div class="p-3 bg-gradient-premium rounded-2xl shadow-lg ring-1 ring-white/10">
@@ -11,16 +9,19 @@
             </div>
             <div>
               <h1 class="text-4xl font-bold text-gradient">Centro de Informes Semanales</h1>
-              <p class="text-gray-400 mt-1 font-medium tracking-wide">Genera y publica reportes para tus guardias</p>
+              <p class="text-gray-400 mt-1 font-medium tracking-wide">
+                Genera, revisa y administra reportes para tus guardias
+              </p>
             </div>
           </div>
-          <button (click)="navigateTo($event, '/dashboard/admin-profile')"
-            class="p-4 glass-effect border border-glass-border rounded-2xl text-primary hover:scale-110 active:scale-95 transition-all shadow-lg group">
+          <button
+            (click)="navigateTo($event, '/dashboard/admin-profile')"
+            class="p-4 glass-effect border border-glass-border rounded-2xl text-primary hover:scale-110 active:scale-95 transition-all shadow-lg group"
+          >
             <span class="material-icons group-hover:-translate-x-1 transition-transform">arrow_back</span>
           </button>
         </header>
 
-        <!-- Week indicator -->
         <div class="flex items-center bg-emerald-500/10 px-5 py-3 rounded-2xl border border-emerald-500/20 w-fit mb-8">
           <span class="material-icons text-emerald-400 text-sm mr-2">date_range</span>
           <span class="text-[11px] font-black text-emerald-400 uppercase tracking-widest">
@@ -28,87 +29,100 @@
           </span>
         </div>
 
-        <!-- Alert messages -->
-        <div *ngIf="successMessage" class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-sm font-semibold">
+        <div
+          *ngIf="successMessage"
+          class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-sm font-semibold"
+        >
           {{ successMessage }}
         </div>
-        <div *ngIf="errorMessage" class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-sm font-semibold">
+        <div
+          *ngIf="errorMessage"
+          class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-400 text-sm font-semibold"
+        >
           {{ errorMessage }}
         </div>
 
-        <!-- Generate Section -->
-        <section *ngIf="!draft" class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-glass-border relative overflow-hidden mb-8">
+        <section
+          *ngIf="!draft"
+          class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-glass-border relative overflow-hidden mb-8"
+        >
           <div class="absolute -top-32 -left-32 w-80 h-80 bg-primary/5 blur-[120px] rounded-full"></div>
-          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-6 relative z-10">Nuevo Informe</p>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-6 relative z-10">
+            Nuevo Informe
+          </p>
 
           <div class="relative z-10 space-y-6">
-            <!-- Admin notes -->
             <div class="space-y-2">
               <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">
-                Notas del Administrador (opcional)
+                Observacion del Administrador (opcional)
               </label>
-              <textarea [(ngModel)]="adminNotes" rows="3"
-                placeholder="Ej: Prestar especial atención a la puerta trasera durante la madrugada..."
-                class="w-full bg-black/60 border border-glass-border text-white rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none resize-none placeholder:text-gray-600">
-              </textarea>
+              <textarea
+                [(ngModel)]="adminNotes"
+                rows="3"
+                placeholder="Ej: Poca actividad esta semana, revisar acceso trasero y rondines nocturnos."
+                class="w-full bg-black/60 border border-glass-border text-white rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none resize-none placeholder:text-gray-600"
+              ></textarea>
             </div>
 
-            <!-- Generate button -->
-            <button (click)="generateReport()" [disabled]="isGenerating"
-              class="w-full py-5 bg-gradient-premium text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed">
+            <button
+              (click)="generateReport()"
+              [disabled]="isGenerating"
+              class="w-full py-5 bg-gradient-premium text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <span class="material-icons text-sm mr-2">auto_graph</span>
               {{ isGenerating ? 'Generando...' : 'Generar Informe Actual' }}
             </button>
           </div>
         </section>
 
-        <!-- Draft Preview Section -->
-        <section *ngIf="draft" class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-emerald-500/30 relative overflow-hidden mb-8">
+        <section
+          *ngIf="draft"
+          class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-emerald-500/30 relative overflow-hidden mb-8"
+        >
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent pointer-events-none"></div>
           <div class="relative z-10">
             <div class="flex justify-between items-center mb-8">
-              <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Borrador · Listo para Publicar</p>
-              <button (click)="discardDraft()" class="text-gray-500 hover:text-rose-400 transition-colors text-xs font-bold uppercase tracking-wider flex items-center">
+              <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                Borrador · Listo para Publicar
+              </p>
+              <button
+                (click)="discardDraft()"
+                class="text-gray-500 hover:text-rose-400 transition-colors text-xs font-bold uppercase tracking-wider flex items-center"
+              >
                 <span class="material-icons text-sm mr-1">delete_outline</span> Descartar
               </button>
             </div>
 
-            <!-- Metrics grid -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-              <!-- Total reports -->
               <div class="bg-black/40 rounded-3xl p-5 border border-glass-border text-center">
                 <span class="material-icons text-primary text-3xl mb-2 block">summarize</span>
                 <p class="text-3xl font-black text-white">{{ draft.summary_json?.total_reports ?? 0 }}</p>
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Reportes Totales</p>
               </div>
-              <!-- Completed -->
               <div class="bg-black/40 rounded-3xl p-5 border border-emerald-500/20 text-center">
                 <span class="material-icons text-emerald-400 text-3xl mb-2 block">check_circle</span>
-                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.completed ?? 0 }}</p>
+                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.['completed'] ?? 0 }}</p>
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Completados</p>
               </div>
-              <!-- In-process -->
               <div class="bg-black/40 rounded-3xl p-5 border border-amber-500/20 text-center">
                 <span class="material-icons text-amber-400 text-3xl mb-2 block">hourglass_top</span>
-                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.in_process ?? 0 }}</p>
+                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.['in_process'] ?? 0 }}</p>
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">En Proceso</p>
               </div>
-              <!-- Pending -->
               <div class="bg-black/40 rounded-3xl p-5 border border-rose-500/20 text-center">
                 <span class="material-icons text-rose-400 text-3xl mb-2 block">pending</span>
-                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.pending ?? 0 }}</p>
+                <p class="text-3xl font-black text-white">{{ draft.summary_json?.status_counts?.['pending'] ?? 0 }}</p>
                 <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-1">Pendientes</p>
               </div>
             </div>
 
-            <!-- Hot area & Busiest slot -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               <div class="bg-black/40 rounded-3xl p-5 border border-glass-border flex items-center space-x-4">
                 <div class="w-12 h-12 rounded-2xl bg-rose-500/20 flex items-center justify-center">
                   <span class="material-icons text-rose-400">location_on</span>
                 </div>
                 <div>
-                  <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Área Más Activa</p>
+                  <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Area Mas Activa</p>
                   <p class="text-base font-black text-white mt-1">{{ draft.summary_json?.hottest_area || 'Sin datos' }}</p>
                 </div>
               </div>
@@ -117,55 +131,245 @@
                   <span class="material-icons text-amber-400">schedule</span>
                 </div>
                 <div>
-                  <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Turno Más Activo</p>
+                  <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider">Turno Mas Activo</p>
                   <p class="text-base font-black text-white mt-1">{{ draft.summary_json?.busiest_slot || 'Sin datos' }}</p>
                 </div>
               </div>
             </div>
 
-            <!-- Notes editor before publishing -->
             <div class="space-y-2 mb-8">
               <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">
-                Notas para los Guardias
+                Comentario para los Guardias
               </label>
-              <textarea [(ngModel)]="adminNotes" rows="3"
-                placeholder="Recomendaciones para la semana..."
-                class="w-full bg-black/60 border border-glass-border text-white rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none resize-none placeholder:text-gray-600">
-              </textarea>
+              <textarea
+                [(ngModel)]="adminNotes"
+                rows="3"
+                placeholder="Recomendaciones, observaciones o contexto de la semana."
+                class="w-full bg-black/60 border border-glass-border text-white rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none resize-none placeholder:text-gray-600"
+              ></textarea>
             </div>
 
-            <!-- Publish button -->
-            <button (click)="publishDraft()" [disabled]="isPublishing"
-              class="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed">
+            <button
+              (click)="publishDraft()"
+              [disabled]="isPublishing"
+              class="w-full py-5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <span class="material-icons text-sm mr-2">send</span>
               {{ isPublishing ? 'Publicando...' : 'Publicar a Guardias' }}
             </button>
           </div>
         </section>
 
-        <!-- Published Reports History -->
-        <section *ngIf="publishedReports.length > 0" class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-glass-border relative overflow-hidden">
-          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-6">Historial de Informes Publicados</p>
-          <div class="space-y-4">
-            <div *ngFor="let report of publishedReports"
-              class="flex items-center justify-between p-5 bg-black/40 rounded-3xl border border-glass-border hover:border-primary/40 transition-all">
+        <section class="glass-effect p-8 rounded-[2.5rem] shadow-2xl border border-glass-border relative overflow-hidden">
+          <div class="flex items-center justify-between mb-6">
+            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+              Historial de Informes Publicados
+            </p>
+            <span class="text-xs text-gray-500">Haz clic para ver detalle, editar o borrar.</span>
+          </div>
+
+          <div *ngIf="publishedReports.length === 0" class="rounded-3xl border border-dashed border-glass-border bg-black/20 p-8 text-center">
+            <p class="text-sm font-semibold text-white">Todavia no hay informes publicados.</p>
+            <p class="text-xs text-gray-500 mt-2">Genera un borrador y publicalo para empezar el historial.</p>
+          </div>
+
+          <div *ngIf="publishedReports.length > 0" class="space-y-4">
+            <button
+              *ngFor="let report of publishedReports"
+              type="button"
+              (click)="openPublishedReport(report)"
+              class="w-full text-left flex items-center justify-between p-5 bg-black/40 rounded-3xl border border-glass-border hover:border-primary/40 transition-all hover:-translate-y-0.5"
+            >
               <div class="flex items-center space-x-4">
                 <div class="w-12 h-12 rounded-2xl bg-gradient-premium flex items-center justify-center shadow-lg">
                   <span class="material-icons text-white text-lg">description</span>
                 </div>
                 <div>
-                  <p class="text-sm font-black text-white">{{ formatDate(report.start_date) }} → {{ formatDate(report.end_date) }}</p>
-                  <p class="text-[10px] text-gray-400 mt-0.5">{{ report.summary_json?.total_reports ?? 0 }} reportes · publicado el {{ formatDate(report.created_at) }}</p>
+                  <p class="text-sm font-black text-white">
+                    {{ formatDate(report.start_date) }} → {{ formatDate(report.end_date) }}
+                  </p>
+                  <p class="text-[10px] text-gray-400 mt-0.5">
+                    {{ report.summary_json?.total_reports ?? 0 }} reportes · publicado el {{ formatDate(report.created_at) }}
+                  </p>
+                  <p *ngIf="report.admin_notes" class="text-xs text-gray-500 mt-2">
+                    {{ report.admin_notes }}
+                  </p>
                 </div>
               </div>
               <span class="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                 Publicado
               </span>
-            </div>
+            </button>
           </div>
         </section>
-
       </div>
     </main>
+  </div>
+
+  <div *ngIf="isLoadingReportDetails" class="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+    <div class="glass-effect border border-glass-border rounded-3xl px-8 py-6 text-center">
+      <p class="text-white font-black text-lg">Cargando detalle del informe...</p>
+    </div>
+  </div>
+
+  <div
+    *ngIf="selectedReport"
+    class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+    (click)="closeSelectedReport()"
+  >
+    <div
+      class="w-full max-w-6xl max-h-[92vh] overflow-y-auto custom-scrollbar glass-effect border border-glass-border rounded-[2.5rem] p-6 md:p-8"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-8">
+        <div>
+          <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Detalle del Informe</p>
+          <h2 class="text-2xl md:text-3xl font-black text-white">
+            {{ formatDate(selectedReport.start_date) }} → {{ formatDate(selectedReport.end_date) }}
+          </h2>
+          <p class="text-sm text-gray-400 mt-2">
+            Publicado el {{ formatDate(selectedReport.created_at) }} · Ultima actualizacion
+            {{ formatDate(selectedReport.updated_at || selectedReport.created_at) }}
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            (click)="deleteSelectedReport()"
+            [disabled]="isDeletingReport"
+            class="px-4 py-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs font-black uppercase tracking-widest disabled:opacity-60"
+          >
+            {{ isDeletingReport ? 'Eliminando...' : 'Borrar Reporte' }}
+          </button>
+          <button
+            type="button"
+            (click)="closeSelectedReport()"
+            class="p-3 rounded-2xl border border-glass-border text-gray-400 hover:text-white transition-colors"
+          >
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Incluidos</p>
+          <p class="text-3xl font-black text-white">{{ getSelectedReportIncludedCount() }}</p>
+        </div>
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Excluidos</p>
+          <p class="text-3xl font-black text-white">{{ getSelectedReportExcludedCount() }}</p>
+        </div>
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Completados</p>
+          <p class="text-3xl font-black text-white">{{ selectedReport.summary_json?.status_counts?.['completed'] ?? 0 }}</p>
+        </div>
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">En proceso</p>
+          <p class="text-3xl font-black text-white">{{ selectedReport.summary_json?.status_counts?.['in_process'] ?? 0 }}</p>
+        </div>
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Pendientes</p>
+          <p class="text-3xl font-black text-white">{{ selectedReport.summary_json?.status_counts?.['pending'] ?? 0 }}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Area Mas Activa</p>
+          <p class="text-base font-black text-white">{{ selectedReport.summary_json?.hottest_area || 'Sin datos' }}</p>
+        </div>
+        <div class="bg-black/40 rounded-3xl p-5 border border-glass-border">
+          <p class="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-2">Turno Mas Activo</p>
+          <p class="text-base font-black text-white">{{ selectedReport.summary_json?.busiest_slot || 'Sin datos' }}</p>
+        </div>
+      </div>
+
+      <div class="bg-black/30 rounded-[2rem] border border-glass-border p-6 mb-8">
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <p class="text-[10px] font-black text-primary uppercase tracking-[0.2em]">Observacion del Administrador</p>
+            <p class="text-xs text-gray-500 mt-2">Puedes actualizar el comentario y quedara asociado al reporte semanal.</p>
+          </div>
+          <button
+            type="button"
+            (click)="saveSelectedReport()"
+            [disabled]="isSavingReport || isDeletingReport"
+            class="px-5 py-3 rounded-2xl bg-gradient-premium text-white text-xs font-black uppercase tracking-widest disabled:opacity-60"
+          >
+            {{ isSavingReport ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+        </div>
+        <textarea
+          [(ngModel)]="selectedReportNotes"
+          rows="4"
+          placeholder="Escribe una observacion o comentario del administrador."
+          class="w-full bg-black/60 border border-glass-border text-white rounded-2xl p-5 text-sm font-medium focus:ring-2 focus:ring-primary/50 outline-none resize-none placeholder:text-gray-600"
+        ></textarea>
+      </div>
+
+      <div class="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Incidentes del Reporte</p>
+          <p class="text-xs text-gray-500 mt-2">
+            Usa "Excluir" para sacar falsas alarmas o reportes incorrectos del resumen semanal.
+          </p>
+        </div>
+      </div>
+
+      <div *ngIf="getSelectedReportSourceIncidents().length === 0" class="rounded-3xl border border-dashed border-glass-border bg-black/20 p-8 text-center">
+        <p class="text-sm font-semibold text-white">Este informe no tiene incidentes asociados.</p>
+      </div>
+
+      <div *ngIf="getSelectedReportSourceIncidents().length > 0" class="space-y-4">
+        <div
+          *ngFor="let incident of getSelectedReportSourceIncidents()"
+          class="rounded-[2rem] border p-5 transition-all"
+          [class.border-rose-500/30]="isIncidentExcluded(incident.id)"
+          [class.bg-rose-500/5]="isIncidentExcluded(incident.id)"
+          [class.opacity-70]="isIncidentExcluded(incident.id)"
+          [class.border-glass-border]="!isIncidentExcluded(incident.id)"
+          [class.bg-black/30]="!isIncidentExcluded(incident.id)"
+        >
+          <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+            <div class="space-y-3">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-black text-white">{{ incident.type_label }}</span>
+                <span [class]="incidentStatusClasses(incident.status)">{{ incident.status_label }}</span>
+                <span
+                  *ngIf="isIncidentExcluded(incident.id)"
+                  class="inline-flex items-center rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-rose-300"
+                >
+                  Excluido del resumen
+                </span>
+              </div>
+
+              <p class="text-sm text-gray-300 leading-relaxed">{{ incident.description }}</p>
+
+              <div class="flex flex-wrap gap-3 text-xs text-gray-500">
+                <span>{{ formatDateTime(incident.created_at) }}</span>
+                <span>Area: {{ incident.area }}</span>
+                <span>Guardia: {{ incident.guard_id || 'No identificado' }}</span>
+                <span *ngIf="incident.evidence_urls.length > 0">Evidencias: {{ incident.evidence_urls.length }}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="toggleIncidentExclusion(incident.id)"
+              class="self-start px-4 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border transition-colors"
+              [class.border-emerald-500/30]="isIncidentExcluded(incident.id)"
+              [class.bg-emerald-500/10]="isIncidentExcluded(incident.id)"
+              [class.text-emerald-300]="isIncidentExcluded(incident.id)"
+              [class.border-rose-500/30]="!isIncidentExcluded(incident.id)"
+              [class.bg-rose-500/10]="!isIncidentExcluded(incident.id)"
+              [class.text-rose-300]="!isIncidentExcluded(incident.id)"
+            >
+              {{ isIncidentExcluded(incident.id) ? 'Reintegrar' : 'Excluir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

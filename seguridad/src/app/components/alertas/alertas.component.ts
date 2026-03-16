@@ -73,7 +73,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public isPremiumUser: boolean = false;
 
   constructor(
-    private router: Router,
+    public router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
     private reportService: ReportService,

@@ -547,41 +547,97 @@ app.post('/api/register-admin', async (req, res) => {
 });
 
 app.post('/api/login', async (req, res) => {
-  const { email, password } = req.body;
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  const password = String(req.body?.password || '').trim();
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email y contraseña son requeridos' });
+  }
+
+  const DEFAULT_SITE_ID = '00000000-0000-0000-0000-000000000001';
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   let adminUser = null;
+  let authSession = null;
+  let authUser = null;
 
-  // 1. Try Local JSON FIRST
+  // 1) Login local
   try {
     const admins = readJsonFile('admins.json');
-    console.log(`[DEBUG] Login Attempt: ${email} / ${password}`);
-    // console.log('[DEBUG] Admins in DB:', admins.map(a => `${a.email}:${a.password}`)); 
+    adminUser = admins.find(a =>
+      String(a?.email || '').trim().toLowerCase() === email
+      && String(a?.password || '').trim() === password
+    ) || null;
+  } catch (e) {
+    console.error('[Login] Error reading local admins:', e.message);
+  }
 
-    adminUser = admins.find(a => a.email === email && a.password === password);
-
-    if (adminUser) console.log('[BE] Login: User found in local JSON');
-    else console.log('[DEBUG] User NOT found in local JSON');
-
-  } catch (e) { console.error(e); }
-
-  // 2. Fallback to Supabase if not found locally
+  // 2) Login por tabla admins en Supabase
   if (!adminUser) {
     try {
-      const { data, error } = await supabase.from('admins').select('*').eq('email', email).eq('password', password).single();
-      if (!error && data) {
-        adminUser = data;
-        console.log('[BE] Login: User found in Supabase');
+      const { data, error } = await supabase
+        .from('admins')
+        .select('*')
+        .ilike('email', email)
+        .limit(20);
+
+      if (!error && Array.isArray(data)) {
+        adminUser = data.find(a => String(a?.password || '').trim() === password) || null;
       }
     } catch (err) {
-      console.warn('Supabase login check failed:', err.message);
+      console.warn('[Login] Supabase admins check failed:', err.message);
     }
   }
 
-  // 3. Try Supabase Auth (Legacy/Standard) if still not found
+  // 3) Fallback por Supabase Auth
   if (!adminUser) {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error && data.user) {
-      return res.json({ message: 'Login exitoso (Auth)', session: data.session, user: data.user });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (!error && data?.user) {
+        authSession = data.session || null;
+        authUser = data.user;
+
+        const { data: dbAdmins, error: dbAdminsError } = await supabase
+          .from('admins')
+          .select('*')
+          .ilike('email', email)
+          .limit(1);
+
+        if (!dbAdminsError && Array.isArray(dbAdmins) && dbAdmins[0]) {
+          adminUser = dbAdmins[0];
+        }
+      }
+    } catch (err) {
+      console.warn('[Login] Supabase Auth check failed:', err.message);
+    }
+  }
+
+  // 4) Si Auth pasó pero no existe perfil admin, bootstrap local para no romper el flujo
+  if (!adminUser && authUser) {
+    const inferredName =
+      authUser.user_metadata?.full_name
+      || authUser.user_metadata?.name
+      || authUser.email?.split('@')[0]
+      || 'Administrador';
+
+    adminUser = {
+      id: authUser.id,
+      full_name: inferredName,
+      email: authUser.email || email,
+      role: 'admin',
+      plan: 'Básico',
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      const admins = readJsonFile('admins.json');
+      const alreadyExists = admins.some(a => String(a?.email || '').trim().toLowerCase() === email);
+      if (!alreadyExists) {
+        admins.push({ ...adminUser, password });
+        writeJsonFile('admins.json', admins);
+      }
+    } catch (e) {
+      console.warn('[Login] Could not persist local bootstrap admin:', e.message);
     }
   }
 
@@ -589,39 +645,50 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ message: 'Credenciales incorrectas' });
   }
 
-  // Obtener sites del admin via site_memberships
-  let sites = [];
+  // 5) Obtener sites del admin. Si falla, usar sitio por defecto.
+  let sites = [{ id: DEFAULT_SITE_ID, name: 'Sitio principal' }];
   try {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     if (uuidRegex.test(adminUser.id)) {
-      const { data: memberships } = await supabase
+      const { data: memberships, error: membershipsError } = await supabase
         .from('site_memberships')
         .select('site_id, sites(id, name)')
         .eq('user_id', adminUser.id)
         .eq('is_active', true);
-      sites = (memberships || []).map(m => m.sites || { id: m.site_id });
-    } else {
-      console.warn('[Login] ID no es UUID, saltando consulta de memberships:', adminUser.id);
-      // Opcional: Si el sitio es local-only, podrÃ­as asociarlo aquÃ­
+
+      if (!membershipsError && Array.isArray(memberships) && memberships.length > 0) {
+        sites = memberships.map(m => m.sites || { id: m.site_id });
+      } else {
+        try {
+          await supabase
+            .from('site_memberships')
+            .upsert(
+              [{ user_id: adminUser.id, site_id: DEFAULT_SITE_ID, is_active: true }],
+              { onConflict: 'user_id,site_id' }
+            );
+        } catch (upsertErr) {
+          console.warn('[Login] Membership bootstrap failed:', upsertErr.message);
+        }
+      }
     }
   } catch (e) {
-    console.warn('[Login] No se pudieron obtener sites:', e.message);
+    console.warn('[Login] Could not fetch sites, using default:', e.message);
   }
 
   res.json({
     message: 'Login exitoso',
+    session: authSession || undefined,
     admin: {
       id: adminUser.id,
-      name: adminUser.fullName || adminUser.full_name,
+      name: adminUser.fullName || adminUser.full_name || adminUser.name || '',
       email: adminUser.email,
-      location: adminUser.location,
+      location: adminUser.location || adminUser.street,
       companyName: adminUser.companyName,
       lat: adminUser.lat,
       lng: adminUser.lng,
       zone: adminUser.zone,
-      role: adminUser.role,
-      plan: adminUser.plan || 'BÃ¡sico',
-      sites: sites
+      role: adminUser.role || 'admin',
+      plan: adminUser.plan || 'Básico',
+      sites
     }
   });
 });
@@ -861,30 +928,95 @@ function filterLocalWeeklyReportsBySite(reports, siteIds) {
   return (reports || []).filter(report => !report.site_id || siteIds.includes(report.site_id));
 }
 
-/**
- * Helper to generate aggregated weekly report data.
- * Returns an object with total reports, counts by status, area hotspots, and busiest day/shift.
- */
-async function generateWeeklyReport(startDate, endDate, siteIds) {
-  // Fetch reports within the period for the given sites
+function isWeeklyReportAccessible(report, siteIds) {
+  return !!report && (!report.site_id || siteIds.includes(report.site_id));
+}
+
+function getWeeklyReportSiteScope(report, siteIds) {
+  return report?.site_id ? [report.site_id] : siteIds;
+}
+
+function extractWeeklyReportAreaName(description) {
+  if (typeof description !== 'string' || !description.trim()) {
+    return null;
+  }
+
+  const match = description.match(/Area:\s*([^|]+)/i);
+  return match ? match[1].trim() : null;
+}
+
+function mapWeeklyReportTypeLabel(reportTypeId) {
+  const typeMap = {
+    1: 'Incidente',
+    2: 'Novedad',
+    3: 'Rondin',
+    4: 'Alerta IA',
+    5: 'Mantenimiento',
+    6: 'Sospechoso',
+    7: 'Emergencia'
+  };
+
+  return typeMap[reportTypeId] || 'Otro';
+}
+
+function mapWeeklyReportStatusLabel(report) {
+  const status = normalizeWeeklyReportStatus(report);
+  const labelMap = {
+    completed: 'Completado',
+    in_process: 'En proceso',
+    pending: 'Pendiente'
+  };
+
+  return labelMap[status] || 'Pendiente';
+}
+
+function buildWeeklyReportIncident(report) {
+  return {
+    id: report.id,
+    created_at: report.created_at,
+    status: normalizeWeeklyReportStatus(report),
+    status_label: mapWeeklyReportStatusLabel(report),
+    type_label: mapWeeklyReportTypeLabel(report.report_type_id),
+    area: extractWeeklyReportAreaName(report.short_description) || 'Area general',
+    description: report.short_description || 'Sin descripcion',
+    guard_id: report.created_by_guard_id || null,
+    evidence_urls: Array.isArray(report.evidence_urls) ? report.evidence_urls : []
+  };
+}
+
+async function getWeeklyReportSourceReports(startDate, endDate, siteIds) {
   const { data: reports, error } = await supabase
     .from('reports')
     .select('*')
     .in('site_id', siteIds)
     .gte('created_at', startDate)
-    .lte('created_at', endDate);
+    .lte('created_at', endDate)
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching reports for weekly report:', error.message);
     throw error;
   }
 
-  const total = reports.length;
+  return attachReportEvidenceUrls(reports || []);
+}
+
+/**
+ * Helper to generate aggregated weekly report data.
+ * Returns an object with total reports, counts by status, area hotspots, and busiest day/shift.
+ */
+async function generateWeeklyReport(startDate, endDate, siteIds, excludedReportIds = []) {
+  const sourceReports = await getWeeklyReportSourceReports(startDate, endDate, siteIds);
+  const normalizedExcludedIds = [...new Set((excludedReportIds || []).filter(Boolean))];
+  const excludedReportIdSet = new Set(normalizedExcludedIds);
+  const includedSourceReports = sourceReports.filter(report => !excludedReportIdSet.has(report.id));
+
+  const total = includedSourceReports.length;
   const statusCounts = { completed: 0, in_process: 0, pending: 0 };
   const areaCounts = {};
   const dayShiftCounts = {};
 
-  reports.forEach(r => {
+  includedSourceReports.forEach(r => {
     const status = normalizeWeeklyReportStatus(r);
     if (statusCounts[status] !== undefined) statusCounts[status]++;
     else statusCounts['pending']++;
@@ -908,7 +1040,82 @@ async function generateWeeklyReport(startDate, endDate, siteIds) {
     status_counts: statusCounts,
     hottest_area: hottestArea,
     busiest_slot: busiestSlot,
-    generated_at: new Date().toISOString()
+    generated_at: new Date().toISOString(),
+    excluded_report_ids: normalizedExcludedIds,
+    included_reports: includedSourceReports.map(buildWeeklyReportIncident),
+    source_reports: sourceReports.map(buildWeeklyReportIncident)
+  };
+}
+
+async function getStoredWeeklyReport(reportId) {
+  const { data, error } = await supabase
+    .from('weekly_reports')
+    .select('*')
+    .eq('id', reportId)
+    .limit(1);
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] || null;
+}
+
+async function getWeeklyReportByIdWithFallback(reportId, siteIds) {
+  let dbReport = null;
+
+  try {
+    dbReport = await getStoredWeeklyReport(reportId);
+  } catch (error) {
+    if (!shouldUseWeeklyReportsFallback(error)) {
+      throw error;
+    }
+    console.warn('Weekly reports DB read failed, trying local fallback:', error.message);
+  }
+
+  if (isWeeklyReportAccessible(dbReport, siteIds)) {
+    return { report: dbReport, source: 'db' };
+  }
+
+  const localReport = filterLocalWeeklyReportsBySite(readWeeklyReports(), siteIds)
+    .find(report => report.id === reportId);
+
+  if (!localReport) {
+    return { report: null, source: dbReport ? 'db' : 'local' };
+  }
+
+  return { report: localReport, source: 'local' };
+}
+
+async function hydrateWeeklyReportDetails(report, siteIds) {
+  if (!report) {
+    return null;
+  }
+
+  const existingSummary = report.summary_json || {};
+  const hasSourceReports = Array.isArray(existingSummary.source_reports);
+  const hasIncludedReports = Array.isArray(existingSummary.included_reports);
+
+  if (hasSourceReports && hasIncludedReports) {
+    return report;
+  }
+
+  const excludedReportIds = Array.isArray(existingSummary.excluded_report_ids)
+    ? existingSummary.excluded_report_ids
+    : [];
+  const regeneratedSummary = await generateWeeklyReport(
+    report.start_date,
+    report.end_date,
+    getWeeklyReportSiteScope(report, siteIds),
+    excludedReportIds
+  );
+
+  return {
+    ...report,
+    summary_json: {
+      ...existingSummary,
+      ...regeneratedSummary
+    }
   };
 }
 
@@ -936,6 +1143,7 @@ app.post('/api/weekly-reports/generate', authMiddleware, async (req, res) => {
   try {
     const summary = await generateWeeklyReport(lastMonday.toISOString(), nextSunday.toISOString(), req.siteIds);
     const payload = {
+      site_id: req.activeSiteId,
       start_date: lastMonday.toISOString(),
       end_date: nextSunday.toISOString(),
       summary_json: summary,
@@ -982,6 +1190,35 @@ app.patch('/api/weekly-reports/:id/publish', authMiddleware, async (req, res) =>
   const reportId = req.params.id;
   const { admin_notes } = req.body;
   try {
+    const { report, source } = await getWeeklyReportByIdWithFallback(reportId, req.siteIds);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Weekly report not found' });
+    }
+
+    if (source === 'local') {
+      const localReports = readWeeklyReports();
+      const reportIndex = localReports.findIndex(localReport => localReport.id === reportId);
+
+      if (reportIndex === -1) {
+        return res.status(404).json({ message: 'Weekly report not found' });
+      }
+
+      localReports[reportIndex] = {
+        ...localReports[reportIndex],
+        status: 'published',
+        admin_notes,
+        updated_at: new Date().toISOString()
+      };
+      writeWeeklyReports(localReports);
+
+      return res.json({
+        message: 'Weekly report published locally',
+        report: localReports[reportIndex],
+        source: 'local'
+      });
+    }
+
     const { data, error } = await supabase
       .from('weekly_reports')
       .update({ status: 'published', admin_notes })
@@ -1023,6 +1260,153 @@ app.patch('/api/weekly-reports/:id/publish', authMiddleware, async (req, res) =>
   }
 });
 
+// GET /api/weekly-reports/:id - detail for admins/guards with access to the site
+app.get('/api/weekly-reports/:id', authMiddleware, async (req, res) => {
+  const reportId = req.params.id;
+
+  try {
+    const { report } = await getWeeklyReportByIdWithFallback(reportId, req.siteIds);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Weekly report not found' });
+    }
+
+    const hydratedReport = await hydrateWeeklyReportDetails(report, req.siteIds);
+    res.json(hydratedReport);
+  } catch (e) {
+    console.error('Fetch weekly report detail error:', e);
+    res.status(500).json({ message: 'Error fetching weekly report detail', error: e.message });
+  }
+});
+
+// PATCH /api/weekly-reports/:id - edit notes and excluded incidents
+app.patch('/api/weekly-reports/:id', authMiddleware, async (req, res) => {
+  const reportId = req.params.id;
+  const adminNotes = typeof req.body.admin_notes === 'string' ? req.body.admin_notes : undefined;
+  const excludedReportIds = Array.isArray(req.body.excluded_report_ids)
+    ? [...new Set(req.body.excluded_report_ids.filter(id => typeof id === 'string' && id.trim()))]
+    : undefined;
+
+  try {
+    const { report, source } = await getWeeklyReportByIdWithFallback(reportId, req.siteIds);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Weekly report not found' });
+    }
+
+    const nextExcludedIds = excludedReportIds
+      || (Array.isArray(report.summary_json?.excluded_report_ids) ? report.summary_json.excluded_report_ids : []);
+    const nextSummary = await generateWeeklyReport(
+      report.start_date,
+      report.end_date,
+      getWeeklyReportSiteScope(report, req.siteIds),
+      nextExcludedIds
+    );
+    const updatePayload = {
+      admin_notes: adminNotes !== undefined ? adminNotes : (report.admin_notes || null),
+      summary_json: nextSummary
+    };
+
+    if (source === 'local') {
+      const localReports = readWeeklyReports();
+      const reportIndex = localReports.findIndex(localReport => localReport.id === reportId);
+
+      if (reportIndex === -1) {
+        return res.status(404).json({ message: 'Weekly report not found' });
+      }
+
+      localReports[reportIndex] = {
+        ...localReports[reportIndex],
+        ...updatePayload,
+        updated_at: new Date().toISOString()
+      };
+      writeWeeklyReports(localReports);
+
+      return res.json({
+        message: 'Weekly report updated locally',
+        report: localReports[reportIndex],
+        source: 'local'
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('weekly_reports')
+      .update(updatePayload)
+      .eq('id', reportId)
+      .select();
+
+    if (error) {
+      if (!shouldUseWeeklyReportsFallback(error)) {
+        throw error;
+      }
+
+      const localReports = readWeeklyReports();
+      const reportIndex = localReports.findIndex(localReport => localReport.id === reportId);
+
+      if (reportIndex === -1) {
+        throw error;
+      }
+
+      localReports[reportIndex] = {
+        ...localReports[reportIndex],
+        ...updatePayload,
+        updated_at: new Date().toISOString()
+      };
+      writeWeeklyReports(localReports);
+
+      return res.json({
+        message: 'Weekly report updated locally',
+        report: localReports[reportIndex],
+        source: 'local'
+      });
+    }
+
+    res.json({ message: 'Weekly report updated', report: data?.[0] || { ...report, ...updatePayload } });
+  } catch (e) {
+    console.error('Update weekly report error:', e);
+    res.status(500).json({ message: 'Error updating weekly report', error: e.message });
+  }
+});
+
+// DELETE /api/weekly-reports/:id - remove weekly report
+app.delete('/api/weekly-reports/:id', authMiddleware, async (req, res) => {
+  const reportId = req.params.id;
+
+  try {
+    const { report, source } = await getWeeklyReportByIdWithFallback(reportId, req.siteIds);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Weekly report not found' });
+    }
+
+    if (source === 'local') {
+      const localReports = readWeeklyReports().filter(localReport => localReport.id !== reportId);
+      writeWeeklyReports(localReports);
+      return res.json({ message: 'Weekly report deleted locally', source: 'local' });
+    }
+
+    const { error } = await supabase
+      .from('weekly_reports')
+      .delete()
+      .eq('id', reportId);
+
+    if (error) {
+      if (!shouldUseWeeklyReportsFallback(error)) {
+        throw error;
+      }
+
+      const localReports = readWeeklyReports().filter(localReport => localReport.id !== reportId);
+      writeWeeklyReports(localReports);
+      return res.json({ message: 'Weekly report deleted locally', source: 'local' });
+    }
+
+    res.json({ message: 'Weekly report deleted' });
+  } catch (e) {
+    console.error('Delete weekly report error:', e);
+    res.status(500).json({ message: 'Error deleting weekly report', error: e.message });
+  }
+});
+
 // GET /api/weekly-reports - admins see all, guards see only published
 app.get('/api/weekly-reports', authMiddleware, async (req, res) => {
   const isAdmin = !!req.adminEmail; // simplistic check; authMiddleware should set adminEmail for admins
@@ -1037,7 +1421,7 @@ app.get('/api/weekly-reports', authMiddleware, async (req, res) => {
       }
       console.warn('Weekly reports DB fetch failed, using local fallback:', error.message);
     } else {
-      dbReports = data || [];
+      dbReports = (data || []).filter(report => isWeeklyReportAccessible(report, req.siteIds));
     }
 
     let localReports = filterLocalWeeklyReportsBySite(readWeeklyReports(), req.siteIds);
