@@ -13,10 +13,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.model.Report
 import com.genokiller05.miappmovil.data.repository.DataRepository
@@ -46,8 +48,11 @@ fun ReportDetailScreen(
         7 to "Falla eléctrica", 8 to "Otro"
     )
 
+    var evidenceUrls by remember { mutableStateOf<List<String>>(emptyList()) }
+
     LaunchedEffect(reportId) {
         report = repo.getReportById(reportId)
+        evidenceUrls = repo.fetchReportEvidences(reportId)
         isLoading = false
     }
 
@@ -136,6 +141,30 @@ fun ReportDetailScreen(
                             fontSize = 14.sp,
                             color = colors.subtext,
                             lineHeight = 22.sp
+                        )
+                    }
+                }
+
+                if (evidenceUrls.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Text(
+                        text = "Evidencia Adjunta",
+                        fontWeight = FontWeight.Bold,
+                        color = colors.text,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    evidenceUrls.forEach { url ->
+                        AsyncImage(
+                            model = url,
+                            contentDescription = "Evidencia del reporte",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(220.dp)
+                                .padding(bottom = 12.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.card),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }

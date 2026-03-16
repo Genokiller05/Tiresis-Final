@@ -334,17 +334,20 @@
             </div>
           </div>
 
-          <div *ngIf="alertToShowDetails.detalles.evidencia">
+          <div *ngIf="alertToShowDetails.detalles.evidencias?.length">
             <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center">
               <span class="material-icons text-primary mr-2 text-sm">photo_library</span>
               Evidencia Fotográfica
             </label>
-            <div class="relative group rounded-2xl overflow-hidden border border-glass-border bg-black/40">
-              <img [src]="alertToShowDetails.detalles.evidencia" alt="Evidencia del reporte"
-                class="w-full h-auto max-h-[400px] object-contain group-hover:scale-105 transition-transform duration-700">
-              <div
-                class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                <p class="text-xs text-white/60 font-medium">Captura original del dispositivo móvil</p>
+            <div class="space-y-4">
+              <div *ngFor="let evidencia of alertToShowDetails.detalles.evidencias"
+                class="relative group rounded-2xl overflow-hidden border border-glass-border bg-black/40">
+                <img [src]="evidencia" alt="Evidencia del reporte"
+                  class="w-full h-auto max-h-[400px] object-contain group-hover:scale-105 transition-transform duration-700">
+                <div
+                  class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                  <p class="text-xs text-white/60 font-medium">Captura original del dispositivo móvil</p>
+                </div>
               </div>
             </div>
           </div>

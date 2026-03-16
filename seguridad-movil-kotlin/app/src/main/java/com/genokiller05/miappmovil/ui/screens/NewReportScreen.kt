@@ -1,6 +1,9 @@
 package com.genokiller05.miappmovil.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,13 +27,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.model.ReportInsert
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +56,7 @@ fun NewReportScreen(
     var selectedType by remember { mutableIntStateOf(0) }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var showTypeDropdown by remember { mutableStateOf(false) }
 
@@ -62,12 +71,27 @@ fun NewReportScreen(
         Pair(8, "Otro")
     )
 
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (!success) imageUri = null
+    fun createTempImageUri(): Uri {
+        val tempFile = File.createTempFile("camera_evidence_", ".jpg", context.cacheDir)
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
     }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            imageUri = tempCameraUri
+        } else {
+            tempCameraUri = null
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            val uri = createTempImageUri()
+            tempCameraUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Scaffold(
@@ -209,7 +233,18 @@ fun NewReportScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
-                        .clickable { galleryLauncher.launch("image/*") },
+                        .clickable { 
+                            when {
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                                    val uri = createTempImageUri()
+                                    tempCameraUri = uri
+                                    cameraLauncher.launch(uri)
+                                }
+                                else -> {
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
+                        },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = colors.card),
                     border = CardDefaults.outlinedCardBorder()
@@ -258,16 +293,23 @@ fun NewReportScreen(
                                 site_id = user?.site_id
                             )
 
-                            val report = repo.createReport(reportData)
-
-                            // Upload evidence if present
+                            // 1. Tomar los bytes de la imagen primero (si hay) sin bloquear la corrutina de red
+                            var imageBytes: ByteArray? = null
                             if (imageUri != null) {
-                                val inputStream = context.contentResolver.openInputStream(imageUri!!)
-                                val bytes = inputStream?.readBytes() ?: ByteArray(0)
-                                inputStream?.close()
-                                if (bytes.isNotEmpty()) {
-                                    val (evidenceId, _) = repo.uploadEntryEvidence(bytes, guardId)
-                                    if (evidenceId != null) {
+                                withContext(Dispatchers.IO) {
+                                    val inputStream = context.contentResolver.openInputStream(imageUri!!)
+                                    imageBytes = inputStream?.readBytes()
+                                    inputStream?.close()
+                                }
+                            }
+
+                            // 2. Ejecutar la subida y creacion en Dispatchers.IO para no bloquear la UI
+                            withContext(Dispatchers.IO) {
+                                val report = repo.createReport(reportData)
+
+                                if (imageBytes != null && imageBytes!!.isNotEmpty()) {
+                                    val (evidenceId, _) = repo.uploadEntryEvidence(imageBytes!!, guardId)
+                                    if (evidenceId != null && evidenceId != "temp-evidence-id") {
                                         repo.linkEvidenceToReport(report.id, evidenceId)
                                     }
                                 }

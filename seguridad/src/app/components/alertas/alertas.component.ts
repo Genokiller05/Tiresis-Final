@@ -109,27 +109,14 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  private handleRealtimeEvent(payload: any) {
-    if (payload.eventType === 'INSERT') {
-      // Add new record if not exists
-      const mappedNew = this.mapReportFromDB(payload.new);
-      const exists = this.allAlerts.find(a => a.id === mappedNew.id);
-      if (!exists) {
-        this.allAlerts.unshift(mappedNew);
-      }
-    } else if (payload.eventType === 'UPDATE') {
-      // Update existing
-      const mappedUpdate = this.mapReportFromDB(payload.new);
-      const index = this.allAlerts.findIndex(a => a.id === mappedUpdate.id);
-      if (index !== -1) {
-        this.allAlerts[index] = mappedUpdate;
-      }
-    } else if (payload.eventType === 'DELETE') {
-      // Remove deleted
+  private async handleRealtimeEvent(payload: any) {
+    if (payload.eventType === 'DELETE') {
       this.allAlerts = this.allAlerts.filter(a => a.id !== payload.old.id);
+      this.aplicarFiltros();
+      return;
     }
-    // Re-apply filters
-    this.aplicarFiltros();
+
+    await this.fetchReports();
   }
 
   ngAfterViewInit() {
@@ -182,7 +169,10 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
     let parsedArea = 'Área Asignada';
     let parsedDescription = dbReport.short_description || 'Sin descripción detallada.';
-    let parsedEvidence = null;
+    const directEvidenceUrls = Array.isArray(dbReport.evidence_urls)
+      ? dbReport.evidence_urls.filter((url: unknown): url is string => typeof url === 'string' && url.trim().length > 0)
+      : [];
+    const parsedEvidences: string[] = [...directEvidenceUrls];
     let parsedGuardName = 'Guardia Registrado';
     let parsedGuardID = dbReport.created_by_guard_id || 'N/A';
 
@@ -190,8 +180,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       let tempDesc = dbReport.short_description;
 
       const evidenceMatch = tempDesc.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
-      if (evidenceMatch && evidenceMatch[1]) {
-        parsedEvidence = evidenceMatch[1];
+      if (evidenceMatch && evidenceMatch[1] && parsedEvidences.length === 0) {
+        parsedEvidences.push(evidenceMatch[1]);
         tempDesc = tempDesc.replace(evidenceMatch[0], '').replace(/\|\s*$/, '').trim();
       }
 
@@ -225,7 +215,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         descripcion: parsedDescription,
         nombreGuardia: parsedGuardName,
         idGuardia: parsedGuardID,
-        evidencia: parsedEvidence
+        evidencia: parsedEvidences[0] || null,
+        evidencias: parsedEvidences
       },
       _rawDBData: dbReport
     };

@@ -1,6 +1,9 @@
 package com.genokiller05.miappmovil.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,12 +27,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -69,10 +77,30 @@ fun RegistrationScreen(
     var company by remember { mutableStateOf("") }
     var purpose by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        imageUri = uri
+    fun createTempImageUri(): Uri {
+        val tempFile = File.createTempFile("camera_evidence_", ".jpg", context.cacheDir)
+        return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", tempFile)
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        if (success) {
+            imageUri = tempCameraUri
+        } else {
+            tempCameraUri = null
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) {
+            val uri = createTempImageUri()
+            tempCameraUri = uri
+            cameraLauncher.launch(uri)
+        } else {
+            Toast.makeText(context, "Permiso de cámara denegado", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Scaffold(
@@ -174,7 +202,18 @@ fun RegistrationScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(100.dp)
-                        .clickable { galleryLauncher.launch("image/*") },
+                        .clickable { 
+                            when {
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> {
+                                    val uri = createTempImageUri()
+                                    tempCameraUri = uri
+                                    cameraLauncher.launch(uri)
+                                }
+                                else -> {
+                                    permissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
+                        },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = colors.card)
                 ) {
@@ -278,24 +317,33 @@ fun RegistrationScreen(
                                     (if (company.isNotBlank()) " | $company" else "") +
                                     (if (purpose.isNotBlank()) " | $purpose" else "")
 
-                            // Upload photo
-                            val inputStream = context.contentResolver.openInputStream(imageUri!!)
-                            val bytes = inputStream?.readBytes() ?: ByteArray(0)
-                            inputStream?.close()
-                            if (bytes.isNotEmpty()) {
-                                repo.uploadEntryEvidence(bytes, guardId)
+                            // 1. Read bytes on IO dispatcher to not block UI
+                            var imageBytes: ByteArray? = null
+                            if (imageUri != null) {
+                                withContext(Dispatchers.IO) {
+                                    val inputStream = context.contentResolver.openInputStream(imageUri!!)
+                                    imageBytes = inputStream?.readBytes()
+                                    inputStream?.close()
+                                }
                             }
 
-                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
-                            val entryData = com.genokiller05.miappmovil.data.model.EntryExit(
-                                id = java.util.UUID.randomUUID().toString(),
-                                fechaHora = now.format(formatter),
-                                tipo = tipoStr,
-                                descripcion = desc,
-                                idRelacionado = guardId,
-                                site_id = user?.site_id
-                            )
-                            repo.createEntryExit(entryData)
+                            // 2. Upload and Create Record on IO dispatcher
+                            withContext(Dispatchers.IO) {
+                                if (imageBytes != null && imageBytes!!.isNotEmpty()) {
+                                    repo.uploadEntryEvidence(imageBytes!!, guardId)
+                                }
+
+                                val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+                                val entryData = com.genokiller05.miappmovil.data.model.EntryExit(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    fechaHora = now.format(formatter),
+                                    tipo = tipoStr,
+                                    descripcion = desc,
+                                    idRelacionado = guardId,
+                                    site_id = user?.site_id
+                                )
+                                repo.createEntryExit(entryData)
+                            }
 
                             val msg = if (isEntry) context.getString(R.string.registration_entry_success)
                                       else context.getString(R.string.registration_exit_success)

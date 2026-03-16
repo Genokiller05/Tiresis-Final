@@ -6,6 +6,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -115,6 +117,37 @@ class DataRepository @Inject constructor() {
                 })
         } catch (e: Exception) {
             // Silently fail as in original
+        }
+    }
+
+    suspend fun fetchReportEvidences(reportId: String): List<String> {
+        return try {
+            // 1. Get evidence IDs from report_evidences
+            val links = supabase.postgrest.from("report_evidences")
+                .select { filter { eq("report_id", reportId) } }
+                .decodeList<JsonObject>()
+
+            val evidenceUrls = mutableListOf<String>()
+            
+            // 2. For each evidence ID, get the evidence record to find the storage path
+            for (link in links) {
+                val evidenceId = link["evidence_id"]?.jsonPrimitive?.content ?: continue
+                try {
+                    val evidence = supabase.postgrest.from("evidences")
+                        .select { filter { eq("id", evidenceId) } }
+                        .decodeSingle<Evidence>()
+                        
+                    evidence.storage_path?.let { path ->
+                        val url = supabase.storage.from("evidence").publicUrl(path)
+                        evidenceUrls.add(url)
+                    }
+                } catch (e: Exception) {
+                    // Skip if evidence record not found
+                }
+            }
+            evidenceUrls
+        } catch (e: Exception) {
+            emptyList()
         }
     }
 

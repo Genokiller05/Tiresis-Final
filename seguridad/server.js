@@ -661,11 +661,79 @@ app.delete('/api/cameras/:id', authMiddleware, async (req, res) => {
   res.json({ message: 'Cámara eliminada' });
 });
 
+async function attachReportEvidenceUrls(reports) {
+  if (!Array.isArray(reports) || reports.length === 0) {
+    return [];
+  }
+
+  const reportIds = reports
+    .map(report => report?.id)
+    .filter(Boolean);
+
+  if (reportIds.length === 0) {
+    return reports.map(report => ({ ...report, evidence_urls: [] }));
+  }
+
+  try {
+    const { data: reportEvidenceLinks, error: linksError } = await supabase
+      .from('report_evidences')
+      .select('report_id, evidence_id')
+      .in('report_id', reportIds);
+
+    if (linksError) {
+      throw linksError;
+    }
+
+    const evidenceIds = [...new Set((reportEvidenceLinks || []).map(link => link.evidence_id).filter(Boolean))];
+
+    if (evidenceIds.length === 0) {
+      return reports.map(report => ({ ...report, evidence_urls: [] }));
+    }
+
+    const { data: evidences, error: evidencesError } = await supabase
+      .from('evidences')
+      .select('id, storage_path')
+      .in('id', evidenceIds);
+
+    if (evidencesError) {
+      throw evidencesError;
+    }
+
+    const evidencePathMap = new Map(
+      (evidences || []).map(evidence => [evidence.id, evidence.storage_path])
+    );
+
+    const reportEvidenceMap = new Map();
+    (reportEvidenceLinks || []).forEach(link => {
+      if (!link?.report_id || !link?.evidence_id) return;
+      const storagePath = evidencePathMap.get(link.evidence_id);
+      if (!storagePath) return;
+
+      const publicUrl = supabase.storage.from('evidence').getPublicUrl(storagePath).data?.publicUrl;
+      if (!publicUrl) return;
+
+      const currentUrls = reportEvidenceMap.get(link.report_id) || [];
+      currentUrls.push(publicUrl);
+      reportEvidenceMap.set(link.report_id, currentUrls);
+    });
+
+    return reports.map(report => ({
+      ...report,
+      evidence_urls: reportEvidenceMap.get(report.id) || []
+    }));
+  } catch (error) {
+    console.error('Error attaching report evidence URLs:', error.message || error);
+    return reports.map(report => ({ ...report, evidence_urls: [] }));
+  }
+}
+
 // --- Reports (filtrado por site_id) ---
 app.get('/api/reports', authMiddleware, async (req, res) => {
   const { data, error } = await supabase.from('reports').select('*').in('site_id', req.siteIds).order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+
+  const reportsWithEvidence = await attachReportEvidenceUrls(data || []);
+  res.json(reportsWithEvidence);
 });
 
 app.post('/api/reports', authMiddleware, async (req, res) => {
