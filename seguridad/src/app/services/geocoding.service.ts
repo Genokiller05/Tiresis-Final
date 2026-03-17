@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, map, of, catchError, switchMap } from 'rxjs';
+import { Observable, map, of, catchError, switchMap, timeout } from 'rxjs';
 
 export interface AddressStructure {
     street: string;
@@ -181,7 +181,13 @@ export class GeocodingService {
 
         const params = new HttpParams().set('data', query);
         // Using a public instance of Overpass API
-        return this.http.get('https://overpass-api.de/api/interpreter', { params });
+        return this.http.get('https://overpass-api.de/api/interpreter', { params }).pipe(
+            timeout(5000), // Wait maximum 5 seconds for Overpass API
+            catchError(err => {
+                console.debug('[GEO] Overpass API saturado, usando fallback silencioso.');
+                return of(null); // Fail gracefully, map component will handle null
+            })
+        );
     }
 }
 

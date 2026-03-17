@@ -15,51 +15,47 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.genokiller05.miappmovil.R
-import com.genokiller05.miappmovil.data.model.GuardNotification
-import com.genokiller05.miappmovil.data.repository.NotificationRepository
+import com.genokiller05.miappmovil.data.model.AppNotification
 import com.genokiller05.miappmovil.ui.theme.*
+import com.genokiller05.miappmovil.ui.viewmodel.NotificationViewModel
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
     onBack: () -> Unit,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     val colors = AppTheme.colors
     val user by userViewModel.user.collectAsState()
-    val repo = remember { NotificationRepository() }
-    val scope = rememberCoroutineScope()
+    val notifications by notificationViewModel.notifications.collectAsState()
+    val isLoading by notificationViewModel.isLoading.collectAsState()
 
-    var notifications by remember { mutableStateOf<List<GuardNotification>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val userId = user?.idEmpleado?.ifEmpty { user?.document_id ?: user?.id } ?: ""
 
-    val guardId = user?.id ?: user?.document_id ?: ""
-
-    LaunchedEffect(guardId) {
-        if (guardId.isNotEmpty()) {
-            notifications = repo.fetchNotifications(guardId)
+    // Start listening when we have a user
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            notificationViewModel.startListening(userId)
         }
-        isLoading = false
     }
 
-    val unreadCount = notifications.count { !it.is_read }
+    val pendingCount = notifications.count { it.status == "pending" }
 
-    fun getNotifIcon(type: String): Pair<ImageVector, Color> = when (type) {
-        "alert" -> Pair(Icons.Outlined.Warning, StatusAmber)
-        "report" -> Pair(Icons.Outlined.Assessment, StatusBlue)
-        "system" -> Pair(Icons.Outlined.Settings, StatusPurple)
-        "entry" -> Pair(Icons.Outlined.Login, StatusGreen)
-        "exit" -> Pair(Icons.Outlined.Logout, StatusRed)
-        else -> Pair(Icons.Outlined.Notifications, colors.accent)
-    }
+    fun getNotifIcon(type: String): Pair<androidx.compose.ui.graphics.vector.ImageVector, Color> =
+        when (type) {
+            "assignment" -> Pair(Icons.Outlined.LocationOn, StatusBlue)
+            "alert"      -> Pair(Icons.Outlined.Warning, StatusAmber)
+            "system"     -> Pair(Icons.Outlined.Settings, StatusPurple)
+            else         -> Pair(Icons.Outlined.Notifications, colors.accent)
+        }
 
     Scaffold(
         topBar = {
@@ -67,7 +63,7 @@ fun NotificationsScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.notifications_title))
-                        if (unreadCount > 0) {
+                        if (pendingCount > 0) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Box(
                                 modifier = Modifier
@@ -76,7 +72,7 @@ fun NotificationsScreen(
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "$unreadCount ${stringResource(R.string.notifications_unread)}",
+                                    text = "$pendingCount ${stringResource(R.string.notifications_unread)}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = colors.accent
@@ -91,12 +87,9 @@ fun NotificationsScreen(
                     }
                 },
                 actions = {
-                    if (unreadCount > 0) {
+                    if (pendingCount > 0) {
                         TextButton(onClick = {
-                            scope.launch {
-                                repo.markAllAsRead(guardId)
-                                notifications = notifications.map { it.copy(is_read = true) }
-                            }
+                            notificationViewModel.acknowledgeAll(userId)
                         }) {
                             Text(
                                 stringResource(R.string.notifications_mark_all_read),
@@ -117,24 +110,28 @@ fun NotificationsScreen(
     ) { padding ->
         if (isLoading) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = colors.accent)
             }
         } else if (notifications.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier = Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Outlined.NotificationsOff, contentDescription = null, tint = colors.subtext, modifier = Modifier.size(64.dp))
+                    Icon(
+                        Icons.Outlined.NotificationsOff,
+                        contentDescription = null,
+                        tint = colors.subtext,
+                        modifier = Modifier.size(64.dp)
+                    )
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(stringResource(R.string.notifications_no_notifications), color = colors.subtext)
+                    Text(
+                        stringResource(R.string.notifications_no_notifications),
+                        color = colors.subtext
+                    )
                 }
             }
         } else {
@@ -144,77 +141,92 @@ fun NotificationsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(notifications) { notif ->
-                    val (icon, iconColor) = getNotifIcon(notif.type)
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (!notif.is_read) {
-                                    scope.launch {
-                                        repo.markAsRead(notif.id)
-                                        notifications = notifications.map {
-                                            if (it.id == notif.id) it.copy(is_read = true) else it
-                                        }
-                                    }
-                                }
-                            },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (!notif.is_read)
-                                colors.accent.copy(alpha = 0.05f)
-                            else colors.card
-                        )
-                    ) {
-                        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(iconColor.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
-                            }
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 12.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = notif.title,
-                                        fontWeight = if (!notif.is_read) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 14.sp,
-                                        color = colors.text,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    if (!notif.is_read) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(8.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.accent)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = notif.body,
-                                    fontSize = 13.sp,
-                                    color = colors.subtext,
-                                    maxLines = 2,
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
-                                Text(
-                                    text = notif.created_at.take(10),
-                                    fontSize = 11.sp,
-                                    color = colors.subtext.copy(alpha = 0.7f),
-                                    modifier = Modifier.padding(top = 4.dp)
-                                )
+                    NotificationCard(
+                        notif = notif,
+                        colors = colors,
+                        getIcon = { type -> getNotifIcon(type) },
+                        onTap = {
+                            if (notif.status == "pending") {
+                                notificationViewModel.acknowledge(notif.id)
                             }
                         }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationCard(
+    notif: AppNotification,
+    colors: com.genokiller05.miappmovil.ui.theme.AppColors,
+    getIcon: (String) -> Pair<androidx.compose.ui.graphics.vector.ImageVector, Color>,
+    onTap: () -> Unit
+) {
+    val (icon, iconColor) = getIcon(notif.type)
+    val isPending = notif.status == "pending"
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onTap() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isPending)
+                colors.accent.copy(alpha = 0.07f)
+            else colors.card
+        )
+    ) {
+        Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.Top) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(iconColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(22.dp))
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = when (notif.type) {
+                            "assignment" -> "📍 Reasignación de zona"
+                            "alert"      -> "⚠️ Alerta"
+                            "system"     -> "⚙️ Sistema"
+                            else         -> "🔔 Notificación"
+                        },
+                        fontWeight = if (isPending) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 14.sp,
+                        color = colors.text,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (isPending) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(colors.accent)
+                        )
                     }
                 }
+                Text(
+                    text = notif.message,
+                    fontSize = 13.sp,
+                    color = colors.subtext,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+                Text(
+                    text = notif.createdAt.take(10),
+                    fontSize = 11.sp,
+                    color = colors.subtext.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }

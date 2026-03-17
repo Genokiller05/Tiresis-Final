@@ -39,6 +39,7 @@ export class MapaComponent implements OnInit, OnDestroy {
   public searchId: string = '';
   public selectedGuard: any = null;
   public isPickingLocation: boolean = false;
+  private refreshIntervalId: any;
 
   public feedbackMessage: string = '';
   public feedbackType: 'success' | 'error' = 'success';
@@ -57,6 +58,10 @@ export class MapaComponent implements OnInit, OnDestroy {
   private heatmapLayer: any = null;
   public isHeatmapActive: boolean = false;
 
+  public isPremiumUser: boolean = false;
+  public isSubmittingBuilding: boolean = false; // Debounce flag
+  public pendingNotification: any = null; // Latest pending notification for the user
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private authService: AuthService,
@@ -69,6 +74,7 @@ export class MapaComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     if (isPlatformBrowser(this.platformId)) {
+      this.isPremiumUser = this.authService.isPremium();
       await this.initMap();
       this.loadGuards();
       
@@ -77,7 +83,48 @@ export class MapaComponent implements OnInit, OnDestroy {
           this.toggleHeatmap(true);
         }
       });
+
+      this.loadNotifications();
+
+      // Set up polling every 10 seconds for real-time feel
+      this.refreshIntervalId = setInterval(() => {
+        this.loadGuards();
+        this.loadNotifications();
+      }, 10000);
     }
+  }
+
+  ngOnDestroy(): void {
+    if (this.refreshIntervalId) {
+      clearInterval(this.refreshIntervalId);
+    }
+    this.stopTracking();
+  }
+
+  private loadNotifications() {
+    const userProfile = this.authService.getCurrentUser();
+    const userId = userProfile?.idEmpleado || userProfile?.document_id || userProfile?.id;
+    if (!userId) return;
+
+    this.http.get<any[]>(`http://localhost:3000/api/notifications/${userId}`).subscribe({
+      next: (notifs) => {
+        // Filter for the latest pending notification
+        const pending = notifs.filter(n => n.status === 'pending')[0];
+        this.pendingNotification = pending || null;
+      },
+      error: (err) => console.error('[MAPA] Error loading user notifications', err)
+    });
+  }
+
+  public acknowledgeNotification(notifId: string) {
+    this.http.patch(`http://localhost:3000/api/notifications/${notifId}/acknowledge`, {}).subscribe({
+      next: () => {
+        this.pendingNotification = null;
+        this.refreshGuardMarkers(); // Refresh to show green color
+        this.loadGuards(); // Refresh guard list state
+      },
+      error: (err) => console.error('[MAPA] Error acknowledging notification', err)
+    });
   }
 
   private loadGuards() {
@@ -326,8 +373,7 @@ export class MapaComponent implements OnInit, OnDestroy {
 
       setTimeout(() => {
         this.assignGuardLocation(center.lat + offsetLat, center.lng + offsetLng);
-        this.showFeedback(`Guardia asignado a: ${buildingName}`, 'success');
-        this.confirmGuardLocation();
+        this.confirmGuardLocation(buildingName);
       }, 100);
 
     } else {
@@ -448,6 +494,11 @@ export class MapaComponent implements OnInit, OnDestroy {
   }
 
   public toggleBuildingCreation() {
+    if (!this.isPremiumUser && this.customBuildings.length >= 5) {
+      this.showFeedback('Ya alcanzaste el límite de edificios, si quieres poner más tienes que tener el plan Premium.', 'error');
+      return;
+    }
+
     this.isCreatingBuilding = !this.isCreatingBuilding;
     this.isDrawingZone = false; // Mutually exclusive
 
@@ -553,11 +604,15 @@ export class MapaComponent implements OnInit, OnDestroy {
           console.error('[MAPA] Error al guardar edificio:', err);
           const errorDetail = err.error?.error || err.message || 'Error técnico';
           this.showFeedback(`Error al guardar: ${errorDetail}`, 'error');
+        },
+        complete: () => {
+          this.isSubmittingBuilding = false;
         }
       });
     } catch (exc) {
       console.error('[MAPA] Excepción procesando geometría:', exc);
       this.showFeedback('Geometría inválida.', 'error');
+      this.isSubmittingBuilding = false;
     }
   }
 
@@ -779,45 +834,66 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.guardMarkers.forEach(marker => this.map.removeLayer(marker));
     this.guardMarkers.clear();
 
-    // Add markers for guards with location
-    this.guards.forEach(guard => {
-      if (guard.lat && guard.lng) {
-        const lat = parseFloat(guard.lat);
-        const lng = parseFloat(guard.lng);
+    // Fetch latest notifications for all guards to show their status colors
+    this.http.get<any[]>('http://localhost:3000/api/notifications/latest_all').subscribe({
+      next: (notifs) => {
+        const notifMap = new Map();
+        notifs.forEach(n => notifMap.set(n.user_id, n.status));
 
-        const marker = L.marker([lat, lng], {
-          icon: this.getGuardIcon(L, guard.estado)
-        }).addTo(this.map);
+        // Add markers for guards with location
+        this.guards.forEach(guard => {
+          if (guard.lat && guard.lng) {
+            const lat = parseFloat(guard.lat);
+            const lng = parseFloat(guard.lng);
+            const customStatus = notifMap.get(guard.idEmpleado) || null;
 
-        marker.bindTooltip(`
-          <div class="text-center">
-            <h3 class="font-bold whitespace-nowrap">${guard.nombre}</h3>
-            <p class="text-xs text-gray-500">${guard.area}</p>
-          </div>
-        `, {
-          permanent: false,
-          direction: 'top',
-          className: 'custom-tooltip'
+            const marker = L.marker([lat, lng], {
+              icon: this.getGuardIcon(L, guard.estado, customStatus),
+              draggable: false,
+              title: guard.idEmpleado
+            }).addTo(this.map);
+
+            marker.bindTooltip(`
+              <div class="text-center">
+                <h3 class="font-bold whitespace-nowrap">${guard.nombre}</h3>
+                <p class="text-xs text-gray-500">${guard.area}</p>
+              </div>
+            `, {
+              permanent: false,
+              direction: 'top',
+              className: 'custom-tooltip'
+            });
+
+            // Click to select this guard
+            marker.on('click', () => {
+              this.searchId = guard.idEmpleado;
+              this.searchGuard();
+            });
+
+            this.guardMarkers.set(guard.idEmpleado, marker);
+          }
         });
-
-        // Click to select this guard as active selection
-        marker.on('click', () => {
-          this.searchId = guard.idEmpleado;
-          this.searchGuard();
-        });
-
-
-        this.guardMarkers.set(guard.idEmpleado, marker);
-      }
+      },
+      error: (err) => console.error('[MAPA] Error fetching notification statuses:', err)
     });
   }
 
-  private getGuardIcon(L: any, status: string) {
-    // Simple colored marker logic or default
-    // Using a filter to change hueTest could be complex, keeping default for now or using a custom divIcon
+  private getGuardIcon(L: any, status: string, customStatus?: string) {
+    let color = '#6b7280'; // Default gray
+
+    if (status === 'En servicio') {
+      if (customStatus === 'pending') {
+        color = '#f97316'; // Orange (Assigned)
+      } else if (customStatus === 'acknowledged') {
+        color = '#22c55e'; // Green (Confirmed)
+      } else {
+        color = '#ef4444'; // Red (On duty, no assignment)
+      }
+    }
+
     return L.divIcon({
       className: 'custom-div-icon',
-      html: `<div style="background-color: ${status === 'En servicio' ? '#22c55e' : '#6b7280'}; width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+      html: `<div style="background-color: ${color}; width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: background-color 0.5s;"></div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10]
     });
@@ -896,9 +972,6 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.showFeedback('Rastreo detenido.', 'success');
   }
 
-  ngOnDestroy() {
-    this.stopTracking();
-  }
 
   private saveAdminLocation(lat: number, lng: number) {
     const user = this.authService.getCurrentUser();
@@ -1013,7 +1086,7 @@ export class MapaComponent implements OnInit, OnDestroy {
     }
   }
 
-  public confirmGuardLocation() {
+  public confirmGuardLocation(buildingName?: string) {
     if (!this.selectedGuard) return;
 
     let lat, lng;
@@ -1031,15 +1104,38 @@ export class MapaComponent implements OnInit, OnDestroy {
     this.selectedGuard.lat = lat;
     this.selectedGuard.lng = lng;
 
+    this.showFeedback('Guardando ubicación y notificando al guardia...', 'success');
+
     this.updateGuard(this.selectedGuard).subscribe({
       next: () => {
-        this.showFeedback(`Ubicación de ${this.selectedGuard.nombre} guardada.`, 'success');
+        const dest = buildingName ? ` en ${buildingName}` : ' a una nueva ubicación';
+        this.showFeedback(`Ubicación de ${this.selectedGuard.nombre} guardada${dest}.`, 'success');
+
+        // Create notification for the guard
+        this.createAssignmentNotification(this.selectedGuard.idEmpleado, `Fuiste asignado al área ${buildingName || 'de vigilancia móvil'}. Por favor confirma recepción.`);
+
         this.finishPick(true); // Keep changes
       },
       error: (err) => {
         console.error('Error updating guard', err);
         this.showFeedback('Error al guardar ubicación en servidor', 'error');
       }
+    });
+  }
+
+  private createAssignmentNotification(guardId: string, message: string) {
+    const payload = {
+      user_id: guardId,
+      message: message,
+      type: 'assignment'
+    };
+
+    this.http.post('http://localhost:3000/api/notifications', payload).subscribe({
+      next: () => {
+        console.log('[MAPA] Notificación de asignación enviada.');
+        this.showFeedback('Notificación enviada al guardia.', 'success');
+      },
+      error: (err) => console.error('[MAPA] Error al enviar notificación:', err)
     });
   }
 

@@ -20,11 +20,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.genokiller05.miappmovil.R
-import com.genokiller05.miappmovil.data.repository.NotificationRepository
 import com.genokiller05.miappmovil.ui.theme.*
+import com.genokiller05.miappmovil.ui.viewmodel.NotificationViewModel
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,17 +39,15 @@ fun SettingsScreen(
 ) {
     val colors = AppTheme.colors
     val user by userViewModel.user.collectAsState()
-    val scope = rememberCoroutineScope()
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val notifications by notificationViewModel.notifications.collectAsState()
 
-    var unreadCount by remember { mutableIntStateOf(0) }
-    val notifRepo = remember { NotificationRepository() }
-
-    LaunchedEffect(user) {
-        val guardId = user?.id ?: user?.document_id ?: ""
-        if (guardId.isNotEmpty()) {
-            unreadCount = notifRepo.getUnreadCount(guardId)
-        }
+    val userId = user?.idEmpleado?.ifEmpty { user?.document_id ?: user?.id } ?: ""
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) notificationViewModel.startListening(userId)
     }
+
+    val unreadCount = notifications.count { it.status == "pending" }
 
     val nombre = user?.nombre?.ifEmpty { user?.full_name } ?: "Guardia"
     val initials = nombre.split(" ").take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }.joinToString("")

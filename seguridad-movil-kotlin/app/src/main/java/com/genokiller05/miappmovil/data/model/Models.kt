@@ -64,14 +64,15 @@ data class ReportInsert(
 )
 
 @Serializable
-data class GuardNotification(
+data class AppNotification(
     val id: String,
-    val guard_id: String,
-    val title: String,
-    val body: String,
-    val type: String = "general",
-    val is_read: Boolean = false,
-    val created_at: String
+    @SerialName("user_id") val userId: String,
+    val message: String,
+    val type: String = "assignment",
+    val status: String = "pending",
+    @SerialName("site_id") val siteId: String? = null,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("acknowledged_at") val acknowledgedAt: String? = null
 )
 
 @Serializable

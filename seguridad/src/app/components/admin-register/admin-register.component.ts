@@ -640,35 +640,49 @@ export class AdminRegisterComponent implements OnInit {
             }
         });
 
-        if (isPlatformBrowser(this.platformId)) {
-            this.loadStripeScript().then(() => {
-                this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
-                    next: (res) => {
-                        if (res.publishableKey && (window as any).Stripe) {
-                            this.stripeInstance = (window as any).Stripe(res.publishableKey);
-                        }
-                    },
-                    error: () => console.warn('Could not load Stripe config')
-                });
-            });
-        }
     }
 
-    private loadStripeScript(): Promise<void> {
+    private loadStripeScript(): Promise<boolean> {
         return new Promise((resolve) => {
             if ((window as any).Stripe) {
-                resolve();
+                resolve(true);
                 return;
             }
             const script = document.createElement('script');
             script.src = 'https://js.stripe.com/v3/';
             script.async = true;
-            script.onload = () => resolve();
+            script.onload = () => resolve(true);
             script.onerror = () => {
                 console.error('Error al cargar Stripe.js');
-                resolve(); // Resolve anyway to not block
+                resolve(false);
             };
             document.head.appendChild(script);
+        });
+    }
+
+    private async ensureStripeLoaded(): Promise<boolean> {
+        if (!isPlatformBrowser(this.platformId)) return false;
+        if (this.stripeInstance) return true;
+
+        const scriptLoaded = await this.loadStripeScript();
+        if (!scriptLoaded || !(window as any).Stripe) return false;
+
+        return await new Promise((resolve) => {
+            this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
+                next: (res) => {
+                    if (res.publishableKey) {
+                        this.stripeInstance = (window as any).Stripe(res.publishableKey);
+                        resolve(!!this.stripeInstance);
+                        return;
+                    }
+                    console.warn('Stripe publishable key no disponible');
+                    resolve(false);
+                },
+                error: () => {
+                    console.warn('Could not load Stripe config');
+                    resolve(false);
+                }
+            });
         });
     }
 
@@ -717,9 +731,15 @@ export class AdminRegisterComponent implements OnInit {
     }
 
     // --- CARD: Inline Stripe Elements ---
-    initCardForm() {
+    async initCardForm() {
         this.isProcessingPayment = true;
         this.cardError = '';
+        const stripeReady = await this.ensureStripeLoaded();
+        if (!stripeReady) {
+            this.isProcessingPayment = false;
+            this.cardError = 'Stripe no pudo cargarse en este navegador.';
+            return;
+        }
         const payload = { amountMXN: this.selectedPlan.price, email: this.adminData.email };
 
         this.http.post<any>('http://localhost:3000/api/stripe/create-payment-intent', payload).subscribe({

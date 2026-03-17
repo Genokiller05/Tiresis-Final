@@ -42,6 +42,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   // Dropdown States
   public isTipoDropdownOpen: boolean = false;
   public isModalStatusDropdownOpen: boolean = false;
+  public isExportDropdownOpen: boolean = false;
+  public isPremiumUser: boolean = true;
 
   // Properties for status modification modal
   public isStatusModalVisible: boolean = false;
@@ -68,7 +70,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public initialOpenAlertId: string | null = null;
 
   constructor(
-    private router: Router,
+    public router: Router,
     private themeService: ThemeService,
     private translationService: TranslationService,
     private reportService: ReportService,
@@ -109,6 +111,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         this.handleRealtimeEvent(payload);
       });
     }
+
+    this.isPremiumUser = this.authService.isPremium();
   }
 
   private handleRealtimeEvent(payload: any) {
@@ -308,6 +312,21 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public confirmLogout(): void {
     this.authService.logout(); // Usar el servicio de autenticación
     this.router.navigate(['/login']);
+  }
+
+  // --- Export Methods ---
+  public toggleExportDropdown(): void {
+    this.isExportDropdownOpen = !this.isExportDropdownOpen;
+  }
+
+  public exportToExcel(): void {
+    console.log('Exporting to Excel...');
+    // TODO: Implement actual Excel export
+  }
+
+  public exportToPDF(): void {
+    console.log('Exporting to PDF...');
+    // TODO: Implement actual PDF export
   }
 
   // --- Filter Dropdowns ---

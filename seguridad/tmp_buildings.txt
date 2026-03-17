@@ -1,0 +1,60 @@
+
+// --- Buildings (filtrado por site_id) ---
+app.get('/api/buildings', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('buildings').select('*').in('site_id', req.siteIds);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/buildings', authMiddleware, async (req, res) => {
+  // Only extract valid columns to avoid Supabase schema errors (e.g., if 'type' is sent)
+  const { id, name, geometry } = req.body;
+  const building = {
+    id: id || Date.now().toString(),
+    name,
+    geometry,
+    site_id: req.activeSiteId
+  };
+
+  console.log('[BE] Admin:', req.adminEmail, '| Saving building into site:', req.activeSiteId);
+
+  const { error } = await supabase.from('buildings').insert([building]);
+  if (error) {
+    console.error('[BE] Error inserting building into Supabase:', error);
+    return res.status(500).json({ error: error.message, detail: error.details });
+  }
+  res.status(201).json({ message: 'Edificio guardado', building });
+});
+
+app.delete('/api/buildings/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('buildings').delete().eq('id', req.params.id).in('site_id', req.siteIds);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ message: 'Edificio eliminado' });
+});
+
+// --- Entries/Exits (filtrado por site_id) ---
+app.get('/api/entries-exits', authMiddleware, async (req, res) => {
+  const { data, error } = await supabase.from('entries_exits').select('*').in('site_id', req.siteIds).order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data || []);
+});
+
+app.post('/api/entries-exits', authMiddleware, async (req, res) => {
+  const entry = { ...req.body, site_id: req.activeSiteId };
+  if (!entry.id) entry.id = 'EE' + Date.now().toString();
+
+  const { error } = await supabase.from('entries_exits').insert([entry]);
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(201).json({ message: 'Registro guardado', entry });
+});
+
+app.patch('/api/entries-exits/:id', authMiddleware, async (req, res) => {
+  const updateData = { ...req.body };
+  delete updateData.site_id;
+  const { error } = await supabase.from('entries_exits').update(updateData).eq('id', req.params.id).in('site_id', req.siteIds);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(updateData);
+});
+
+app.delete('/api/entries-exits/:id', authMiddleware, async (req, res) => {
+  const { error } = await supabase.from('entries_exits').delete().eq('id', req.params.id).in('site_id', req.siteIds);

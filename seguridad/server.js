@@ -86,7 +86,12 @@ const writeJsonFile = (filename, data) => {
 
 // --- PUBLIC HEALTH/PING ENDPOINT (no auth required) ---
 app.get('/api/ping', (req, res) => {
-  res.json({ status: 'ok', ts: Date.now() });
+  console.log('[DEBUG-SERVER] Ping received at', new Date().toISOString());
+  res.json({ status: 'ok', ts: Date.now(), debug: true });
+});
+
+app.get('/api/test-top', (req, res) => {
+  res.json({ message: 'top ok' });
 });
 
 // --- MIGRATION ENDPOINT ---
@@ -551,7 +556,7 @@ app.post('/api/login', async (req, res) => {
   const password = String(req.body?.password || '').trim();
 
   if (!email || !password) {
-    return res.status(400).json({ message: 'Email y contrase�a son requeridos' });
+    return res.status(400).json({ message: 'Email y contrase�a son requeridos' });
   }
 
   const DEFAULT_SITE_ID = '00000000-0000-0000-0000-000000000001';
@@ -612,7 +617,7 @@ app.post('/api/login', async (req, res) => {
     }
   }
 
-  // 4) Si Auth pas� pero no existe perfil admin, bootstrap local para no romper el flujo
+  // 4) Si Auth pas� pero no existe perfil admin, bootstrap local para no romper el flujo
   if (!adminUser && authUser) {
     const inferredName =
       authUser.user_metadata?.full_name
@@ -625,7 +630,7 @@ app.post('/api/login', async (req, res) => {
       full_name: inferredName,
       email: authUser.email || email,
       role: 'admin',
-      plan: 'B�sico',
+      plan: 'B�sico',
       created_at: new Date().toISOString()
     };
 
@@ -687,7 +692,7 @@ app.post('/api/login', async (req, res) => {
       lng: adminUser.lng,
       zone: adminUser.zone,
       role: adminUser.role || 'admin',
-      plan: adminUser.plan || 'B�sico',
+      plan: adminUser.plan || 'B�sico',
       sites
     }
   });
@@ -1447,8 +1452,35 @@ app.get('/api/buildings', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/buildings', authMiddleware, async (req, res) => {
-  // Only extract valid columns to avoid Supabase schema errors (e.g., if 'type' is sent)
   const { id, name, geometry } = req.body;
+
+  // 1. Limitar a 5 edificios por sitio para plan Básico
+  if (req.userPlan !== 'Premium') {
+    const { count, error: countError } = await supabase
+      .from('buildings')
+      .select('*', { count: 'exact', head: true })
+      .in('site_id', req.siteIds);
+    
+    if (!countError && count != null && count >= 5) {
+      return res.status(403).json({ error: 'Límite alcanzado: El plan Básico permite máximo 5 edificios.' });
+    }
+  }
+
+  // 2. Validar duplicados por nombre en el mismo sitio
+  if (!name || name.trim() === '') {
+    return res.status(400).json({ error: 'El nombre del edificio es requerido.' });
+  }
+
+  const { data: existing, error: checkError } = await supabase
+    .from('buildings')
+    .select('id')
+    .eq('name', name)
+    .in('site_id', req.siteIds)
+    .maybeSingle();
+
+  if (existing) {
+    return res.status(400).json({ error: `Ya existe un edificio con el nombre "${name}" en este sitio.` });
+  }
   const building = {
     id: id || Date.now().toString(),
     name,
@@ -1470,6 +1502,122 @@ app.delete('/api/buildings/:id', authMiddleware, async (req, res) => {
   const { error } = await supabase.from('buildings').delete().eq('id', req.params.id).in('site_id', req.siteIds);
   if (error) return res.status(500).json({ error: error.message });
   res.json({ message: 'Edificio eliminado' });
+});
+
+// --- Notifications (sin auth — accedido por guardias y app movil sin token admin) ---
+
+/**
+ * GET /api/notifications/latest_all
+ * Latest notification per guard, usado por el mapa para colorear los marcadores.
+ */
+app.get('/api/notifications/latest_all', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('user_id, status, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[BE] Error leyendo notificaciones (latest_all):', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    // De-duplicate server-side: keep the newest entry per user
+    const latestMap = new Map();
+    (data || []).forEach(n => {
+      if (!latestMap.has(n.user_id)) latestMap.set(n.user_id, n);
+    });
+
+    res.json(Array.from(latestMap.values()));
+  } catch (err) {
+    console.error('[BE] Excepcion en GET /api/notifications/latest_all:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/notifications/:userId
+ * Todas las notificaciones del guardia, más recientes primero.
+ */
+app.get('/api/notifications/:userId', async (req, res) => {
+  const userId = req.params.userId;
+  if (!userId) return res.status(400).json({ message: 'userId requerido.' });
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[BE] Error leyendo notificaciones para', userId, ':', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data || []);
+  } catch (err) {
+    console.error('[BE] Excepcion en GET /api/notifications/:userId:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/notifications
+ * Inserta una notificacion en Supabase (dispara Realtime para la app Kotlin).
+ */
+app.post('/api/notifications', async (req, res) => {
+  const { user_id, message, type = 'assignment', site_id = null } = req.body;
+  if (!user_id || !message) {
+    return res.status(400).json({ message: 'user_id y message son requeridos.' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .insert([{ user_id, message, type, site_id, status: 'pending' }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[BE] Error insertando notificacion:', error.message);
+      return res.status(500).json({ message: 'Error al crear notificacion.', error: error.message });
+    }
+
+    console.log('[BE] Notificacion creada para guardia:', user_id, '->', message);
+    res.status(201).json(data);
+  } catch (err) {
+    console.error('[BE] Excepcion en POST /api/notifications:', err.message);
+    res.status(500).json({ message: 'Error interno.', error: err.message });
+  }
+});
+
+/**
+ * PATCH /api/notifications/:id/acknowledge
+ * Marca la notificacion como reconocida.
+ */
+app.patch('/api/notifications/:id/acknowledge', async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ message: 'id requerido.' });
+
+  try {
+    const { data, error } = await supabase
+      .from('notifications')
+      .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[BE] Error actualizando notificacion', id, ':', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error('[BE] Excepcion en PATCH /api/notifications/:id/acknowledge:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Entries/Exits (filtrado por site_id) ---
@@ -1676,6 +1824,10 @@ app.post(
   }
 );
 
+
+// ────────────────────────────────────────────────────────────────────────────
+// NOTE: /api/notifications routes are defined above at line 1507+
+// ────────────────────────────────────────────────────────────────────────────
 
 process.on('uncaughtException', (err) => {
   fs.writeFileSync(path.join(__dirname, 'server_crash.log'), `Uncaught Exception: ${err.message}\n${err.stack}`);

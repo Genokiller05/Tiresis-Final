@@ -1,0 +1,8 @@
+﻿[dotenv@17.2.3] injecting env (4) from .env -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+--- BUILDINGS IN DATABASE ---
+ID: 1773616754978 | Name: tinu | Site: 29e48d60-df1e-4b7c-91dc-184ca1ea2c3e | Valid Geometry: true
+ID: 1773616755943 | Name: tinu | Site: 29e48d60-df1e-4b7c-91dc-184ca1ea2c3e | Valid Geometry: true
+ID: 1773616773720 | Name: new  | Site: 29e48d60-df1e-4b7c-91dc-184ca1ea2c3e | Valid Geometry: true
+ID: 1773617034867 | Name: b | Site: 29e48d60-df1e-4b7c-91dc-184ca1ea2c3e | Valid Geometry: true
+ID: 1773617035457 | Name: b | Site: 29e48d60-df1e-4b7c-91dc-184ca1ea2c3e | Valid Geometry: true
+-----------------------------

@@ -8,6 +8,8 @@ import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -20,8 +22,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.genokiller05.miappmovil.data.model.Guard
 import com.genokiller05.miappmovil.ui.screens.*
 import com.genokiller05.miappmovil.ui.theme.AppTheme
+import com.genokiller05.miappmovil.ui.viewmodel.NotificationViewModel
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
 
 sealed class Screen(val route: String) {
@@ -54,6 +58,15 @@ fun AppNavigation(
     userViewModel: UserViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
+    val notificationViewModel: NotificationViewModel = hiltViewModel()
+    val user by userViewModel.user.collectAsState()
+
+    LaunchedEffect(user?.notificationTargetId()) {
+        val userId = user?.notificationTargetId()
+        if (!userId.isNullOrBlank()) {
+            notificationViewModel.startListening(userId)
+        }
+    }
 
     NavHost(navController = navController, startDestination = Screen.Login.route) {
         composable(Screen.Login.route) {
@@ -150,6 +163,10 @@ fun AppNavigation(
             )
         }
     }
+}
+
+private fun Guard.notificationTargetId(): String {
+    return idEmpleado.ifEmpty { document_id ?: id ?: "" }
 }
 
 @Composable
