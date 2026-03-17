@@ -39,13 +39,23 @@
           <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1" for="search-id">
             Identificación de Operativo
           </label>
-          <div class="flex items-center space-x-4">
+          <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_260px_auto_auto] gap-4 items-center">
             <div class="relative flex-grow">
               <input
                 class="w-full pl-12 pr-4 py-4 border border-glass-border rounded-2xl bg-black/60 focus:ring-2 focus:ring-primary/50 focus:border-primary text-white placeholder-gray-500 font-bold transition-all"
-                id="search-id" maxlength="8" minlength="8" placeholder="{{ uiText.searchPlaceholder }}" type="text"
+                id="search-id" placeholder="Escribe el nombre del guardia" type="text"
                 [(ngModel)]="searchId" (keyup.enter)="onSearch()" />
               <span class="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-primary">search</span>
+            </div>
+            <div class="relative">
+              <select
+                id="area-filter"
+                [(ngModel)]="selectedAreaFilter"
+                class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium appearance-none cursor-pointer">
+                <option value="">Todas las areas</option>
+                <option *ngFor="let area of availableAreaFilters" [value]="area">{{ area }}</option>
+              </select>
+              <span class="material-icons absolute right-5 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
             </div>
             <button (click)="onSearch()"
               class="px-10 py-4 bg-gradient-premium rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm">
@@ -63,8 +73,68 @@
         </div>
       </div>
 
+      <div class="glass-effect p-8 rounded-3xl shadow-2xl border border-glass-border">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+          <div>
+            <p class="text-[10px] font-black text-primary uppercase tracking-[0.25em]">Lista de Guardias</p>
+            <h2 class="text-2xl font-black text-white tracking-tight">Directorio activo</h2>
+          </div>
+          <div
+            class="inline-flex items-center gap-2 self-start px-4 py-2 rounded-full bg-black/40 border border-glass-border text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
+            <span class="material-icons text-sm">groups</span>
+            <span>{{ filteredGuardDirectory.length }} visibles / {{ guardDirectory.length }} registrados</span>
+          </div>
+        </div>
+
+        <div *ngIf="isGuardListLoading" class="space-y-3">
+          <div *ngFor="let skeleton of [1, 2, 3, 4]"
+            class="h-20 rounded-2xl border border-glass-border bg-black/30 animate-pulse"></div>
+        </div>
+
+        <div *ngIf="!isGuardListLoading && filteredGuardDirectory.length > 0"
+          class="max-h-[28rem] overflow-y-auto pr-2 custom-scrollbar space-y-3">
+          <div
+            *ngFor="let guard of filteredGuardDirectory; trackBy: trackByGuardId"
+            [ngClass]="currentGuardId === guard.idEmpleado ? 'border-primary bg-primary/10 shadow-lg shadow-primary/10' : 'border-glass-border bg-black/30 hover:border-primary/40 hover:bg-black/50'"
+            class="rounded-2xl border p-4 transition-all">
+            <div class="flex items-start justify-between gap-4">
+              <button
+                type="button"
+                (click)="selectGuardFromList(guard)"
+                class="min-w-0 flex-1 text-left">
+                <p class="text-white font-black text-lg truncate">{{ guard.nombre || 'Sin nombre' }}</p>
+                <p class="text-cyan-300 font-mono text-xs tracking-[0.25em] uppercase mt-1">{{ guard.idEmpleado }}</p>
+                <p class="text-gray-400 text-xs mt-2 truncate">{{ guard.area || guard.email || 'Sin sector asignado' }}</p>
+              </button>
+              <div class="flex flex-col items-end gap-2 shrink-0">
+                <span
+                  class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.18em] border"
+                  [ngClass]="guard.estado === 'En servicio'
+                    ? 'text-emerald-300 border-emerald-400/30 bg-emerald-500/10'
+                    : 'text-rose-300 border-rose-400/30 bg-rose-500/10'">
+                  {{ guard.estado }}
+                </span>
+                <button
+                  type="button"
+                  (click)="viewGuardProfile(guard, $event)"
+                  class="px-4 py-2 rounded-xl border border-primary/30 bg-primary/10 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:border-primary/60 hover:text-white transition-all">
+                  Ver perfil
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!isGuardListLoading && filteredGuardDirectory.length === 0"
+          class="rounded-2xl border border-dashed border-glass-border bg-black/20 px-6 py-12 text-center">
+          <span class="material-icons text-5xl text-gray-600">shield</span>
+          <p class="mt-4 text-white font-black uppercase tracking-[0.2em]">Aún no hay guardias registrados</p>
+          <p class="mt-2 text-gray-500 text-xs uppercase tracking-[0.16em]">Cuando des de alta uno nuevo aparecerá aquí automáticamente.</p>
+        </div>
+      </div>
+
       <!-- Results Grid (Premium Redesign) -->
-      <div *ngIf="currentGuard"
+      <div *ngIf="currentGuard" id="guard-profile-panel"
         class="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in slide-in-from-bottom-8 duration-1000">
 
         <!-- Guard Details & Status (Left) -->
@@ -231,7 +301,7 @@
       </div>
 
       <!-- No Target Found — Biometric Scanner Animation -->
-      <div *ngIf="!currentGuard && !errorMessage"
+      <div *ngIf="!currentGuard && !errorMessage && !isGuardListLoading && guardDirectory.length === 0"
         class="flex flex-col items-center justify-center py-24 animate-in fade-in duration-1000 select-none">
 
         <!-- Scanner Container -->

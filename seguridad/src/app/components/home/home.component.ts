@@ -20,13 +20,16 @@ import { Subscription } from 'rxjs';
 export class HomeComponent implements OnInit, OnDestroy {
 
   public searchId: string = '';
+  public selectedAreaFilter: string = '';
   public errorMessage: string = '';
   public successMessage: string = '';
   public currentGuard: any = null;
+  public guardDirectory: any[] = [];
   public isLogoutModalVisible: boolean = false;
   public isDeleteModalVisible: boolean = false;
   public isEditModalVisible: boolean = false;
   public isLoading: boolean = false;
+  public isGuardListLoading: boolean = false;
   public isPremiumUser: boolean = false;
 
   // Edit Form
@@ -56,7 +59,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public regFieldErrors: { [key: string]: string } = {};
   private regSelectedFile: File | null = null;
 
-  private currentGuardId: string | null = null;
+  public currentGuardId: string | null = null;
   private presenceChannel: any = null;
 
   // Paginación del Historial de Operaciones
@@ -77,6 +80,23 @@ export class HomeComponent implements OnInit, OnDestroy {
   public setActividadesPage(page: number): void {
     if (page < 1 || page > this.totalActividadesPages) return;
     this.actividadesPage = page;
+  }
+
+  get availableAreaFilters(): string[] {
+    return [...new Set(
+      this.guardDirectory
+        .map(guard => (guard.area || '').trim())
+        .filter(area => area.length > 0)
+    )].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+  }
+
+  get filteredGuardDirectory(): any[] {
+    const searchTerm = this.normalizeSearchTerm(this.searchId);
+    return this.guardDirectory.filter(guard => {
+      const matchesArea = !this.selectedAreaFilter || guard.area === this.selectedAreaFilter;
+      const matchesName = !searchTerm || this.normalizeSearchTerm(guard.nombre).includes(searchTerm);
+      return matchesArea && matchesName;
+    });
   }
 
   // Theme property
@@ -111,9 +131,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.uiRegText = translations.registros || {}; // Load registration translations
     });
     this.isPremiumUser = this.authService.isPremium();
+    void this.loadGuardDirectory();
     if (isPlatformBrowser(this.platformId)) {
       this.realtimeSubscription = this.guardService.getGuardUpdates().subscribe(payload => {
         this.ngZone.run(() => {
+          if (payload.new) {
+            this.upsertGuardInDirectory(this.normalizeGuard(payload.new));
+          }
           if (this.currentGuardId && payload.new) {
             const isSameGuard = payload.new.document_id === this.currentGuardId || payload.new.idEmpleado === this.currentGuardId;
             if (isSameGuard) {
@@ -156,6 +180,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
     this.regStatusMessage = '';
+    if (tab === 'search') {
+      void this.loadGuardDirectory({ preserveCurrentGuard: true });
+    }
   }
 
   // --- Registration Methods (from RegistrosComponent) ---
@@ -206,7 +233,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.regStatusMessage = `<span class="text-red-500">${this.uiRegText.validationError || 'Por favor, corrija los errores.'}</span>`;
       return;
     }
-
     this.isLoading = true;
     this.regStatusMessage = `<span class="text-blue-500">${this.uiRegText.submitting || 'Registrando guardia...'}</span>`;
     this.regSummaryCardData = null;
@@ -227,8 +253,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     try {
       let photoUrl: string | null = null;
+      let photoWarning = '';
       if (this.regSelectedFile) {
-        photoUrl = await this.guardService.uploadPhoto(this.regSelectedFile);
+        try {
+          photoUrl = await this.guardService.uploadPhoto(this.regSelectedFile);
+        } catch (uploadError) {
+          console.error('Error uploading guard photo:', uploadError);
+          photoWarning = ' La foto no se pudo subir y se usará la imagen predeterminada.';
+        }
       }
 
       const guardData = {
@@ -242,9 +274,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       };
 
       const newGuard = await this.guardService.createGuard(guardData);
+      await this.loadGuardDirectory();
+      const successMessage = this.uiRegText.successMessage || 'Guardia registrado con exito.';
 
       this.regStatusMessage = `<span class="text-green-500 font-bold">${this.uiRegText.successMessage || 'Guardia registrado con éxito.'}</span>`;
-      this.regSummaryCardData = { ...newGuard, foto: photoUrl };
+      this.regStatusMessage = `<span class="text-green-500 font-bold">${successMessage}</span>`;
+      if (photoWarning) {
+        this.regStatusMessage += `<span class="text-amber-400 font-medium">${photoWarning}</span>`;
+      }
+      this.regSummaryCardData = this.normalizeGuard({ ...newGuard, foto: newGuard?.foto || photoUrl });
       this.resetRegForm();
 
     } catch (error: any) {
@@ -274,35 +312,39 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // --- Search and Data Methods ---
   public async onSearch(): Promise<void> {
-    this.currentGuard = null;
     this.errorMessage = '';
     this.successMessage = '';
 
-    const searchId = this.searchId.trim();
+    const searchName = this.searchId.trim();
+    const matches = this.filteredGuardDirectory;
 
-    if (!searchId) {
-      this.errorMessage = 'Por favor, ingrese un ID de guardia.';
+    if (!searchName) {
+      this.errorMessage = 'Por favor, ingrese el nombre del guardia.';
       return;
     }
 
-    if (searchId.length !== 8) {
+    if (matches.length === 0) {
+      const areaMessage = this.selectedAreaFilter ? ` en el area ${this.selectedAreaFilter}` : '';
+      this.currentGuard = null;
+      this.currentGuardId = null;
+      return this.setNoMatchError(searchName, areaMessage);
       this.errorMessage = 'El ID debe tener exactamente 8 dígitos para realizar la búsqueda.';
       return;
     }
+
+    const selectedGuard = this.getPreferredGuardMatch();
+    if (!selectedGuard) {
+      return this.setNoMatchError(searchName, this.selectedAreaFilter ? ` en el area ${this.selectedAreaFilter}` : '');
+    }
+    const searchId = selectedGuard.idEmpleado;
 
     this.isLoading = true;
     try {
       const guard = await this.guardService.getGuardById(searchId);
       if (guard) {
         // Normalización para compatibilidad frontend
-        this.currentGuard = {
-          ...guard,
-          nombre: guard.nombre || guard.full_name,
-          idEmpleado: guard.idEmpleado || guard.document_id,
-          telefono: guard.telefono || guard.phone || '',
-          direccion: guard.direccion || '',
-          estado: guard.estado || (guard.is_active ? 'En servicio' : 'Fuera de servicio')
-        };
+        this.currentGuard = this.normalizeGuard(guard);
+        this.upsertGuardInDirectory(this.currentGuard);
         this.currentGuardId = this.currentGuard.idEmpleado;
         this.actividadesPage = 1; // Reiniciar paginación al buscar nuevo guardia
 
@@ -323,7 +365,9 @@ export class HomeComponent implements OnInit, OnDestroy {
           });
         }).subscribe();
 
-        this.successMessage = 'Guardia encontrado!';
+        this.successMessage = matches.length === 1
+          ? 'Guardia encontrado.'
+          : `Mostrando ${selectedGuard.nombre}. Coincidencias: ${matches.length}.`;
       } else {
         this.errorMessage = `No se encontró ningún guardia con el ID ${searchId}.`;
       }
@@ -341,9 +385,33 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.presenceChannel = null;
     }
     this.searchId = '';
+    this.selectedAreaFilter = '';
     this.errorMessage = '';
     this.successMessage = '';
     this.resetGuardState();
+  }
+
+  public async selectGuardFromList(guard: any): Promise<void> {
+    this.searchId = guard.nombre || guard.full_name || '';
+    await this.loadGuardProfile(guard.idEmpleado);
+  }
+
+  public async viewGuardProfile(guard: any, event?: Event): Promise<void> {
+    event?.stopPropagation();
+    await this.selectGuardFromList(guard);
+
+    if (isPlatformBrowser(this.platformId)) {
+      setTimeout(() => {
+        document.getElementById('guard-profile-panel')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      }, 50);
+    }
+  }
+
+  public trackByGuardId(index: number, guard: any): string {
+    return guard.idEmpleado || `${index}`;
   }
 
   public async onGuardFileSelected(event: any): Promise<void> {
@@ -370,6 +438,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       // Update local state from the response
       this.currentGuard.foto = updatedGuard.foto;
+      this.upsertGuardInDirectory(this.normalizeGuard({
+        ...this.currentGuard,
+        foto: updatedGuard.foto
+      }));
 
       this.successMessage = 'Foto de perfil actualizada correctamente.';
       this.errorMessage = '';
@@ -411,9 +483,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.isLoading = true;
     try {
+      const deletedGuardId = this.currentGuardId;
       await this.guardService.deleteGuard(this.currentGuardId);
-      this.successMessage = 'Guardia eliminado permanentemente.';
+      await this.loadGuardDirectory();
       this.clearSearch();
+      this.successMessage = `Guardia ${deletedGuardId} eliminado permanentemente.`;
       setTimeout(() => this.successMessage = '', 4000);
     } catch (err: any) {
       console.error('Error al eliminar guardia:', err);
@@ -503,15 +577,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       const updatedGuard = await this.guardService.updateGuard(this.currentGuardId, updatedData);
 
       // Update local state from response
-      this.currentGuard = {
+      this.currentGuard = this.normalizeGuard({
         ...this.currentGuard,
-        nombre: updatedGuard.nombre || updatedGuard.full_name,
-        email: updatedGuard.email,
-        area: updatedGuard.area,
-        telefono: updatedGuard.telefono || updatedGuard.phone,
-        direccion: updatedGuard.direccion,
-        estado: updatedGuard.estado
-      };
+        ...updatedGuard,
+        nombre: updatedGuard.nombre || updatedGuard.full_name || this.editForm.nombre,
+        full_name: updatedGuard.full_name || this.editForm.nombre,
+        telefono: updatedGuard.telefono || updatedGuard.phone || this.editForm.telefono,
+        phone: updatedGuard.phone || updatedGuard.telefono || this.editForm.telefono,
+        estado: updatedGuard.estado || this.editForm.estado
+      });
+      this.upsertGuardInDirectory(this.currentGuard);
 
       this.successMessage = 'Datos actualizados correctamente.';
       this.hideEditModal();
@@ -524,10 +599,115 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  private async loadGuardProfile(guardId: string): Promise<void> {
+    this.isLoading = true;
+    try {
+      const guard = await this.guardService.getGuardById(guardId);
+      if (guard) {
+        this.currentGuard = this.normalizeGuard(guard);
+        this.upsertGuardInDirectory(this.currentGuard);
+        this.currentGuardId = this.currentGuard.idEmpleado;
+        this.actividadesPage = 1;
+
+        if (this.presenceChannel) {
+          this.supabaseService.client.removeChannel(this.presenceChannel);
+        }
+
+        this.presenceChannel = this.supabaseService.client.channel('online-guards-' + this.currentGuardId);
+        this.presenceChannel.on('presence', { event: 'sync' }, () => {
+          this.ngZone.run(() => {
+            const state = this.presenceChannel.presenceState();
+            const isOnline = Object.keys(state).length > 0;
+            if (this.currentGuard) {
+              this.currentGuard.estado = isOnline ? 'En servicio' : 'Fuera de servicio';
+              this.cdr.detectChanges();
+            }
+          });
+        }).subscribe();
+      }
+    } catch (err: any) {
+      console.error('Error fetching guard:', err);
+      this.errorMessage = `Error cargando el perfil del guardia ${guardId}.`;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private setNoMatchError(searchName: string, areaMessage: string = ''): void {
+    this.errorMessage = `No se encontro ningun guardia con el nombre "${searchName}"${areaMessage}.`;
+  }
+
+  private getPreferredGuardMatch(): any | null {
+    const matches = this.filteredGuardDirectory;
+    if (!matches.length) return null;
+
+    const normalizedSearch = this.normalizeSearchTerm(this.searchId.trim());
+    return matches.find((guard: any) => this.normalizeSearchTerm(guard.nombre) === normalizedSearch) || matches[0];
+  }
+
   // --- Private Helper ---
   private resetGuardState(): void {
     this.currentGuard = null;
     this.currentGuardId = null;
+  }
+
+  private async loadGuardDirectory(options?: { preserveCurrentGuard?: boolean }): Promise<void> {
+    this.isGuardListLoading = true;
+    try {
+      const guards = await this.guardService.getGuards();
+      this.guardDirectory = this.sortGuardDirectory(guards.map(guard => this.normalizeGuard(guard)));
+
+      if (options?.preserveCurrentGuard && this.currentGuardId) {
+        const refreshedGuard = this.guardDirectory.find(guard => guard.idEmpleado === this.currentGuardId);
+        if (refreshedGuard && this.currentGuard) {
+          this.currentGuard = {
+            ...this.currentGuard,
+            ...refreshedGuard,
+            actividades: this.currentGuard.actividades || refreshedGuard.actividades || []
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error cargando directorio de guardias:', error);
+    } finally {
+      this.isGuardListLoading = false;
+    }
+  }
+
+  private upsertGuardInDirectory(guard: any): void {
+    const normalizedGuard = this.normalizeGuard(guard);
+    const nextDirectory = this.guardDirectory.filter(item => item.idEmpleado !== normalizedGuard.idEmpleado);
+    nextDirectory.push(normalizedGuard);
+    this.guardDirectory = this.sortGuardDirectory(nextDirectory);
+  }
+
+  private sortGuardDirectory(guards: any[]): any[] {
+    return [...guards].sort((a, b) =>
+      (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' })
+    );
+  }
+
+  private normalizeSearchTerm(value: string): string {
+    return (value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private normalizeGuard(guard: any): any {
+    return {
+      ...guard,
+      nombre: guard?.nombre || guard?.full_name || '',
+      full_name: guard?.full_name || guard?.nombre || '',
+      idEmpleado: guard?.idEmpleado || guard?.document_id || '',
+      document_id: guard?.document_id || guard?.idEmpleado || '',
+      telefono: guard?.telefono || guard?.phone || '',
+      phone: guard?.phone || guard?.telefono || '',
+      direccion: guard?.direccion || '',
+      estado: guard?.estado || (guard?.is_active ? 'En servicio' : 'Fuera de servicio'),
+      foto: guard?.foto || guard?.photo_url || null
+    };
   }
 }
 

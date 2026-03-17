@@ -118,6 +118,7 @@ export class RegistrosComponent implements OnInit, OnDestroy {
 
     try {
       let photoUrl: string | null = null;
+      let photoWarning = '';
       // 1. Subir la foto (solo si hay un archivo seleccionado)
       if (this.selectedFile) {
         if (!isPlatformBrowser(this.platformId)) {
@@ -125,7 +126,12 @@ export class RegistrosComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           return;
         }
-        photoUrl = await this.guardService.uploadPhoto(this.selectedFile);
+        try {
+          photoUrl = await this.guardService.uploadPhoto(this.selectedFile);
+        } catch (uploadError) {
+          console.error('Error uploading guard photo:', uploadError);
+          photoWarning = ' La foto no se pudo subir y se usara la imagen predeterminada.';
+        }
       }
 
       // 2. Construir el objeto del guardia
@@ -143,7 +149,10 @@ export class RegistrosComponent implements OnInit, OnDestroy {
       const newGuard = await this.guardService.createGuard(guardData);
 
       this.statusMessage = `<span class="text-green-500 font-bold">${this.uiText.successMessage || 'Guardia registrado con éxito.'}</span>`;
-      this.summaryCardData = { ...newGuard, foto: photoUrl }; // Mostrar resumen con la foto (si existe)
+      if (photoWarning) {
+        this.statusMessage += `<span class="text-amber-400">${photoWarning}</span>`;
+      }
+      this.summaryCardData = { ...newGuard, foto: newGuard?.foto || photoUrl }; // Mostrar resumen con la foto (si existe)
       this.resetForm();
 
     } catch (error: any) {

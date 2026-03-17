@@ -86,6 +86,7 @@ export class GuardService {
      * @param guardData Los datos del guardia a crear.
      */
     async createGuard(guardData: any): Promise<any> {
-        return firstValueFrom(this.http.post<any>(`${this.apiUrl}/guards`, guardData));
+        const response = await firstValueFrom(this.http.post<any>(`${this.apiUrl}/guards`, guardData));
+        return response?.guard ?? response;
     }
 }
