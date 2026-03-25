@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -62,12 +63,11 @@ fun NewReportScreen(
     val incidentTypes = listOf(
         Pair(1, "Robo / Hurto"),
         Pair(2, "Vandalismo"),
-        Pair(3, "Acceso no autorizado"),
-        Pair(4, "Emergencia médica"),
-        Pair(41, "Incendio"),
-        Pair(42, "Inundación"),
-        Pair(43, "Falla eléctrica"),
-        Pair(44, "Otro")
+        Pair(3, "Rondín"),
+        Pair(4, "Incendio"),
+        Pair(5, "Falla técnica"),
+        Pair(6, "Actividad sospechosa"),
+        Pair(7, "Otro")
     )
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -107,7 +107,7 @@ fun NewReportScreen(
                 title = { Text(stringResource(R.string.new_report_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -144,7 +144,7 @@ fun NewReportScreen(
                     readOnly = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = colors.accent,

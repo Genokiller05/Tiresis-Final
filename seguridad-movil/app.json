@@ -4,10 +4,10 @@
     "slug": "mi-app-movil",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/tiresis_movil.jpeg",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/logo_tiresis.png",
+      "image": "./assets/tiresis_movil.jpeg",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/tiresis_movil.jpeg",
         "backgroundColor": "#ffffff"
       },
       "usesCleartextTraffic": true,
@@ -34,7 +34,7 @@
       "package": "com.genokiller05.miappmovil"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/tiresis_movil.jpeg"
     }
   }
 }

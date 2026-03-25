@@ -24,17 +24,17 @@
 
         <!-- Filters Section -->
         <div class="glass-card-premium p-4 mb-4 relative group z-[60]">
-          <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/5 pointer-events-none"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-blue-500/5 pointer-events-none"></div>
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-50">
             <div class="group/input">
               <label
-                class="block text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Desde</label>
+                class="block text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Desde</label>
               <div class="relative">
                 <input type="text" #filterDesdeInput id="filterDesde" name="filterDesde" placeholder="Fecha inicial..."
                   [(ngModel)]="filtroDesde"
-                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-purple-500/30 rounded-xl text-white focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-sm cursor-pointer">
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all text-sm cursor-pointer">
                 <span
-                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 text-sm pointer-events-none">calendar_month</span>
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-sm pointer-events-none">calendar_month</span>
               </div>
             </div>
             <div class="group/input">
@@ -50,22 +50,22 @@
             </div>
             <div class="group/input relative">
               <label
-                class="block text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Categoría
+                class="block text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-2 group-focus-within/input:text-primary transition-colors">Categoría
                 de Usuario</label>
               <div class="relative">
                 <div (click)="toggleTipoDropdown()"
-                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-purple-500/30 rounded-xl text-white cursor-pointer hover:border-purple-500 transition-all text-sm flex items-center justify-between">
+                  class="w-full pl-10 pr-4 py-2.5 bg-gray-900/50 border border-blue-500/30 rounded-xl text-white cursor-pointer hover:border-blue-500 transition-all text-sm flex items-center justify-between">
                   <span class="truncate">{{ filtroTipo === 'Todos' ? 'Todos los Perfiles' : (filtroTipo === 'Paquetería'
                     ? 'Servicios Externos' : filtroTipo + 's') }}</span>
-                  <span class="material-icons text-purple-500 text-sm transition-transform duration-300"
+                  <span class="material-icons text-blue-500 text-sm transition-transform duration-300"
                     [class.rotate-180]="isTipoDropdownOpen">expand_more</span>
                 </div>
                 <span
-                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 text-sm pointer-events-none">badge</span>
+                  class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 text-sm pointer-events-none">badge</span>
 
                 <!-- Custom Dropdown Menu -->
                 <div *ngIf="isTipoDropdownOpen"
-                  class="absolute top-full left-0 w-full mt-2 bg-royal-blue border border-purple-500/30 rounded-xl shadow-2xl z-[100] py-2 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                  class="absolute top-full left-0 w-full mt-2 bg-royal-blue border border-blue-500/30 rounded-xl shadow-2xl z-[100] py-2 animate-in fade-in zoom-in duration-200 overflow-hidden">
                   <div (click)="selectTipo('Todos')" class="dropdown-option flex items-center justify-between"
                     [class.active]="filtroTipo === 'Todos'">
                     Todos los Perfiles
@@ -134,12 +134,12 @@
         <div class="flex-grow flex flex-col min-h-0 neo-glass-container">
           <div class="flex justify-between items-center mb-4 relative z-10">
             <h2 class="text-xl font-black text-white flex items-center tracking-tight">
-              <span class="material-icons text-purple-500 mr-2 text-2xl">history_toggle_off</span>
+              <span class="material-icons text-blue-500 mr-2 text-2xl">history_toggle_off</span>
               <span class="text-premium-gradient">Bitácora de Flujo Real</span>
             </h2>
             <div
               class="flex items-center gap-4 bg-black/30 px-6 py-2 rounded-2xl border border-white/5 backdrop-blur-md">
-              <span class="w-2 h-2 rounded-full bg-purple-500 animate-ping"></span>
+              <span class="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
               <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Total: {{
                 registrosFiltrados.length }} Entradas/Salidas</span>
             </div>
@@ -152,7 +152,7 @@
               <div class="orbit-container mb-12">
                 <!-- Orbits with Elliptical Paths and Trails -->
                 <div class="orbit-path orbit-1">
-                  <div class="node-system node-purple">
+                  <div class="node-system node-blue">
                     <div class="node-point"></div>
                   </div>
                 </div>
@@ -162,14 +162,14 @@
                   </div>
                 </div>
                 <div class="orbit-path orbit-3">
-                  <div class="node-system node-purple opacity-30">
+                  <div class="node-system node-blue opacity-30">
                     <div class="node-point"></div>
                   </div>
                 </div>
 
                 <!-- Center Core -->
                 <div class="core-node pulse-glow">
-                  <span class="material-icons text-purple-400 text-2xl">search</span>
+                  <span class="material-icons text-blue-400 text-2xl">search</span>
                 </div>
               </div>
 
@@ -188,20 +188,20 @@
                 <!-- Accion Gradient Background -->
                 <div
                   class="absolute top-0 right-0 w-32 h-32 opacity-10 blur-3xl pointer-events-none transition-all group-hover:opacity-20"
-                  [ngClass]="registro.accion === 'Entrada' ? 'bg-purple-500' : 'bg-blue-500'"></div>
+                  [ngClass]="registro.accion === 'Entrada' ? 'bg-blue-500' : 'bg-blue-500'"></div>
 
                 <div class="flex items-start justify-between relative z-10 mb-6">
                   <div class="flex items-center gap-4">
                     <div class="avatar-frame">
                       <div
                         class="w-12 h-12 rounded-full bg-royal-blue flex items-center justify-center text-white font-black overflow-hidden relative">
-                        <img *ngIf="registro.foto; else initial" [src]="registro.foto"
+                        <img *ngIf="registro.detalles?.evidence_url; else initial" [src]="registro.detalles.evidence_url"
                           class="w-full h-full object-cover">
                         <ng-template #initial>{{ registro.nombre.substring(0,2).toUpperCase() }}</ng-template>
                       </div>
                     </div>
                     <div>
-                      <p class="text-white font-black text-base group-hover:text-purple-400 transition-colors">{{
+                      <p class="text-white font-black text-base group-hover:text-blue-400 transition-colors">{{
                         registro.nombre }}</p>
                       <p class="text-[9px] text-gray-500 font-black uppercase tracking-[0.2em]">{{ registro.tipo }}</p>
                     </div>
@@ -215,7 +215,7 @@
                   <div class="flex items-center gap-3 text-gray-400 group-hover:text-white transition-colors">
                     <span class="material-icons text-sm opacity-50">schedule</span>
                     <span class="text-[11px] font-bold tracking-wide">{{ registro.fecha | date:'fullDate' }}</span>
-                    <span class="text-[11px] font-black text-purple-400 font-mono ml-auto">{{ registro.fecha |
+                    <span class="text-[11px] font-black text-blue-400 font-mono ml-auto">{{ registro.fecha |
                       date:'HH:mm:ss' }}</span>
                   </div>
 
@@ -233,13 +233,9 @@
                 <div
                   class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                   <button (click)="showDetails(registro)"
-                    class="text-[9px] font-black text-purple-400 uppercase tracking-widest hover:underline">Ver
+                    class="text-[9px] font-black text-blue-400 uppercase tracking-widest hover:underline">Ver
                     Expediente</button>
                   <div class="flex gap-2">
-                    <button (click)="prepareEdit(registro)"
-                      class="p-2 hover:bg-blue-500/20 text-blue-400 rounded-lg transition-colors">
-                      <span class="material-icons text-sm">edit</span>
-                    </button>
                     <button (click)="prepareDelete(registro)"
                       class="p-2 hover:bg-rose-500/20 text-rose-400 rounded-lg transition-colors">
                       <span class="material-icons text-sm">delete</span>
@@ -257,11 +253,12 @@
   <!-- Details Modal -->
   <div *ngIf="isDetailsModalVisible"
     class="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center z-50 p-4">
-    <div class="glass-card-premium p-10 max-w-2xl w-full animate-in zoom-in duration-300 overflow-hidden relative">
-      <div class="absolute -top-24 -right-24 w-64 h-64 bg-purple-500/10 blur-[100px] rounded-full"></div>
+    <div class="glass-card-premium p-6 md:p-10 max-w-2xl w-full max-h-[95vh] flex flex-col animate-in zoom-in duration-300 overflow-hidden relative">
+      <div class="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-      <div class="relative z-10">
-        <div class="flex justify-between items-center mb-8">
+      <div class="relative z-10 flex flex-col flex-grow min-h-0">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 shrink-0">
           <div class="flex items-center space-x-3">
             <div class="p-2 bg-primary/20 rounded-xl">
               <span class="material-icons text-primary">folder_shared</span>
@@ -274,8 +271,10 @@
           </button>
         </div>
 
-        <div *ngIf="selectedRegistro" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div class="space-y-6">
+        <!-- Scrollable Body -->
+        <div class="overflow-y-auto custom-scrollbar pr-2 min-h-0 flex-grow">
+          <div *ngIf="selectedRegistro" class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 pb-4">
+            <div class="space-y-6">
             <div class="p-6 bg-white/5 rounded-2xl border border-glass-border group hover:bg-white/10 transition-all">
               <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Información del Sujeto</p>
               <div class="flex items-center space-x-4 mb-4">
@@ -337,11 +336,13 @@
               "{{ selectedRegistro.detalles.notes }}"
             </div>
           </div>
+          </div>
         </div>
 
-        <div class="flex justify-end mt-10">
+        <!-- Footer -->
+        <div class="flex justify-end mt-6 shrink-0 pt-4 border-t border-glass-border/30">
           <button (click)="closeDetailsModal()"
-            class="px-12 py-3 bg-gradient-premium text-white font-bold rounded-xl shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+            class="px-12 py-3 bg-gradient-premium text-white font-bold rounded-xl shadow-lg shadow-blue-900/30 hover:scale-105 active:scale-95 transition-all">
             Cerrar Expediente
           </button>
         </div>
@@ -353,7 +354,7 @@
   <div *ngIf="isModifyModalVisible"
     class="fixed inset-0 bg-black/85 backdrop-blur-sm flex items-center justify-center z-50 p-4">
     <div
-      class="glass-effect p-8 rounded-3xl shadow-2xl max-w-md w-full border border-glass-border animate-in slide-in-from-top-4 duration-300">
+      class="glass-effect p-6 md:p-8 rounded-3xl shadow-2xl max-w-md w-full max-h-[95vh] overflow-y-auto custom-scrollbar border border-glass-border animate-in slide-in-from-top-4 duration-300">
       <div class="flex items-center space-x-3 mb-8">
         <span class="material-icons text-3xl text-accent-blue">edit_calendar</span>
         <h3 class="text-2xl font-bold text-white text-gradient">Rectificar Registro</h3>
@@ -438,7 +439,7 @@
           Abortar
         </button>
         <button (click)="confirmEdit()"
-          class="px-10 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+          class="px-10 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-blue-900/30 hover:scale-105 active:scale-95 transition-all">
           Sellar Cambios
         </button>
       </div>

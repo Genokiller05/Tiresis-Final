@@ -118,6 +118,35 @@ data class Evidence(
     val mime_type: String? = null
 )
 
+@Serializable
+data class PlaybackUrls(
+    val primary: String = "",
+    val left: String = "",
+    val right: String = ""
+)
+
+@Serializable
+data class CameraFeed(
+    val id: String,
+    val site_id: String? = null,
+    val name: String = "",
+    val ip: String = "",
+    val marca: String = "",
+    val modelo: String = "",
+    val area: String = "",
+    val alertas: Int = 0,
+    val activa: Boolean = true,
+    val primaryStreamUrl: String = "",
+    val primaryStreamType: String = "rtsp",
+    val streamMode: String = "single",
+    val stereoEnabled: Boolean = false,
+    val leftStreamUrl: String = "",
+    val leftStreamType: String = "rtsp",
+    val rightStreamUrl: String = "",
+    val rightStreamType: String = "rtsp",
+    val playbackUrls: PlaybackUrls = PlaybackUrls()
+)
+
 data class IncidentType(
     val id: Int,
     val name: String,

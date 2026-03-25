@@ -2,7 +2,7 @@
 
 :host {
     --obsidian: #05070a;
-    --cyber-purple: #7000ff;
+    --accent-blue: #2563eb;
     --neon-cyan: #00f2ff;
     --glass-white: rgba(255, 255, 255, 0.03);
 }
@@ -10,8 +10,8 @@
 .obsidian-layout {
     background-color: var(--obsidian);
     background-image:
-        linear-gradient(rgba(112, 0, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(112, 0, 255, 0.05) 1px, transparent 1px);
+        linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
     background-size: 50px 50px;
     position: relative;
 }
@@ -130,7 +130,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--cyber-purple);
+    background: var(--accent-blue);
     opacity: 0.3;
 }
 

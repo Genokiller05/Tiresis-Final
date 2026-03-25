@@ -6,6 +6,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { getReportById, Report as ReportData } from './services/dataService';
+import { supabase } from './lib/supabaseClient';
 
 // --- Tipado para los parámetros de la ruta ---
 type RootStackParamList = {
@@ -32,6 +33,21 @@ const ReportDetailScreen = () => {
       setLoading(false);
     };
     fetchReport();
+
+    const channel = supabase
+      .channel(`report-detail-${route.params.reportId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'reports', filter: `id=eq.${route.params.reportId}` },
+        (payload) => {
+          setReport((prevReport) => prevReport ? { ...prevReport, ...payload.new } : null);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [route.params.reportId]);
 
   if (loading) {
@@ -63,7 +79,7 @@ const ReportDetailScreen = () => {
     32: 'Suspendido'
   };
 
-  const displayStatus = report.status_id ? statusMap[report.status_id] || 'Pendiente' : 'Pendiente';
+  const displayStatus = report.status_id ? statusMap[Number(report.status_id)] || 'Pendiente' : 'Pendiente';
   const displayType = report.report_type?.name || (report.report_type_id ? 'Reporte del Sistema' : 'Incidente de Seguridad');
   const displayDate = report.created_at ? new Date(report.created_at).toLocaleString() : 'Fecha desconocida';
 
@@ -93,28 +109,22 @@ const ReportDetailScreen = () => {
     }
   }
 
-  const statusColors: Record<string, string> = {
-    'Pendiente': '#F59E0B',
-    'En proceso': '#3B82F6',
-    'Completado': '#10B981',
-    'Cancelado': '#EF4444',
-    'Suspendido': '#6B7280',
-    'Notificado': '#3B82F6',
-    'Enviado': colors.accent,
-    'En Revisión': '#F59E0B',
-    'Resuelto': '#10B981',
+  const resolveStatusColor = (statusId: any) => {
+    const id = String(statusId);
+    if (id === '31') return '#EF4444'; // Rojo verdadero
+    if (id === '32') return '#6B7280'; // Gris
+    if (id === '3') return '#10B981';
+    if (id === '2') return '#3B82F6';
+    return '#F59E0B'; // Pendiente / default
   };
 
-  const statusTranslations: Record<string, string> = {
-    'Pendiente': 'Pendiente',
-    'En proceso': 'En proceso',
-    'Completado': 'Completado',
-    'Cancelado': 'Cancelado',
-    'Suspendido': 'Suspendido',
-    'Enviado': 'Enviado',
-    'En Revisión': 'En revisión',
-    'Resuelto': 'Resuelto',
-    'Notificado': 'Notificado'
+  const resolveStatusText = (statusId: any) => {
+    const id = String(statusId);
+    if (id === '31') return 'Cancelado';
+    if (id === '32') return 'Suspendido';
+    if (id === '3') return 'Completado';
+    if (id === '2') return 'En proceso';
+    return 'Pendiente';
   };
 
   return (
@@ -159,9 +169,9 @@ const ReportDetailScreen = () => {
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Estado</Text>
             <View style={styles.statusBadge}>
-              <View style={[styles.statusDot, { backgroundColor: statusColors[displayStatus] || statusColors['Pendiente'] }]} />
-              <Text style={[styles.statusText, { color: statusColors[displayStatus] || statusColors['Pendiente'] }]}>
-                {statusTranslations[displayStatus] || displayStatus}
+              <View style={[styles.statusDot, { backgroundColor: resolveStatusColor(report.status_id) }]} />
+              <Text style={[styles.statusText, { color: resolveStatusColor(report.status_id) }]}>
+                {resolveStatusText(report.status_id)}
               </Text>
             </View>
           </View>

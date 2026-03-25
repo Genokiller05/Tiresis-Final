@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { GeocodingService } from '../../services/geocoding.service';
 import { ActivatedRoute } from '@angular/router';
 import { ReportService } from '../../services/report.service';
+import { SupabaseService } from '../../services/supabase.service';
 
 @Component({
   selector: 'app-mapa',
@@ -62,6 +63,9 @@ export class MapaComponent implements OnInit, OnDestroy {
   public isSubmittingBuilding: boolean = false; // Debounce flag
   public pendingNotification: any = null; // Latest pending notification for the user
 
+  private presenceChannel: any = null;
+  private onlineGuardIds = new Set<string>();
+
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
     private authService: AuthService,
@@ -69,7 +73,8 @@ export class MapaComponent implements OnInit, OnDestroy {
     private ngZone: NgZone,
     private geocodingService: GeocodingService,
     private route: ActivatedRoute,
-    private reportService: ReportService
+    private reportService: ReportService,
+    private supabaseService: SupabaseService
   ) { }
 
   async ngOnInit(): Promise<void> {
@@ -83,6 +88,8 @@ export class MapaComponent implements OnInit, OnDestroy {
           this.toggleHeatmap(true);
         }
       });
+
+      this.setupPresence();
 
       this.loadNotifications();
 
@@ -99,6 +106,10 @@ export class MapaComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshIntervalId);
     }
     this.stopTracking();
+    if (this.presenceChannel) {
+      this.supabaseService.client.removeChannel(this.presenceChannel);
+      this.presenceChannel = null;
+    }
   }
 
   private loadNotifications() {
@@ -131,11 +142,67 @@ export class MapaComponent implements OnInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) return;
     this.http.get<any[]>('http://localhost:3000/api/guards').subscribe({
       next: (data) => {
-        this.guards = data;
+        this.guards = (data || []).map(guard => this.normalizeGuardExtended(guard));
+        this.syncGuardPresence(); // Ensure offline ones show as offline
         this.refreshGuardMarkers();
       },
       error: (err) => console.error('Error loading guards', err)
     });
+  }
+
+  private setupPresence() {
+    this.presenceChannel = this.supabaseService.client.channel('online-guards');
+    this.presenceChannel.on('presence', { event: 'sync' }, () => {
+      this.syncGuardPresence();
+    }).subscribe((status: string) => {
+      if (status === 'SUBSCRIBED') {
+        this.syncGuardPresence();
+      }
+    });
+  }
+
+  private syncGuardPresence(): void {
+    if (!this.presenceChannel) return;
+    this.ngZone.run(() => {
+      const state = this.presenceChannel.presenceState();
+      this.onlineGuardIds.clear();
+      for (const key in state) {
+        for (const presence of state[key] as any[]) {
+          if (presence.id) this.onlineGuardIds.add(presence.id);
+        }
+      }
+
+      let changed = false;
+      for (const guard of this.guards) {
+        const isOnline = this.onlineGuardIds.has(guard.idEmpleado) || this.onlineGuardIds.has(guard.document_id);
+        let newStatus = guard.estado;
+        if (isOnline) {
+          newStatus = 'En servicio';
+        } else if (guard.estado === 'En servicio') {
+          newStatus = 'Fuera de servicio';
+        }
+
+        if (guard.estado !== newStatus) {
+          guard.estado = newStatus;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        this.refreshGuardMarkers();
+      }
+    });
+  }
+
+  private normalizeGuardExtended(guard: any): any {
+    const isOnline = this.onlineGuardIds.has(guard.idEmpleado) || this.onlineGuardIds.has(guard.document_id);
+    let st = guard.estado;
+    if (isOnline) {
+        st = 'En servicio';
+    } else if (guard.estado === 'En servicio' && this.presenceChannel) {
+        st = 'Fuera de servicio'; // Auto-degrade if channel connected
+    }
+    return { ...guard, estado: st };
   }
 
   private async initMap(): Promise<void> {
@@ -999,10 +1066,13 @@ export class MapaComponent implements OnInit, OnDestroy {
 
   // --- Guard Management Logic ---
 
-
-  // --- Guard Management Logic ---
-
-
+  public getSelectedGuardImageUrl(): string {
+    if (!this.selectedGuard) return 'https://via.placeholder.com/150';
+    const photoUrl = this.selectedGuard.foto || this.selectedGuard.photo_url || this.selectedGuard.image_url;
+    if (!photoUrl) return 'https://via.placeholder.com/150';
+    if (photoUrl.startsWith('http')) return photoUrl;
+    return `http://localhost:3000${photoUrl.startsWith('/') ? '' : '/'}${photoUrl}`;
+  }
   public searchGuard() {
     // If we are currently editing this guard, DO NOT reset everything
     if (this.isPickingLocation && this.selectedGuard) {

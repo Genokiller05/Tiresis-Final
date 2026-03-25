@@ -21,6 +21,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   public searchId: string = '';
   public selectedAreaFilter: string = '';
+  public isAreaDropdownOpen: boolean = false;
+  
   public errorMessage: string = '';
   public successMessage: string = '';
   public currentGuard: any = null;
@@ -31,6 +33,11 @@ export class HomeComponent implements OnInit, OnDestroy {
   public isLoading: boolean = false;
   public isGuardListLoading: boolean = false;
   public isPremiumUser: boolean = false;
+
+  public isRegAreaDropdownOpen: boolean = false;
+  public isEditAreaDropdownOpen: boolean = false;
+  public isEditStateDropdownOpen: boolean = false;
+  public guardStates: string[] = ['En servicio', 'Fuera de servicio', 'Suspendido'];
 
   // Edit Form
   public editForm = {
@@ -90,6 +97,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     )].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
   }
 
+  public selectAreaFilter(area: string): void {
+    this.selectedAreaFilter = area;
+  }
+
   get filteredGuardDirectory(): any[] {
     const searchTerm = this.normalizeSearchTerm(this.searchId);
     return this.guardDirectory.filter(guard => {
@@ -131,6 +142,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.uiRegText = translations.registros || {}; // Load registration translations
     });
     this.isPremiumUser = this.authService.isPremium();
+    this.refreshPremiumStatus();
     void this.loadGuardDirectory();
     if (isPlatformBrowser(this.platformId)) {
       this.realtimeSubscription = this.guardService.getGuardUpdates().subscribe(payload => {
@@ -156,7 +168,62 @@ export class HomeComponent implements OnInit, OnDestroy {
           }
         });
       });
+
+      this.presenceChannel = this.supabaseService.client.channel('online-guards');
+      this.presenceChannel.on('presence', { event: 'sync' }, () => {
+        this.syncGuardPresence();
+      }).subscribe((status: string) => {
+        if (status === 'SUBSCRIBED') {
+          this.syncGuardPresence();
+        }
+      });
     }
+  }
+
+  public syncGuardPresence(): void {
+    if (!this.presenceChannel) return;
+    this.ngZone.run(() => {
+      const state = this.presenceChannel.presenceState();
+      const onlineGuardIds = new Set<string>();
+      for (const key in state) {
+        for (const presence of state[key] as any[]) {
+          if (presence.id) onlineGuardIds.add(presence.id);
+        }
+      }
+
+      let changed = false;
+      for (const guard of this.guardDirectory) {
+        const isOnline = onlineGuardIds.has(guard.idEmpleado) || onlineGuardIds.has(guard.document_id);
+        let newStatus = guard.estado;
+        if (isOnline) {
+          newStatus = 'En servicio';
+        } else if (guard.estado === 'En servicio') {
+          newStatus = 'Fuera de servicio';
+        }
+        
+        if (guard.estado !== newStatus) {
+          guard.estado = newStatus;
+          changed = true;
+        }
+      }
+
+      if (this.currentGuard) {
+        const isOnline = onlineGuardIds.has(this.currentGuard.idEmpleado) || onlineGuardIds.has(this.currentGuard.document_id);
+        let newStatus = this.currentGuard.estado;
+        if (isOnline) {
+          newStatus = 'En servicio';
+        } else if (this.currentGuard.estado === 'En servicio') {
+          newStatus = 'Fuera de servicio';
+        }
+
+        if (this.currentGuard.estado !== newStatus) {
+          this.currentGuard.estado = newStatus;
+          changed = true;
+        }
+      }
+
+      if (changed) this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
@@ -173,6 +240,31 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.supabaseService.client.removeChannel(this.presenceChannel);
       this.presenceChannel = null;
     }
+  }
+
+  private refreshPremiumStatus(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || !user.email) return;
+
+    this.authService.loginAdmin({ email: user.email, skipPassword: true }).subscribe({
+      next: (res) => {
+        if (res && res.admin && res.admin.plan === 'Premium') {
+          this.isPremiumUser = true;
+          this.authService.setCurrentUser(res.admin);
+        }
+      },
+      error: (err) => {
+        fetch(`http://localhost:3000/api/admins/${user.email}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.plan === 'Premium') {
+              this.isPremiumUser = true;
+              user.plan = 'Premium';
+              this.authService.setCurrentUser(user);
+            }
+          });
+      }
+    });
   }
 
   public onTabChange(tab: 'search' | 'register'): void {
@@ -667,6 +759,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           };
         }
       }
+      this.syncGuardPresence();
     } catch (error) {
       console.error('Error cargando directorio de guardias:', error);
     } finally {

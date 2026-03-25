@@ -19,7 +19,7 @@
       <div class="space-y-3">
         <button (click)="toggleTracking()"
           class="w-full px-4 py-3 text-xs font-black uppercase tracking-widest text-white rounded-xl transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95"
-          [ngClass]="isTracking ? 'bg-rose-600 shadow-rose-900/40 ring-2 ring-rose-500/50' : 'bg-gradient-premium shadow-purple-900/40'">
+          [ngClass]="isTracking ? 'bg-rose-600 shadow-rose-900/40 ring-2 ring-rose-500/50' : 'bg-gradient-premium shadow-blue-900/40'">
           <span class="material-icons text-lg" [class.animate-spin]="isTracking">settings_input_antenna</span>
           {{ isTracking ? 'Terminar Rastreo' : 'Rastreo Satelital' }}
         </button>
@@ -76,9 +76,9 @@
           <div class="relative">
             <div class="w-14 h-14 rounded-2xl bg-gradient-premium p-0.5 shadow-xl">
               <div class="w-full h-full rounded-2xl bg-background-dark overflow-hidden">
-                <img *ngIf="selectedGuard.foto" [src]="'http://localhost:3000' + selectedGuard.foto"
+                <img *ngIf="selectedGuard.foto || selectedGuard.photo_url || selectedGuard.image_url" [src]="getSelectedGuardImageUrl()"
                   class="w-full h-full object-cover">
-                <div *ngIf="!selectedGuard.foto" class="w-full h-full flex items-center justify-center text-gray-700">
+                <div *ngIf="!selectedGuard.foto && !selectedGuard.photo_url && !selectedGuard.image_url" class="w-full h-full flex items-center justify-center text-gray-700">
                   <span class="material-icons">person</span>
                 </div>
               </div>
@@ -169,11 +169,11 @@
 
   <!-- Tracking Signal -->
   <div *ngIf="isTracking"
-    class="absolute top-12 left-1/2 -translate-x-1/2 z-[1000] glass-effect px-8 py-3 rounded-full border border-purple-500/50 shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+    class="absolute top-12 left-1/2 -translate-x-1/2 z-[1000] glass-effect px-8 py-3 rounded-full border border-blue-500/50 shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
     <div class="relative py-1">
       <span class="flex h-2 w-2 relative">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
       </span>
     </div>
     <span class="text-xs font-black text-white uppercase tracking-[0.3em]">Enlace GPS Activo</span>
@@ -232,7 +232,7 @@
         </button>
         <button (click)="confirmBuildingCreation()"
           [disabled]="isSubmittingBuilding || !newBuildingName"
-          class="py-4 bg-gradient-premium text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-900/40 hover:shadow-purple-700/60 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
+          class="py-4 bg-gradient-premium text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-900/40 hover:shadow-blue-700/60 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100">
           {{ isSubmittingBuilding ? 'Guardando...' : 'Confirmar' }}
           <span class="material-icons text-sm" [class.animate-spin]="isSubmittingBuilding">{{ isSubmittingBuilding ? 'refresh' : 'check_circle' }}</span>
         </button>

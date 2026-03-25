@@ -33,6 +33,7 @@ export interface Report {
   created_at?: string; // timestamptz
   closed_at?: string;
   created_by_guard_id?: string; // uuid
+  detalles?: any; // dynamic metadata like guard name/id
   // These are often joined in queries, but for raw insert/select they aren't there
   // We might want to add optional joined fields for display if we use a view or join
   report_type?: { name: string };

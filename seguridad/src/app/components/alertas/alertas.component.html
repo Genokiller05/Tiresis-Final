@@ -7,7 +7,7 @@
           class="mb-6 flex justify-between items-center flex-shrink-0 animate-in fade-in slide-in-from-top-4 duration-700">
           <div class="flex items-center space-x-6">
             <div
-              class="p-2 bg-gradient-to-br from-purple-600 to-blue-700 rounded-xl shadow-[0_0_20px_rgba(112,0,255,0.3)] ring-1 ring-white/20">
+              class="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-[0_0_20px_rgba(112,0,255,0.3)] ring-1 ring-white/20">
               <span class="material-icons text-2xl text-white">security</span>
             </div>
             <div>
@@ -56,7 +56,7 @@
             </div>
 
             <button (click)="aplicarFiltros()"
-              class="p-2 glass-card-premium rounded-xl text-purple-400 hover:rotate-180 hover:bg-purple-500/20 active:scale-95 transition-all duration-500 shadow-xl border border-white/5">
+              class="p-2 glass-card-premium rounded-xl text-blue-400 hover:rotate-180 hover:bg-blue-500/20 active:scale-95 transition-all duration-500 shadow-xl border border-white/5">
               <span class="material-icons text-sm">sync</span>
             </button>
           </div>
@@ -72,11 +72,11 @@
                 <label class="data-label" for="filter-desde">{{ uiText.fromLabel || 'Rango_Inicial' }}</label>
                 <div class="relative group">
                   <input
-                    class="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all placeholder:text-gray-700 cursor-pointer text-sm"
+                    class="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-gray-700 cursor-pointer text-sm"
                     id="filter-desde" #filterDesdeInput type="text" placeholder="Fecha inicial..."
                     [(ngModel)]="filterDesde" name="filterDesde" (change)="aplicarFiltros()" />
                   <span
-                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 group-focus-within:scale-110 transition-transform text-lg">calendar_today</span>
+                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 group-focus-within:scale-110 transition-transform text-lg">calendar_today</span>
                 </div>
               </div>
 
@@ -84,11 +84,11 @@
                 <label class="data-label" for="filter-hasta">{{ uiText.toLabel || 'Rango_Final' }}</label>
                 <div class="relative group">
                   <input
-                    class="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all placeholder:text-gray-700 cursor-pointer text-sm"
+                    class="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-gray-700 cursor-pointer text-sm"
                     id="filter-hasta" #filterHastaInput type="text" placeholder="Fecha final..."
                     [(ngModel)]="filterHasta" name="filterHasta" (change)="aplicarFiltros()" />
                   <span
-                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 group-focus-within:scale-110 transition-transform text-lg">calendar_today</span>
+                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 group-focus-within:scale-110 transition-transform text-lg">calendar_today</span>
                 </div>
               </div>
 
@@ -98,13 +98,13 @@
                 <label class="data-label" for="filter-tipo">{{ uiText.alertTypeLabel || 'Filtrado_Tipo' }}</label>
                 <div class="relative">
                   <div (click)="toggleTipoDropdown()"
-                    class="w-full pl-10 pr-10 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold cursor-pointer hover:border-purple-500/50 transition-all flex items-center justify-between text-sm">
+                    class="w-full pl-10 pr-10 py-3 bg-black/40 border border-white/10 rounded-xl text-white font-bold cursor-pointer hover:border-blue-500/50 transition-all flex items-center justify-between text-sm">
                     <span class="truncate">{{ filterTipo === 'Todos' ? 'Global_Log' : filterTipo }}</span>
                     <span class="material-icons text-gray-500 transition-transform duration-300"
                       [class.rotate-180]="isTipoDropdownOpen">expand_more</span>
                   </div>
                   <span
-                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 pointer-events-none text-lg">grid_view</span>
+                    class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none text-lg">grid_view</span>
 
                   <!-- Custom Dropdown Menu -->
                   <div *ngIf="isTipoDropdownOpen"
@@ -112,12 +112,12 @@
                     <div (click)="selectTipo('Todos')"
                       class="px-6 py-3 text-sm text-gray-400 hover:bg-white/5 hover:text-white cursor-pointer transition-colors flex items-center justify-between">
                       Global_Log
-                      <span *ngIf="filterTipo === 'Todos'" class="material-icons text-xs text-purple-500">check</span>
+                      <span *ngIf="filterTipo === 'Todos'" class="material-icons text-xs text-blue-500">check</span>
                     </div>
                     <div *ngFor="let option of uiText.alertTypeOptions" (click)="selectTipo(option)"
                       class="px-6 py-3 text-sm text-gray-400 hover:bg-white/5 hover:text-white cursor-pointer transition-colors flex items-center justify-between">
                       {{ option }}
-                      <span *ngIf="filterTipo === option" class="material-icons text-xs text-purple-500">check</span>
+                      <span *ngIf="filterTipo === option" class="material-icons text-xs text-blue-500">check</span>
                     </div>
                   </div>
                 </div>
@@ -140,7 +140,7 @@
 
                 <!-- Core -->
                 <div class="scanner-core">
-                  <span class="material-icons text-5xl text-purple-400/50">security</span>
+                  <span class="material-icons text-5xl text-blue-400/50">security</span>
                 </div>
               </div>
 
@@ -155,11 +155,11 @@
                 <div class="flex justify-between items-start mb-6">
                   <div class="flex items-center space-x-4">
                     <span class="status-prism-dot"
-                      [ngClass]="alerta.estado === 'Resuelto' ? 'status-resuelto' : alerta.estado === 'En Revision' ? 'status-revision' : 'status-alerta'"></span>
+                      [ngClass]="alerta.estado === 'Completado' || alerta.estado === 'Resuelto' ? 'status-resuelto' : alerta.estado === 'Cancelado' ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]' : alerta.estado === 'Suspendido' ? 'bg-gray-400 shadow-[0_0_10px_rgba(156,163,175,0.6)]' : alerta.estado === 'En proceso' ? 'status-revision' : 'status-alerta'"></span>
                     <div>
                       <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Vector_ID: {{
                         (alerta.fechaHora | date:'mss') }}</p>
-                      <h3 class="text-white font-black text-lg group-hover:text-purple-400 transition-colors">{{
+                      <h3 class="text-white font-black text-lg group-hover:text-blue-400 transition-colors">{{
                         alerta.tipo }}</h3>
                     </div>
                   </div>
@@ -189,18 +189,19 @@
                 <div class="flex justify-between items-center">
                   <div class="flex items-center space-x-2">
                     <span class="material-icons text-sm"
-                      [ngClass]="alerta.estado === 'Resuelto' ? 'text-emerald-400' : 'text-purple-400'">
-                      {{ alerta.estado === 'Resuelto' ? 'verified' : 'analytics' }}
+                      [ngClass]="alerta.estado === 'Completado' || alerta.estado === 'Resuelto' ? 'text-emerald-400' : alerta.estado === 'Cancelado' ? 'text-red-500' : alerta.estado === 'Suspendido' ? 'text-gray-400' : alerta.estado === 'En proceso' ? 'text-blue-400' : 'text-yellow-500'">
+                      {{ alerta.estado === 'Completado' || alerta.estado === 'Resuelto' ? 'verified' : alerta.estado === 'Cancelado' ? 'cancel' : alerta.estado === 'Suspendido' ? 'pause_circle' : alerta.estado === 'En proceso' ? 'analytics' : 'pending_actions' }}
                     </span>
-                    <span class="text-[11px] font-black uppercase tracking-wider text-gray-400">{{ alerta.estado
+                    <span class="text-[11px] font-black uppercase tracking-wider"
+                      [ngClass]="alerta.estado === 'Cancelado' ? 'text-red-500' : alerta.estado === 'Suspendido' ? 'text-gray-400' : 'text-gray-400'">{{ alerta.estado
                       }}</span>
                   </div>
 
                   <div class="flex space-x-2">
                     <button (click)="mostrarDetalles(alerta)"
-                      class="px-4 py-2 border border-purple-500/30 rounded-lg text-xs font-black text-purple-400 hover:bg-purple-500/10 transition-all uppercase">Informe</button>
+                      class="px-4 py-2 border border-blue-500/30 rounded-lg text-xs font-black text-blue-400 hover:bg-blue-500/10 transition-all uppercase">Informe</button>
                     <button (click)="modificarEstado(alerta)"
-                      class="px-4 py-2 bg-purple-600 text-white rounded-lg text-xs font-black shadow-lg shadow-purple-900/40 hover:scale-105 transition-all uppercase">Estado</button>
+                      class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-black shadow-lg shadow-blue-900/40 hover:scale-105 transition-all uppercase">Estado</button>
                   </div>
                 </div>
 
@@ -286,7 +287,7 @@
           {{ uiText.cancelButton }}
         </button>
         <button (click)="confirmStatusChange()"
-          class="px-8 py-2 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-purple-900/20 hover:scale-105 active:scale-95 transition-all">
+          class="px-8 py-2 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all">
           {{ uiText.confirmButton }}
         </button>
       </div>
@@ -336,6 +337,11 @@
             Detallado</span>
           <span class="text-white/60">•</span>
           <span class="text-sm font-bold">{{ alertToShowDetails?.fechaHora | date:'fullDate' }}</span>
+          <span class="text-white/60">•</span>
+          <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-white"
+             [ngClass]="alertToShowDetails?.estado === 'Cancelado' ? 'bg-red-500' : alertToShowDetails?.estado === 'Suspendido' ? 'bg-gray-500' : alertToShowDetails?.estado === 'Completado' || alertToShowDetails?.estado === 'Resuelto' ? 'bg-emerald-500' : alertToShowDetails?.estado === 'En proceso' ? 'bg-blue-500' : 'bg-yellow-500'">
+            {{ alertToShowDetails?.estado || 'Estado Desconocido' }}
+          </span>
         </div>
         <h2 class="text-3xl font-black">{{ alertToShowDetails?.tipo }}</h2>
       </div>
@@ -396,7 +402,7 @@
             <div class="p-4 bg-white/5 rounded-2xl border border-glass-border">
               <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Cámara Origen</label>
               <p class="text-white font-bold flex items-center">
-                <span class="material-icons text-purple-400 mr-2 text-sm">videocam</span>
+                <span class="material-icons text-blue-400 mr-2 text-sm">videocam</span>
                 Cámara {{ alertToShowDetails.detalles.camara.numero }}
               </p>
               <p class="text-gray-500 text-xs ml-6">IP: {{ alertToShowDetails.detalles.camara.ip }}</p>
@@ -414,13 +420,13 @@
           <div>
             <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Análisis
               Cognitivo</label>
-            <div class="p-6 bg-purple-900/5 border border-purple-500/20 rounded-2xl border-l-4 border-l-purple-500">
+            <div class="p-6 bg-blue-900/5 border border-blue-500/20 rounded-2xl border-l-4 border-l-blue-500">
               <p class="text-gray-300 leading-relaxed">{{ alertToShowDetails.detalles.descripcion }}</p>
             </div>
           </div>
 
           <div class="flex items-center space-x-4 p-4 glass-effect border border-glass-border rounded-xl">
-            <span class="material-icons text-purple-400">psychology</span>
+            <span class="material-icons text-blue-400">psychology</span>
             <p class="text-xs text-gray-400">Esta alerta ha sido generada automáticamente por el motor de visión
               computarizada.</p>
           </div>
@@ -429,7 +435,7 @@
 
       <div class="p-8 border-t border-glass-border bg-white/5 flex justify-end">
         <button (click)="hideDetailsModal()"
-          class="px-12 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
+          class="px-12 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-blue-900/30 hover:scale-105 active:scale-95 transition-all">
           Entendido
         </button>
       </div>

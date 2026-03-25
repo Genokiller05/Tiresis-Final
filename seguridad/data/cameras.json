@@ -1,20 +1,36 @@
 [
-    {
-        "id": "CAM-001",
-        "ip": "192.168.1.101",
-        "marca": "Hikvision",
-        "modelo": "DS-2CD2043G0-I",
-        "activa": true,
-        "area": "Entrada Principal",
-        "alertas": 2
-    },
-    {
-        "id": "CAM-002",
-        "ip": "192.168.1.102",
-        "marca": "Dahua",
-        "modelo": "IPC-HFW2431S-S",
-        "activa": true,
-        "area": "Estacionamiento",
-        "alertas": 0
-    }
+  {
+    "id": "cam-lobby-stereo",
+    "site_id": "00000000-0000-0000-0000-000000000001",
+    "name": "Lobby Stereo",
+    "ip": "192.168.1.101",
+    "marca": "Hikvision",
+    "modelo": "Dual-Lens Demo",
+    "area": "Entrada Principal",
+    "alertas": 2,
+    "activa": true,
+    "primary_stream_url": "rtsp://admin:password@192.168.1.101:554/Streaming/Channels/101",
+    "primary_stream_type": "rtsp",
+    "stream_mode": "stereo",
+    "stereo_enabled": true,
+    "left_stream_url": "rtsp://admin:password@192.168.1.101:554/Streaming/Channels/201",
+    "left_stream_type": "rtsp",
+    "right_stream_url": "rtsp://admin:password@192.168.1.101:554/Streaming/Channels/202",
+    "right_stream_type": "rtsp"
+  },
+  {
+    "id": "cam-yard-hls",
+    "site_id": "00000000-0000-0000-0000-000000000001",
+    "name": "Patio Norte",
+    "ip": "192.168.1.102",
+    "marca": "Dahua",
+    "modelo": "NVR HLS",
+    "area": "Estacionamiento",
+    "alertas": 0,
+    "activa": true,
+    "primary_stream_url": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    "primary_stream_type": "hls",
+    "stream_mode": "single",
+    "stereo_enabled": false
+  }
 ]

@@ -142,6 +142,7 @@ export class RegistrosComponent implements OnInit, OnDestroy {
         telefono: this.telefono,
         direccion: this.direccion,
         area: this.area, // Ahora sí se envía
+        foto: photoUrl || undefined,
         photo_url: photoUrl || undefined
       };
 

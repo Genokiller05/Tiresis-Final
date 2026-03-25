@@ -229,7 +229,7 @@ fun MainTabsScreen(
                 )
             }
             composable(TabScreen.GuardCameras.route) {
-                GuardScreen()
+                GuardScreen(userViewModel = userViewModel)
             }
             composable(TabScreen.Reports.route) {
                 ReportsScreen(

@@ -55,12 +55,13 @@ fun ReportsScreen(
     val typeNames = mapOf(
         1 to "Robo / Hurto",
         2 to "Vandalismo",
-        3 to "Acceso no autorizado",
-        4 to "Emergencia médica",
-        5 to "Incendio",
-        6 to "Inundación",
-        7 to "Falla eléctrica",
-        8 to "Otro"
+        3 to "Rondín",
+        4 to "Incendio",
+        5 to "Falla técnica",
+        6 to "Actividad sospechosa",
+        7 to "Otro",
+        8 to "Incidente",
+        9 to "Novedad"
     )
 
     Box(

@@ -44,6 +44,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.refreshPremiumStatus();
     this.calculateCurrentWeek();
   }
 
@@ -74,6 +75,22 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
 
       this.lastLoginDate = localStorage.getItem('lastLoginDate');
     }
+  }
+
+  private refreshPremiumStatus(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || !user.email) return;
+
+    fetch(`http://localhost:3000/api/admins/${user.email}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.plan === 'Premium') {
+          this.userPlan = 'Premium';
+          user.plan = 'Premium';
+          this.authService.setCurrentUser(user);
+        }
+      })
+      .catch(err => console.error('[PROFILE] Error refreshing plan:', err));
   }
 
   private saveProfile(): void {

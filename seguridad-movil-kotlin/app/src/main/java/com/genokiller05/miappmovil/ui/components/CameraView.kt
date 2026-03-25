@@ -18,10 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import android.os.Environment
 import java.io.File
 import java.util.concurrent.Executor
 
@@ -146,7 +147,7 @@ private fun takePhoto(
 }
 
 private fun getOutputDirectory(context: Context): File {
-    val mediaDir = context.externalMediaDirs.firstOrNull()?.let {
+    val mediaDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)?.let {
         File(it, "TiresisCam").apply { mkdirs() }
     }
     return if (mediaDir != null && mediaDir.exists()) mediaDir else context.filesDir

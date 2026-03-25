@@ -124,8 +124,8 @@ import { GeocodingService } from '../../services/geocoding.service';
                     </div>
                 </div>
 
-                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-purple-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
-                    <div class="w-16 h-16 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-400 flex-shrink-0">
+                <div class="bg-[#112240]/50 p-8 rounded-2xl border border-blue-500/10 flex items-start gap-6 hover:bg-[#112240]/70 transition-all duration-300">
+                    <div class="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 flex-shrink-0">
                         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <div>

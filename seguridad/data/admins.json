@@ -114,5 +114,15 @@
     "is_active": true,
     "created_at": "2026-02-22T14:13:07.693Z",
     "plan": "Básico"
+  },
+  {
+    "id": "47a294ba-38a3-4d2d-a54f-7fd5aa8c67a9",
+    "email": "aldinalv62@gmail.com",
+    "full_name": "Admin Premium",
+    "password": "diego123",
+    "role": "admin",
+    "plan": "Premium",
+    "is_active": true,
+    "document_id": "ADMIN-1773930031454"
   }
 ]

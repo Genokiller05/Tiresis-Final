@@ -1,6 +1,5 @@
 <div class="min-h-screen font-body text-gray-200 pl-24 transition-all duration-300 obsidian-layout">
     <div class="flex flex-col h-screen">
-        <!-- Main Content -->
         <main class="flex-1 p-8 flex flex-col overflow-y-auto">
             <div class="container mx-auto flex flex-col h-full">
                 <header class="mb-10 flex justify-between items-center flex-shrink-0">
@@ -10,63 +9,59 @@
                         </div>
                         <div>
                             <h1 class="text-4xl font-bold text-gradient">Gestión de Cámaras</h1>
-                            <p class="text-gray-400 mt-1 font-medium tracking-wide">Monitoreo y administración de
-                                dispositivos de red</p>
+                            <p class="text-gray-400 mt-1 font-medium tracking-wide">Monitoreo en vivo y reproducción estéreo</p>
                         </div>
                     </div>
 
-                    <div class="flex items-center space-x-3">
-                        <div class="text-right mr-4 hidden md:block">
-                            <p class="text-[10px] font-black uppercase tracking-widest text-accent-blue">Flujo de Datos
-                            </p>
-                            <p class="text-sm font-bold text-gray-300 italic">Encriptado (SSL)</p>
-                        </div>
-                        <button (click)="showRegisterModal()"
-                            class="px-6 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all flex items-center">
-                            <span class="material-icons mr-2">add</span>
-                            Registrar Cámara
-                        </button>
-                    </div>
+                    <button (click)="showRegisterModal()"
+                        class="px-6 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-blue-900/30 hover:scale-105 active:scale-95 transition-all flex items-center">
+                        <span class="material-icons mr-2">add</span>
+                        Registrar Cámara
+                    </button>
                 </header>
 
+                <div *ngIf="loadError" class="mb-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-200">
+                    {{ loadError }}
+                </div>
+
+                <div *ngIf="playbackError" class="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-5 py-4 text-sm text-amber-200">
+                    {{ playbackError }}
+                </div>
+
                 <div class="flex-grow min-h-0 flex flex-col lg:flex-row gap-8 mb-6">
-                    <!-- Master Monitor (Left) -->
                     <div class="lg:col-span-9 flex-grow flex flex-col min-w-0">
                         <div class="master-monitor flex-grow relative group cursor-crosshair">
-                            <!-- Tactical Overlay Master -->
                             <div class="absolute top-6 left-6 z-20 space-y-2 pointer-events-none">
                                 <div class="data-tag tactical-label">
                                     <span class="opacity-50 mr-2">FEED:</span>
-                                    <span>{{ selectedCamera?.id || (cameras[0]?.id || 'NO SIGNAL') }}</span>
+                                    <span>{{ selectedCamera?.id || 'NO SIGNAL' }}</span>
                                 </div>
                                 <div class="data-tag tactical-label flex items-center gap-2">
-                                    <span class="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
-                                    <span>REC // LIVE MON</span>
+                                    <span class="w-1.5 h-1.5 rounded-full"
+                                        [ngClass]="selectedCamera?.activa ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'"></span>
+                                    <span>{{ selectedCamera?.stereoEnabled ? 'STEREO LIVE' : 'LIVE MON' }}</span>
                                 </div>
                             </div>
 
                             <div class="absolute top-6 right-6 z-20 text-right pointer-events-none">
-                                <p class="tactical-label text-[8px] opacity-40">VECTOR COORDINATES</p>
-                                <p class="tactical-label">IP: {{ selectedCamera?.ip || cameras[0]?.ip || '0.0.0.0' }}
-                                </p>
+                                <p class="tactical-label text-[8px] opacity-40">STREAM</p>
+                                <p class="tactical-label">{{ selectedCamera?.primaryStreamType || 'offline' | uppercase }}</p>
                             </div>
 
                             <div class="absolute bottom-6 left-6 z-20 pointer-events-none">
                                 <div class="p-4 bg-black/40 backdrop-blur-md border-l-2 border-cyan-400 rounded-r-lg">
                                     <p class="tactical-label text-[8px] opacity-50 mb-1">DEPLOYMENT SECTOR</p>
-                                    <p class="text-white font-black uppercase tracking-widest text-sm">{{
-                                        selectedCamera?.area || cameras[0]?.area || 'UNASSIGNED' }}</p>
+                                    <p class="text-white font-black uppercase tracking-widest text-sm">
+                                        {{ selectedCamera?.area || 'UNASSIGNED' }}
+                                    </p>
                                 </div>
                             </div>
 
-                            <!-- Video Content Simulation -->
-                            <div
-                                class="w-full h-full bg-gray-950 flex items-center justify-center relative overflow-hidden">
-                                <div *ngIf="cameras.length > 0; else noSignal"
-                                    class="w-full h-full flex items-center justify-center">
-                                    <span class="material-icons text-white/5 text-[200px] animate-pulse">videocam</span>
-                                    <div class="absolute inset-0 bg-gradient-to-t from-cyan-400/5 to-transparent"></div>
-                                </div>
+                            <div class="w-full h-full bg-gray-950 flex items-center justify-center relative overflow-hidden">
+                                <ng-container *ngIf="selectedCamera; else noSignal">
+                                    <video #primaryVideo class="w-full h-full object-cover bg-black"></video>
+                                    <div class="absolute inset-0 bg-gradient-to-t from-cyan-400/5 to-transparent pointer-events-none"></div>
+                                </ng-container>
                                 <ng-template #noSignal>
                                     <div class="text-center">
                                         <span class="material-icons text-gray-800 text-8xl mb-4">leak_remove</span>
@@ -74,78 +69,80 @@
                                     </div>
                                 </ng-template>
                             </div>
-
-                            <!-- Corner Accents -->
-                            <div class="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400 opacity-50">
-                            </div>
-                            <div
-                                class="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400 opacity-50">
-                            </div>
-                            <div
-                                class="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400 opacity-50">
-                            </div>
-                            <div
-                                class="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400 opacity-50">
-                            </div>
                         </div>
 
-                        <div
-                            class="mt-6 flex items-center justify-between p-6 glass-effect rounded-2xl border border-white/5">
-                            <div class="flex items-center gap-6">
-                                <button
-                                    class="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-all">
-                                    <span class="material-icons">settings_remote</span>
-                                </button>
-                                <button
-                                    class="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-gray-400 transition-all">
-                                    <span class="material-icons">zoom_in</span>
-                                </button>
-                                <div class="h-8 w-px bg-white/10"></div>
-                                <p class="tactical-label !text-purple-400">{{ selectedCamera?.marca || cameras[0]?.marca
-                                    }} - {{ selectedCamera?.modelo || cameras[0]?.modelo }}</p>
+                        <div class="mt-6 grid gap-6" [ngClass]="hasStereoSelected ? 'lg:grid-cols-2' : 'grid-cols-1'">
+                            <div class="glass-effect rounded-2xl border border-white/5 p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <p class="tactical-label !text-cyan-400">Canal principal</p>
+                                    <p class="text-xs text-gray-400">{{ selectedCamera?.name }}</p>
+                                </div>
+                                <p class="text-sm text-gray-400">
+                                    {{ selectedCamera?.marca }} {{ selectedCamera?.modelo }} · {{ selectedCamera?.primaryStreamType | uppercase }}
+                                </p>
                             </div>
-                            <button (click)="showDetails(selectedCamera || cameras[0])"
-                                class="px-6 py-2 bg-cyan-600/10 hover:bg-cyan-600 border border-cyan-500/20 text-cyan-400 hover:text-white rounded-xl font-bold transition-all text-xs tracking-widest uppercase">
-                                Configurar Nodo
-                            </button>
+
+                            <div *ngIf="hasStereoSelected" class="grid md:grid-cols-2 gap-4">
+                                <div class="glass-effect rounded-2xl border border-white/5 p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <p class="tactical-label !text-cyan-400">Canal izquierdo</p>
+                                        <span class="text-[10px] text-gray-500 uppercase">Left</span>
+                                    </div>
+                                    <div class="aspect-video overflow-hidden rounded-xl bg-black/70 border border-white/5">
+                                        <video #leftVideo class="w-full h-full object-cover bg-black"></video>
+                                    </div>
+                                </div>
+
+                                <div class="glass-effect rounded-2xl border border-white/5 p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <p class="tactical-label !text-cyan-400">Canal derecho</p>
+                                        <span class="text-[10px] text-gray-500 uppercase">Right</span>
+                                    </div>
+                                    <div class="aspect-video overflow-hidden rounded-xl bg-black/70 border border-white/5">
+                                        <video #rightVideo class="w-full h-full object-cover bg-black"></video>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Sub Feeds List (Right) -->
-                    <div class="lg:col-span-3 w-full lg:w-80 flex flex-col min-h-0">
+                    <div class="lg:col-span-3 w-full lg:w-96 flex flex-col min-h-0">
                         <div class="flex items-center justify-between mb-4 px-2">
                             <h3 class="tactical-label opacity-60">Node List</h3>
-                            <span class="text-[10px] font-black text-white bg-white/10 px-2 py-0.5 rounded">{{
-                                cameras.length }}</span>
+                            <span class="text-[10px] font-black text-white bg-white/10 px-2 py-0.5 rounded">{{ cameras.length }}</span>
                         </div>
 
                         <div class="flex-grow overflow-y-auto pr-2 custom-scrollbar space-y-4">
-                            <div *ngFor="let cam of cameras" (click)="selectedCamera = cam"
-                                class="sub-feed-card p-4 rounded-xl group transition-all"
+                            <div *ngFor="let cam of cameras" (click)="selectCamera(cam)"
+                                class="sub-feed-card p-4 rounded-xl group transition-all cursor-pointer"
                                 [ngClass]="{'border-cyan-400/50 bg-cyan-400/10': selectedCamera?.id === cam.id}">
 
                                 <div class="flex items-start justify-between mb-3">
                                     <div>
-                                        <p
-                                            class="text-white font-bold text-xs group-hover:text-cyan-400 transition-colors">
-                                            {{ cam.id }}</p>
-                                        <p class="text-[9px] text-gray-500 font-mono">{{ cam.ip }}</p>
+                                        <p class="text-white font-bold text-xs group-hover:text-cyan-400 transition-colors">
+                                            {{ cam.name }}
+                                        </p>
+                                        <p class="text-[9px] text-gray-500 font-mono">{{ cam.ip || cam.id }}</p>
                                     </div>
                                     <span class="w-2 h-2 rounded-full"
                                         [ngClass]="cam.activa ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]' : 'bg-rose-500'">
                                     </span>
                                 </div>
 
-                                <div
-                                    class="aspect-video bg-black/60 rounded-lg overflow-hidden relative border border-white/5 flex items-center justify-center">
-                                    <span
-                                        class="material-icons text-white/5 text-3xl group-hover:scale-110 transition-transform">videocam</span>
+                                <div class="aspect-video bg-black/60 rounded-lg overflow-hidden relative border border-white/5 flex items-center justify-center">
+                                    <span class="material-icons text-white/5 text-3xl group-hover:scale-110 transition-transform">videocam</span>
                                     <div class="absolute inset-0 group-hover:bg-cyan-400/5 transition-all"></div>
-
-                                    <!-- Mini Overlay -->
+                                    <div class="absolute top-2 left-2 px-2 py-1 rounded bg-black/70 text-[9px] uppercase tracking-widest text-cyan-300">
+                                        {{ cam.streamMode === 'stereo' ? 'Stereo' : 'Single' }}
+                                    </div>
                                     <div class="absolute bottom-1 right-2 pointer-events-none">
                                         <p class="text-[7px] tactical-label !text-gray-500">{{ cam.area }}</p>
                                     </div>
+                                </div>
+
+                                <div class="mt-3 flex items-center justify-between text-[10px] uppercase tracking-widest text-gray-500">
+                                    <span>{{ cam.primaryStreamType }}</span>
+                                    <span>{{ cam.alertas }} alertas</span>
                                 </div>
                             </div>
                         </div>
@@ -155,11 +152,9 @@
         </main>
     </div>
 
-    <!-- Registration Modal -->
     <div *ngIf="isRegisterModalVisible"
         class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div
-            class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-glass-border animate-in fade-in zoom-in duration-300">
+        <div class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-3xl border border-glass-border animate-in fade-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center space-x-3 mb-8">
                 <div class="p-2 bg-primary/20 rounded-xl">
                     <span class="material-icons text-primary">add_a_photo</span>
@@ -169,42 +164,90 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="sm:col-span-2 group">
-                    <label
-                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Segmento
-                        IP</label>
-                    <div class="relative">
-                        <input type="text" [(ngModel)]="newCamera.ip" placeholder="ej. 192.168.1.50"
-                            class="w-full pl-10 pr-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all font-mono text-sm">
-                        <span
-                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">hub</span>
-                    </div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nombre</label>
+                    <input type="text" [(ngModel)]="newCamera.name" placeholder="ej. Lobby Stereo"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
                 </div>
 
                 <div class="group">
-                    <label
-                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Marca</label>
-                    <input type="text" [(ngModel)]="newCamera.marca" placeholder="ej. Hikvision"
-                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">IP / Alias</label>
+                    <input type="text" [(ngModel)]="newCamera.ip" placeholder="ej. 192.168.1.50"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white font-mono text-sm">
                 </div>
 
                 <div class="group">
-                    <label
-                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Modelo</label>
-                    <input type="text" [(ngModel)]="newCamera.modelo" placeholder="ej. DS-2CD2043G0-I"
-                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Área</label>
+                    <input type="text" [(ngModel)]="newCamera.area" placeholder="ej. Acceso Norte"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Marca</label>
+                    <input type="text" [(ngModel)]="newCamera.marca" placeholder="Hikvision"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Modelo</label>
+                    <input type="text" [(ngModel)]="newCamera.modelo" placeholder="Dual-Lens"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Modo</label>
+                    <select [(ngModel)]="newCamera.streamMode"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                        <option value="single">Single</option>
+                        <option value="stereo">Stereo</option>
+                    </select>
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo stream principal</label>
+                    <select [(ngModel)]="newCamera.primaryStreamType"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                        <option value="rtsp">RTSP</option>
+                        <option value="hls">HLS</option>
+                    </select>
                 </div>
 
                 <div class="sm:col-span-2 group">
-                    <label
-                        class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary transition-colors">Área
-                        / Sector Asignado</label>
-                    <div class="relative">
-                        <input type="text" [(ngModel)]="newCamera.area" placeholder="ej. Acceso Norte / Estacionamiento"
-                            class="w-full pl-10 pr-4 py-3 bg-black/60 border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm placeholder-gray-600">
-                        <span
-                            class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">place</span>
-                    </div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream principal</label>
+                    <input type="text" [(ngModel)]="newCamera.primaryStreamUrl" placeholder="rtsp://... o https://...m3u8"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm font-mono">
                 </div>
+
+                <ng-container *ngIf="newCamera.streamMode === 'stereo'">
+                    <div class="group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo canal izquierdo</label>
+                        <select [(ngModel)]="newCamera.leftStreamType"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                            <option value="rtsp">RTSP</option>
+                            <option value="hls">HLS</option>
+                        </select>
+                    </div>
+
+                    <div class="group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo canal derecho</label>
+                        <select [(ngModel)]="newCamera.rightStreamType"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm">
+                            <option value="rtsp">RTSP</option>
+                            <option value="hls">HLS</option>
+                        </select>
+                    </div>
+
+                    <div class="sm:col-span-2 group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream izquierdo</label>
+                        <input type="text" [(ngModel)]="newCamera.leftStreamUrl" placeholder="rtsp://... o https://...m3u8"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm font-mono">
+                    </div>
+
+                    <div class="sm:col-span-2 group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream derecho</label>
+                        <input type="text" [(ngModel)]="newCamera.rightStreamUrl" placeholder="rtsp://... o https://...m3u8"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white text-sm font-mono">
+                    </div>
+                </ng-container>
             </div>
 
             <div class="flex justify-end space-x-4 mt-10">
@@ -213,18 +256,16 @@
                     Cancelar
                 </button>
                 <button (click)="registerCamera()"
-                    class="px-8 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-purple-900/20 hover:scale-105 active:scale-95 transition-all">
-                    Sincronizar y Registrar
+                    class="px-8 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all">
+                    Guardar Cámara
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Details / Modify Modal -->
     <div *ngIf="isDetailsModalVisible"
         class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div
-            class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-lg border border-glass-border animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-3xl border border-glass-border animate-in fade-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-start mb-8">
                 <div class="flex items-center space-x-3">
                     <div class="p-2 bg-accent-blue/20 rounded-xl">
@@ -238,93 +279,103 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-2 gap-6 mb-10">
-                <div class="p-4 bg-white/5 rounded-2xl border border-glass-border">
-                    <label
-                        class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Identificador
-                        Público</label>
-                    <p class="font-bold text-white text-lg">{{ selectedCamera?.id }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Nombre</label>
+                    <input type="text" [(ngModel)]="editForm.name"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
                 </div>
-                <div class="p-4 bg-white/5 rounded-2xl border border-glass-border">
-                    <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Dirección
-                        Estática</label>
-                    <p class="font-mono text-accent-blue text-sm">{{ selectedCamera?.ip }}</p>
-                </div>
-                <div
-                    class="col-span-2 p-4 bg-white/5 rounded-2xl border border-glass-border flex justify-between items-center">
-                    <div>
-                        <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Alertas
-                            en Historial</label>
-                        <p class="text-white font-bold">{{ selectedCamera?.alertas || 0 }} Eventos Detectados</p>
-                    </div>
-                    <span class="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest"
-                        [ngClass]="(selectedCamera?.alertas || 0) > 5 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'">
-                        {{ (selectedCamera?.alertas || 0) > 5 ? 'Atención Crítica' : 'Estado Estable' }}
-                    </span>
-                </div>
-            </div>
 
-            <div class="space-y-6">
-                <h4 class="text-xs font-black text-primary uppercase tracking-[0.2em] flex items-center">
-                    <span class="w-8 h-px bg-primary/30 mr-3"></span>
-                    Modificar Hardware
-                </h4>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="group">
-                        <label
-                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Marca</label>
-                        <input type="text" [(ngModel)]="editForm.marca"
-                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
-                    </div>
-                    <div class="group">
-                        <label
-                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Modelo</label>
-                        <input type="text" [(ngModel)]="editForm.modelo"
-                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
-                    </div>
-                    <div class="col-span-2 group">
-                        <label
-                            class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 group-focus-within:text-primary">Área
-                            Asignada</label>
-                        <input type="text" [(ngModel)]="editForm.area"
-                            class="w-full px-4 py-2.5 bg-background-dark border border-glass-border rounded-xl text-white focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm">
-                    </div>
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">IP / Alias</label>
+                    <input type="text" [(ngModel)]="editForm.ip"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
                 </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Marca</label>
+                    <input type="text" [(ngModel)]="editForm.marca"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Modelo</label>
+                    <input type="text" [(ngModel)]="editForm.modelo"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
+                </div>
+
+                <div class="sm:col-span-2 group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Área</label>
+                    <input type="text" [(ngModel)]="editForm.area"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Modo</label>
+                    <select [(ngModel)]="editForm.streamMode"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
+                        <option value="single">Single</option>
+                        <option value="stereo">Stereo</option>
+                    </select>
+                </div>
+
+                <div class="group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Tipo principal</label>
+                    <select [(ngModel)]="editForm.primaryStreamType"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white">
+                        <option value="rtsp">RTSP</option>
+                        <option value="hls">HLS</option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-2 group">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream principal</label>
+                    <input type="text" [(ngModel)]="editForm.primaryStreamUrl"
+                        class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white font-mono text-sm">
+                </div>
+
+                <ng-container *ngIf="editForm.streamMode === 'stereo'">
+                    <div class="sm:col-span-2 group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream izquierdo</label>
+                        <input type="text" [(ngModel)]="editForm.leftStreamUrl"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white font-mono text-sm">
+                    </div>
+
+                    <div class="sm:col-span-2 group">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Stream derecho</label>
+                        <input type="text" [(ngModel)]="editForm.rightStreamUrl"
+                            class="w-full px-4 py-3 bg-gray-900/50 border border-glass-border rounded-xl text-white font-mono text-sm">
+                    </div>
+                </ng-container>
             </div>
 
             <div class="flex justify-end space-x-4 mt-10">
                 <button (click)="hideDetailsModal()"
-                    class="px-6 py-2 text-gray-400 hover:text-white rounded-xl font-bold transition-all">Cerrar</button>
+                    class="px-6 py-3 glass-effect text-gray-400 hover:text-white rounded-xl font-bold transition-all border border-glass-border">
+                    Cancelar
+                </button>
                 <button (click)="saveDetails()"
-                    class="px-10 py-2 bg-gradient-premium text-white rounded-xl font-bold shadow-xl shadow-purple-900/30 hover:scale-105 active:scale-95 transition-all">
-                    Actualizar Hardware
+                    class="px-8 py-3 bg-gradient-premium text-white rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:scale-105 active:scale-95 transition-all">
+                    Guardar Cambios
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
     <div *ngIf="isDeleteModalVisible"
         class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="glass-effect p-10 rounded-3xl shadow-2xl text-center max-w-sm w-full border border-glass-border">
-            <div
-                class="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
-                <span class="material-icons text-rose-500 text-4xl">no_photography</span>
-            </div>
-            <p class="text-xl font-bold text-white mb-2">Eliminar de la Red</p>
-            <p class="text-gray-400 text-sm mb-8">
-                ¿Confirmas la remoción del equipo <strong class="text-white">{{ selectedCamera?.id }}</strong>?
-                <br><span class="text-rose-400 italic text-[10px] font-black uppercase tracking-widest mt-2 block">Los
-                    datos históricos se perderán.</span>
-            </p>
-            <div class="flex flex-col space-y-3">
-                <button (click)="confirmDelete()"
-                    class="w-full py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-lg shadow-rose-900/40">
-                    Confirmar Baja
-                </button>
+        <div class="glass-effect p-8 rounded-3xl shadow-2xl w-full max-w-md border border-glass-border">
+            <h3 class="text-2xl font-bold text-white mb-4">Eliminar Cámara</h3>
+            <p class="text-gray-400 mb-8">Se eliminará {{ selectedCamera?.name }} y se detendrán sus procesos de stream.</p>
+
+            <div class="flex justify-end space-x-4">
                 <button (click)="hideDeleteModal()"
-                    class="w-full py-3 glass-effect text-gray-400 hover:text-white rounded-2xl font-bold transition-all">
-                    Abortar Acción
+                    class="px-6 py-3 glass-effect text-gray-400 hover:text-white rounded-xl font-bold transition-all border border-glass-border">
+                    Cancelar
+                </button>
+                <button (click)="confirmDelete()"
+                    class="px-8 py-3 bg-rose-600 text-white rounded-xl font-bold">
+                    Eliminar
                 </button>
             </div>
         </div>

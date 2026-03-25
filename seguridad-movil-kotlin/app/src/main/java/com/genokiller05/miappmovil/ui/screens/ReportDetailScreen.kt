@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,9 +45,9 @@ fun ReportDetailScreen(
     )
 
     val typeNames = mapOf(
-        1 to "Robo / Hurto", 2 to "Vandalismo", 3 to "Acceso no autorizado",
-        4 to "Emergencia médica", 5 to "Incendio", 6 to "Inundación",
-        7 to "Falla eléctrica", 8 to "Otro"
+        1 to "Robo / Hurto", 2 to "Vandalismo", 3 to "Rondín",
+        4 to "Incendio", 5 to "Falla técnica", 6 to "Actividad sospechosa",
+        7 to "Otro", 8 to "Incidente", 9 to "Novedad"
     )
 
     LaunchedEffect(reportId) {
@@ -63,7 +64,7 @@ fun ReportDetailScreen(
                 title = { Text(stringResource(R.string.report_detail_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

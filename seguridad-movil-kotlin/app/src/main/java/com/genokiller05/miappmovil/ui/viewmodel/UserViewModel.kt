@@ -37,9 +37,9 @@ class UserViewModel @Inject constructor(
                 
                 // Track online presence via WebSocket (solves issue when app is swiped away)
                 val id = userData.idEmpleado.ifEmpty { userData.document_id ?: userData.id ?: "unknown" }
-                val channel = SupabaseClient.client.channel("online-guards-$id")
+                val channel = SupabaseClient.client.channel("online-guards")
                 channel.subscribe()
-                channel.track(buildJsonObject { put("online", true) })
+                channel.track(buildJsonObject { put("id", id); put("online", true) })
                 presenceChannel = channel
             } catch (e: Exception) {
                 // ignore

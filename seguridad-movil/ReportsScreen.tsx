@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from './theme/ThemeContext';
 import { useI18n } from './theme/I18nContext';
 import { getAllReports, Report as ReportData } from './services/dataService';
+import { supabase } from './lib/supabaseClient';
 
 // --- Tipado para la pila de navegación ---
 type RootStackParamList = {
@@ -37,10 +38,6 @@ const ReportsScreen = () => {
       const loadReports = async () => {
         try {
           const allReports = await getAllReports();
-          if (allReports.length > 0) {
-            console.log('Sample report keys:', Object.keys(allReports[0]));
-            // console.log('Sample report:', JSON.stringify(allReports[0], null, 2));
-          }
           setReports(allReports.sort((a: any, b: any) => {
             const dateA = new Date(a.created_at || a.fechaHora || 0).getTime();
             const dateB = new Date(b.created_at || b.fechaHora || 0).getTime();
@@ -54,34 +51,56 @@ const ReportsScreen = () => {
     }, [])
   );
 
-  const statusColors: Record<string, string> = {
-    '1': '#F59E0B', // Pendiente
-    'Pendiente': '#F59E0B',
-    '2': '#3B82F6', // En proceso
-    'En proceso': '#3B82F6',
-    'Enviado': colors.accent,
-    '3': '#10B981', // Completado
-    'Completado': '#10B981',
-    '31': '#EF4444', // Cancelado
-    'Cancelado': '#EF4444',
-    '32': '#6B7280', // Suspendido
-    'Suspendido': '#6B7280',
+  React.useEffect(() => {
+    const channel = supabase
+      .channel('reports-realtime-list')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reports' },
+        (payload) => {
+          setReports((prevReports) => {
+            if (payload.eventType === 'INSERT') {
+              const newReports = [payload.new as ReportData, ...prevReports];
+              return newReports.sort((a: any, b: any) => {
+                const dateA = new Date(a.created_at || a.fechaHora || 0).getTime();
+                const dateB = new Date(b.created_at || b.fechaHora || 0).getTime();
+                return dateB - dateA;
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              return prevReports.map(r => r.id === payload.new.id ? { ...r, ...payload.new } : r);
+            } else if (payload.eventType === 'DELETE') {
+              return prevReports.filter(r => r.id !== payload.old.id);
+            }
+            return prevReports;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const resolveStatusColor = (statusId: any, estadoStr: any) => {
+    const id = String(statusId);
+    const txt = String(estadoStr || '');
+    if (id === '31' || txt === 'Cancelado') return '#EF4444'; // Rojo
+    if (id === '32' || txt === 'Suspendido') return '#6B7280'; // Gris
+    if (id === '3' || txt === 'Completado' || txt === 'Resuelto') return '#10B981';
+    if (id === '2' || txt === 'En proceso') return '#3B82F6';
+    return '#F59E0B'; // Pendiente amarillo
   };
 
-  const statusTranslations: Record<number | string, string> = {
-    1: 'Pendiente',
-    'Pendiente': 'Pendiente',
-    'Enviado': 'Enviado',
-    2: 'En proceso',
-    'En proceso': 'En proceso',
-    'En Revisión': 'En proceso',
-    3: 'Completado',
-    'Completado': 'Completado',
-    'Resuelto': 'Completado',
-    31: 'Cancelado',
-    'Cancelado': 'Cancelado',
-    32: 'Suspendido',
-    'Suspendido': 'Suspendido',
+  const resolveStatusText = (statusId: any, estadoStr: any) => {
+    const id = String(statusId);
+    const txt = String(estadoStr || '');
+    if (id === '31' || txt === 'Cancelado') return 'Cancelado';
+    if (id === '32' || txt === 'Suspendido') return 'Suspendido';
+    if (id === '3' || txt === 'Completado' || txt === 'Resuelto') return 'Completado';
+    if (id === '2' || txt === 'En proceso' || txt === 'En Revisión') return 'En proceso';
+    if (txt === 'Enviado') return 'Enviado';
+    return 'Pendiente';
   };
 
   const renderReportItem = ({ item }: { item: any }) => {
@@ -125,9 +144,9 @@ const ReportsScreen = () => {
           <Text style={styles.reportDate} numberOfLines={1}>{new Date(item.created_at || item.fechaHora).toLocaleString()}</Text>
         </View>
         <View style={styles.statusContainer}>
-          <View style={[styles.statusDot, { backgroundColor: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]} />
-          <Text style={[styles.statusText, { color: statusColors[item.status_id] || statusColors[item.estado] || '#94a3b8' }]}>
-            {statusTranslations[item.status_id] || statusTranslations[item.estado] || item.estado || 'Pendiente'}
+          <View style={[styles.statusDot, { backgroundColor: resolveStatusColor(item.status_id, item.estado) }]} />
+          <Text style={[styles.statusText, { color: resolveStatusColor(item.status_id, item.estado) }]}>
+            {resolveStatusText(item.status_id, item.estado)}
           </Text>
         </View>
       </Pressable>
@@ -141,6 +160,7 @@ const ReportsScreen = () => {
         <View style={styles.panel}>
           <FlatList
             data={reports}
+            extraData={reports}
             renderItem={renderReportItem}
             keyExtractor={item => item.id.toString()}
             contentContainerStyle={styles.listContent}

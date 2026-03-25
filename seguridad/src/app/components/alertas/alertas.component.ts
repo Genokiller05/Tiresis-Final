@@ -10,7 +10,9 @@ import { Subscription } from 'rxjs';
 import * as flatpickr from 'flatpickr';
 import { Spanish } from 'flatpickr/dist/l10n/es';
 import { ViewChild, ElementRef } from '@angular/core';
-
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 @Component({
   selector: 'app-alertas',
   standalone: true,
@@ -43,7 +45,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public isTipoDropdownOpen: boolean = false;
   public isModalStatusDropdownOpen: boolean = false;
   public isExportDropdownOpen: boolean = false;
-  public isPremiumUser: boolean = true;
+  public isPremiumUser: boolean = false;
 
   // Properties for status modification modal
   public isStatusModalVisible: boolean = false;
@@ -97,6 +99,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     if (isPlatformBrowser(this.platformId)) {
+      this.isPremiumUser = this.authService.isPremium();
       this.fetchReports();
     }
     this.langSubscription = this.translationService.uiText.subscribe(translations => {
@@ -183,11 +186,11 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   private mapReportFromDB(dbReport: any): any {
     // Definimos mapas básicos para los IDs numéricos al texto que espera la interfaz
     const statusMap: { [key: number]: string } = { 1: 'Pendiente', 2: 'En proceso', 3: 'Completado', 31: 'Cancelado', 32: 'Suspendido' };
-    const typeMap: { [key: number]: string } = { 1: 'Incidente', 2: 'Novedad', 3: 'Rondín', 4: 'Alerta recibida', 5: 'Mantenimiento', 6: 'Sospechoso', 7: 'Emergencia' };
+    const typeMap: { [key: number]: string } = { 1: 'Robo / Hurto', 2: 'Vandalismo', 3: 'Rondín', 4: 'Incendio', 5: 'Falla técnica', 6: 'Actividad sospechosa', 7: 'Otro', 8: 'Incidente', 9: 'Novedad' };
 
     let parsedArea = 'Área Asignada';
     let parsedDescription = dbReport.short_description || 'Sin descripción detallada.';
-    let parsedEvidence = null;
+    let parsedEvidence: string | null = null;
     let parsedGuardName = 'Guardia Registrado';
     let parsedGuardID = dbReport.created_by_guard_id || 'N/A';
 
@@ -202,7 +205,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
 
       const guardMatch = tempDesc.match(/Guardia: ([^|]+)/);
       if (guardMatch && guardMatch[1]) {
-        const idMatch = guardMatch[1].match(/ID:\s*(\d+)/);
+        const idMatch = guardMatch[1].match(/ID:\s*([^/)\s]+)/);
         if (idMatch && idMatch[1]) {
           parsedGuardID = idMatch[1];
         }
@@ -219,6 +222,25 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       parsedDescription = tempDesc;
     }
 
+    // Priorizar datos estructurados del campo 'detalles' (JSONB) si existen
+    if (dbReport.detalles && typeof dbReport.detalles === 'object') {
+      if (dbReport.detalles.nombreGuardia) parsedGuardName = dbReport.detalles.nombreGuardia;
+      if (dbReport.detalles.idGuardia) parsedGuardID = dbReport.detalles.idGuardia;
+      if (dbReport.detalles.area) parsedArea = dbReport.detalles.area;
+      if (dbReport.detalles.descripcion) parsedDescription = dbReport.detalles.descripcion;
+    }
+
+    // Leer URLs directas del campo evidence_urls de Supabase (guardado por la app móvil)
+    const directUrls: string[] = Array.isArray(dbReport.evidence_urls)
+      ? dbReport.evidence_urls.filter((u: any): u is string => typeof u === 'string' && u.trim().length > 0)
+      : [];
+
+    // Combinar con la URL embebida en la descripción (si existe y no está ya en el array)
+    const parsedEvidencias: string[] = [...directUrls];
+    if (parsedEvidence && !parsedEvidencias.includes(parsedEvidence)) {
+      parsedEvidencias.push(parsedEvidence);
+    }
+
     return {
       id: dbReport.id,
       fechaHora: dbReport.created_at || new Date().toISOString(),
@@ -230,7 +252,8 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         descripcion: parsedDescription,
         nombreGuardia: parsedGuardName,
         idGuardia: parsedGuardID,
-        evidencia: parsedEvidence
+        evidencia: parsedEvidencias[0] || null,   // primera URL para compatibilidad
+        evidencias: parsedEvidencias               // array completo que usa el modal HTML
       },
       _rawDBData: dbReport
     };
@@ -319,16 +342,6 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
     this.isExportDropdownOpen = !this.isExportDropdownOpen;
   }
 
-  public exportToExcel(): void {
-    console.log('Exporting to Excel...');
-    // TODO: Implement actual Excel export
-  }
-
-  public exportToPDF(): void {
-    console.log('Exporting to PDF...');
-    // TODO: Implement actual PDF export
-  }
-
   // --- Filter Dropdowns ---
   public toggleTipoDropdown(): void {
     this.isTipoDropdownOpen = !this.isTipoDropdownOpen;
@@ -396,7 +409,9 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
       };
 
       try {
-        await this.reportService.updateReport(this.alertToModify.id, { status_id: reverseStatusMap[this.selectedStatus] });
+        await this.reportService.updateReport(this.alertToModify.id, { 
+          status_id: reverseStatusMap[this.selectedStatus]
+        });
 
         // Update local arrays for both 'allAlerts' and 'displayedAlerts'
         const allIndex = this.allAlerts.findIndex(a => a.id === this.alertToModify.id);
@@ -513,7 +528,7 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
   public getOriginChipClasses(origen: string): string {
     switch (origen) {
       case 'IA':
-        return 'bg-purple-500/20 text-purple-400 font-medium py-1 px-3 rounded-full text-xs';
+        return 'bg-blue-500/20 text-blue-400 font-medium py-1 px-3 rounded-full text-xs';
       case 'Guardia':
         return 'bg-blue-500/20 text-blue-400 font-medium py-1 px-3 rounded-full text-xs';
       default:
@@ -536,6 +551,111 @@ export class AlertasComponent implements OnInit, OnDestroy, AfterViewInit {
         return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
       default:
         return `bg-gray-500/20 text-gray-400 ${baseClasses}`;
+    }
+  }
+
+  // --- Export Methods ---
+  public exportToExcel(): void {
+    if (this.displayedAlerts.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    try {
+      // 1. Preparar los datos para Excel (Aplanar objetos complejos)
+      const dataToExport = this.displayedAlerts.map(alerta => ({
+        'ID Vector': (new Date(alerta.fechaHora).getTime() / 1000).toString().slice(-6),
+        'Fecha y Hora': new Date(alerta.fechaHora).toLocaleString(),
+        'Origen': alerta.origen,
+        'Tipo': alerta.tipo,
+        'Sitio/Área': alerta.sitioArea,
+        'Estado': alerta.estado,
+        'Guardia': alerta.detalles?.nombreGuardia || 'IA System',
+        'ID Guardia': alerta.detalles?.idGuardia || 'N/A',
+        'Descripción': alerta.detalles?.descripcion || ''
+      }));
+
+      // 2. Crear el libro de trabajo (Workbook)
+      const worksheet: XLSX.WorkSheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook: XLSX.WorkBook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Incidentes');
+
+      // 3. Estilo básico (Ajustar anchos de columna)
+      const wscols = [
+        { wch: 15 }, // ID
+        { wch: 20 }, // Fecha
+        { wch: 10 }, // Origen
+        { wch: 15 }, // Tipo
+        { wch: 20 }, // Sitio
+        { wch: 15 }, // Estado
+        { wch: 20 }, // Guardia
+        { wch: 12 }, // ID Guardia
+        { wch: 50 }, // Descripción
+      ];
+      worksheet['!cols'] = wscols;
+
+      // 4. Generar el archivo y activar descarga
+      const fileName = `Reporte_Incidentes_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+
+      console.log('Exportación a Excel completada con éxito.');
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error);
+      alert('Ocurrió un error al generar el archivo Excel.');
+    }
+  }
+
+  public exportToPDF(): void {
+    if (this.displayedAlerts.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF('landscape');
+      
+      // Título del Reporte
+      doc.setFontSize(22);
+      doc.setTextColor(112, 0, 255); // Color Prism Purple
+      doc.text('Reporte de Incidentes de Seguridad - Tiresis', 14, 20);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Fecha de exportación: ${new Date().toLocaleString()}`, 14, 28);
+      
+      // Preparar filas para la tabla
+      const rows = this.displayedAlerts.map(alerta => [
+        (new Date(alerta.fechaHora).getTime() / 1000).toString().slice(-6),
+        new Date(alerta.fechaHora).toLocaleString(),
+        alerta.origen,
+        alerta.tipo,
+        alerta.sitioArea,
+        alerta.estado,
+        alerta.detalles?.nombreGuardia || 'IA System',
+        alerta.detalles?.descripcion || ''
+      ]);
+
+      // Generar tabla
+      autoTable(doc, {
+        startY: 35,
+        head: [['ID', 'Fecha/Hora', 'Origen', 'Tipo', 'Área', 'Estado', 'Guardia', 'Descripción']],
+        body: rows,
+        headStyles: { fillColor: [112, 0, 255] },
+        alternateRowStyles: { fillColor: [240, 240, 240] },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          7: { cellWidth: 80 } // Descripción más ancha
+        }
+      });
+
+      // Guardar PDF
+      const fileName = `Reporte_Incidentes_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
+      console.log('Exportación a PDF completada con éxito.');
+    } catch (error) {
+      console.error('Error al exportar a PDF:', error);
+      alert('Ocurrió un error al generar el archivo PDF.');
     }
   }
 }

@@ -15,15 +15,15 @@
 
   <!-- KPI Cards -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 overflow-hidden">
-    <div class="glass-card-premium p-6 rounded-3xl border border-white/5 relative group hover:border-purple-500/30 transition-all">
-      <div class="absolute -right-4 -top-4 w-24 h-24 bg-purple-600/10 blur-3xl rounded-full"></div>
+    <div class="glass-card-premium p-6 rounded-3xl border border-white/5 relative group hover:border-blue-500/30 transition-all">
+      <div class="absolute -right-4 -top-4 w-24 h-24 bg-blue-600/10 blur-3xl rounded-full"></div>
       <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-4">Total Incidentes</p>
       <div class="flex items-end justify-between">
         <h2 class="text-4xl font-black text-white italic tracking-tighter">{{ totalIncidentes }}</h2>
-        <span class="material-icons text-purple-500 text-3xl">analytics</span>
+        <span class="material-icons text-blue-500 text-3xl">analytics</span>
       </div>
       <div class="mt-4 h-1 bg-white/5 rounded-full overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-purple-600 to-blue-500 w-[70%]"></div>
+        <div class="h-full bg-gradient-to-r from-blue-600 to-blue-500 w-[70%]"></div>
       </div>
     </div>
 
@@ -55,7 +55,7 @@
           <h3 class="text-white font-black uppercase tracking-widest text-sm">Frecuencia por Horario</h3>
           <p class="text-[10px] text-gray-500 font-bold">Distribución de incidentes en 24h</p>
         </div>
-        <span class="material-icons text-purple-400 bg-purple-400/10 p-2 rounded-xl">schedule</span>
+        <span class="material-icons text-blue-400 bg-blue-400/10 p-2 rounded-xl">schedule</span>
       </div>
       <div class="relative h-[300px]">
         <canvas #hourlyChart></canvas>

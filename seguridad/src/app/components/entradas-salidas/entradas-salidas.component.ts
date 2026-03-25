@@ -97,16 +97,39 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
     let nombreStr = 'Identidad Protegida';
     let destinoStr = 'Sin especificar';
     let tipoPerfil = 'Residente'; // Valor por defecto
-    let evidenciaSrc = null;
+    let evidenciaSrc: string | null = null;
     let descripcionLimpia = entry.descripcion || '';
 
-    // Intentamos parsear la descripción que guarda la app móvil ("Nombre: XXX. Visita a: YYY")
+    // 1. Primero revisar campos directos de imagen en la BD
+    if (entry.photo_url && typeof entry.photo_url === 'string') {
+      evidenciaSrc = entry.photo_url;
+    } else if (entry.evidence_url && typeof entry.evidence_url === 'string') {
+      evidenciaSrc = entry.evidence_url;
+    } else if (entry.image_url && typeof entry.image_url === 'string') {
+      evidenciaSrc = entry.image_url;
+    }
+
+    // 2. Intentamos parsear la descripción que guarda la app móvil
     if (entry.descripcion) {
       let tempDesc = entry.descripcion;
-      const evMatch = tempDesc.match(/Evidencia: (http[s]?:\/\/[^\s]+)/);
-      if (evMatch && evMatch[1]) {
-        evidenciaSrc = evMatch[1];
-        tempDesc = tempDesc.replace(evMatch[0], '').replace(/\|\s*$/, '').trim();
+
+      // Buscar URL con distintos prefijos que usa la app móvil
+      const evPatterns = [
+        /Evidencia:\s*(http[s]?:\/\/[^\s|]+)/i,
+        /foto:\s*(http[s]?:\/\/[^\s|]+)/i,
+        /image:\s*(http[s]?:\/\/[^\s|]+)/i,
+        /photo:\s*(http[s]?:\/\/[^\s|]+)/i,
+        // URL directa dentro de la descripción
+        /(https?:\/\/[^\s|]+\.(?:jpg|jpeg|png|gif|webp|avif)[^\s|]*)/i,
+      ];
+
+      for (const pattern of evPatterns) {
+        const evMatch = tempDesc.match(pattern);
+        if (evMatch && evMatch[1]) {
+          if (!evidenciaSrc) evidenciaSrc = evMatch[1].trim();
+          tempDesc = tempDesc.replace(evMatch[0], '').replace(/\|\s*$/, '').replace(/\|\s*\|/, '|').trim();
+          break;
+        }
       }
 
       descripcionLimpia = tempDesc;
@@ -116,6 +139,15 @@ export class EntradasSalidasComponent implements OnInit, OnDestroy, AfterViewIni
         nombreStr = parts[0].replace('Nombre:', '').trim();
         if (parts.length > 1) {
           destinoStr = parts.slice(1).join('.').trim();
+        }
+      } else if (tempDesc.includes('visit:')) {
+        // Formato: "Entrada - visit: Nombre | Destino"
+        const visitMatch = tempDesc.match(/visit:\s*([^|]+)(?:\|(.+))?/i);
+        if (visitMatch) {
+          nombreStr = visitMatch[1]?.trim() || nombreStr;
+          destinoStr = visitMatch[2]?.trim() || destinoStr;
+        } else {
+          nombreStr = tempDesc.substring(0, 40);
         }
       } else {
         nombreStr = tempDesc.substring(0, 30);

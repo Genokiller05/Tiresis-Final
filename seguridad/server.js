@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const nodemailer = require('nodemailer');
 const authMiddleware = require('./middleware/authMiddleware');
+const CameraStreamManager = require('./cameraStreamManager');
 
 // --- STRIPE CONFIGURATION ---
 const stripeKey = process.env.STRIPE_SECRET_KEY;
@@ -42,6 +43,9 @@ const port = 3000;
 // Path to data for migration purposes only
 const dataDir = path.join(__dirname, 'data');
 const uploadsDir = path.join(__dirname, 'data', 'uploads');
+const cameraStreamsDir = path.join(__dirname, 'data', 'camera-streams');
+const DEFAULT_SITE_ID = '00000000-0000-0000-0000-000000000001';
+const cameraStreamManager = new CameraStreamManager({ baseDir: cameraStreamsDir });
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -82,6 +86,165 @@ const writeJsonFile = (filename, data) => {
   } catch (err) {
     console.error(`Error writing ${filename}:`, err);
   }
+};
+
+const inferStreamType = (value, fallback = 'rtsp') => {
+  const url = String(value || '').trim().toLowerCase();
+
+  if (!url) return fallback;
+  if (url.includes('.m3u8')) return 'hls';
+  if (url.startsWith('http://') || url.startsWith('https://')) return 'hls';
+  if (url.startsWith('rtsp://')) return 'rtsp';
+
+  return fallback;
+};
+
+const buildPublicPlaybackUrl = (cameraId, profile, siteId) => {
+  const query = siteId ? `?site_id=${encodeURIComponent(siteId)}` : '';
+  return `/api/public/camera-streams/${encodeURIComponent(cameraId)}/${profile}/index.m3u8${query}`;
+};
+
+const normalizeCamera = (rawCamera, fallbackSiteId = DEFAULT_SITE_ID) => {
+  const camera = { ...(rawCamera || {}) };
+  const id = camera.id || crypto.randomUUID();
+  const siteId = camera.site_id || fallbackSiteId;
+  const name = camera.name || camera.id || 'Camara sin nombre';
+  const active = camera.is_active ?? camera.activa ?? true;
+  const primaryStreamUrl =
+    camera.primary_stream_url || camera.primaryStreamUrl || camera.stream_url || camera.rtsp_url || '';
+  const primaryStreamType =
+    camera.primary_stream_type || camera.primaryStreamType || inferStreamType(primaryStreamUrl);
+  const streamMode = camera.stream_mode || camera.streamMode || (camera.stereo_enabled ? 'stereo' : 'single');
+  const leftStreamUrl = camera.left_stream_url || camera.leftStreamUrl || '';
+  const rightStreamUrl = camera.right_stream_url || camera.rightStreamUrl || '';
+  const leftStreamType =
+    camera.left_stream_type || camera.leftStreamType || inferStreamType(leftStreamUrl, primaryStreamType);
+  const rightStreamType =
+    camera.right_stream_type || camera.rightStreamType || inferStreamType(rightStreamUrl, primaryStreamType);
+  const stereoEnabled = Boolean(
+    camera.stereo_enabled ??
+    camera.stereoEnabled ??
+    (streamMode === 'stereo' && leftStreamUrl && rightStreamUrl)
+  );
+
+  const playbackUrls = {
+    primary: primaryStreamType === 'hls'
+      ? primaryStreamUrl
+      : (primaryStreamUrl ? buildPublicPlaybackUrl(id, 'primary', siteId) : ''),
+    left: leftStreamUrl
+      ? (leftStreamType === 'hls'
+        ? leftStreamUrl
+        : buildPublicPlaybackUrl(id, 'left', siteId))
+      : '',
+    right: rightStreamUrl
+      ? (rightStreamType === 'hls'
+        ? rightStreamUrl
+        : buildPublicPlaybackUrl(id, 'right', siteId))
+      : ''
+  };
+
+  return {
+    id,
+    site_id: siteId,
+    name,
+    ip: camera.ip || '',
+    marca: camera.marca || camera.brand || '',
+    modelo: camera.modelo || camera.model || '',
+    area: camera.area || camera.location_description || '',
+    alertas: Number.isFinite(camera.alertas) ? camera.alertas : 0,
+    activa: Boolean(active),
+    is_active: Boolean(active),
+    location_description: camera.location_description || camera.area || '',
+    primaryStreamUrl,
+    primaryStreamType,
+    rtsp_url: camera.rtsp_url || (primaryStreamType === 'rtsp' ? primaryStreamUrl : ''),
+    streamMode: stereoEnabled ? 'stereo' : 'single',
+    stereoEnabled,
+    leftStreamUrl,
+    leftStreamType,
+    rightStreamUrl,
+    rightStreamType,
+    playbackUrls
+  };
+};
+
+const readCameras = (siteIds = [DEFAULT_SITE_ID]) => {
+  const cameras = readJsonFile('cameras.json')
+    .map((camera) => normalizeCamera(camera))
+    .filter((camera) => !siteIds?.length || siteIds.includes(camera.site_id));
+
+  return cameras;
+};
+
+const writeCameras = (cameras) => {
+  const serialized = cameras.map((camera) => ({
+    id: camera.id,
+    site_id: camera.site_id,
+    name: camera.name,
+    ip: camera.ip,
+    marca: camera.marca,
+    modelo: camera.modelo,
+    area: camera.area,
+    alertas: camera.alertas,
+    activa: camera.activa,
+    location_description: camera.location_description,
+    primary_stream_url: camera.primaryStreamUrl,
+    primary_stream_type: camera.primaryStreamType,
+    rtsp_url: camera.rtsp_url,
+    stream_mode: camera.streamMode,
+    stereo_enabled: camera.stereoEnabled,
+    left_stream_url: camera.leftStreamUrl,
+    left_stream_type: camera.leftStreamType,
+    right_stream_url: camera.rightStreamUrl,
+    right_stream_type: camera.rightStreamType
+  }));
+
+  writeJsonFile('cameras.json', serialized);
+};
+
+const buildCameraFromPayload = (payload, existingCamera = null, siteId = DEFAULT_SITE_ID) => {
+  const merged = {
+    ...(existingCamera || {}),
+    ...(payload || {}),
+    id: existingCamera?.id || payload?.id || crypto.randomUUID(),
+    site_id: existingCamera?.site_id || payload?.site_id || siteId
+  };
+
+  return normalizeCamera(merged, siteId);
+};
+
+const getCameraById = (cameraId) => {
+  const cameras = readCameras();
+  return cameras.find((camera) => camera.id === cameraId) || null;
+};
+
+const getStreamProfile = (camera, profile) => {
+  const profiles = {
+    primary: {
+      sourceUrl: camera.primaryStreamUrl,
+      sourceType: camera.primaryStreamType
+    },
+    left: {
+      sourceUrl: camera.leftStreamUrl,
+      sourceType: camera.leftStreamType
+    },
+    right: {
+      sourceUrl: camera.rightStreamUrl,
+      sourceType: camera.rightStreamType
+    }
+  };
+
+  return profiles[profile] || null;
+};
+
+const sendMediaFile = (res, filePath) => {
+  if (filePath.endsWith('.m3u8')) {
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+  } else if (filePath.endsWith('.ts')) {
+    res.setHeader('Content-Type', 'video/mp2t');
+  }
+
+  res.sendFile(filePath);
 };
 
 // --- PUBLIC HEALTH/PING ENDPOINT (no auth required) ---
@@ -273,7 +436,17 @@ app.get('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/guards', authMiddleware, async (req, res) => {
-  const { full_name, document_id, photo_url, email, telefono, direccion, area } = req.body;
+  const {
+    full_name,
+    document_id,
+    photo_url,
+    foto,
+    image_url,
+    email,
+    telefono,
+    direccion,
+    area
+  } = req.body;
 
   if (!document_id || !full_name) {
     return res.status(400).json({ message: 'Faltan datos obligatorios (Nombre, ID).' });
@@ -281,21 +454,26 @@ app.post('/api/guards', authMiddleware, async (req, res) => {
 
   try {
     const tempPassword = Math.random().toString(36).slice(-8);
-    const userId = 'GUARD-LOCAL-' + Date.now();
+    // Usar UUID v4 válido para compatibilidad con el campo id de Supabase
+    const userId = crypto.randomUUID();
+    // El email siempre normalizado a lowercase; si no se proveyó uno real usar local temporal
+    const guardEmail = (email && email.trim()) ? email.trim().toLowerCase() : `guard_${document_id}@tiresis.local`;
 
     // site_id se asigna desde el middleware, NUNCA del frontend
+    const guardPhoto = photo_url || foto || image_url || '/assets/images/guards/default.png';
+
     const newGuard = {
       id: userId,
       full_name: full_name,
       nombre: full_name,
       document_id: document_id,
       idEmpleado: document_id,
-      email: email || `guard_${document_id}@tiresis.local`,
+      email: guardEmail,
       password: tempPassword,
       phone: telefono || '',
       direccion: direccion || '',
       area: area || '',
-      foto: photo_url || '/assets/images/guards/default.png',
+      foto: guardPhoto,
       role: 'guard',
       is_active: true,
       estado: 'Fuera de servicio',
@@ -311,21 +489,30 @@ app.post('/api/guards', authMiddleware, async (req, res) => {
     }
     guards.push(newGuard);
     writeJsonFile('guards.json', guards);
-    console.log('[BE] Guard saved locally:', userId, 'site:', req.activeSiteId);
+    console.log('[BE] Guard saved locally:', userId, 'email:', guardEmail, 'site:', req.activeSiteId);
 
-    // Save to Supabase
+    // Save to Supabase — solo columnas que existen en la tabla guards
     try {
-      const sbGuard = { ...newGuard };
-      delete sbGuard.full_name;
-      delete sbGuard.document_id;
-      delete sbGuard.phone;
-      delete sbGuard.is_active;
+      const sbGuard = {
+        id: userId,
+        nombre: full_name,
+        idEmpleado: document_id,
+        email: guardEmail,
+        telefono: telefono || '',
+        direccion: direccion || '',
+        area: area || '',
+        foto: guardPhoto,
+        estado: 'Fuera de servicio',
+        created_at: newGuard.created_at,
+        actividades: [],
+        site_id: req.activeSiteId
+      };
 
       const { error: sbError } = await supabase.from('guards').insert([sbGuard]);
       if (sbError) {
-        console.error('[BE] Error guardando guardia en Supabase:', sbError.message);
+        console.error('[BE] Error guardando guardia en Supabase:', sbError.message, '| Código:', sbError.code, '| Detalles:', sbError.details);
       } else {
-        console.log('[BE] Guard saved to Supabase');
+        console.log('[BE] Guard saved to Supabase OK — email:', guardEmail);
       }
     } catch (sbEx) {
       console.error('[BE] Excepción guardando en Supabase:', sbEx.message);
@@ -343,12 +530,22 @@ app.patch('/api/guards/:idEmpleado', authMiddleware, async (req, res) => {
   const idEmpleado = req.params.idEmpleado;
   const updateData = { ...req.body };
 
+  if (!updateData.foto && typeof updateData.photo_url === 'string' && updateData.photo_url.trim()) {
+    updateData.foto = updateData.photo_url.trim();
+  }
+
+  if (!updateData.foto && typeof updateData.image_url === 'string' && updateData.image_url.trim()) {
+    updateData.foto = updateData.image_url.trim();
+  }
+
   // Cleanup non-existent DB fields from the payload
   delete updateData.site_id; // No permitir cambio de site_id
   delete updateData.full_name;
   delete updateData.phone;
   delete updateData.document_id;
   delete updateData.is_active;
+  delete updateData.photo_url;
+  delete updateData.image_url;
 
   console.log('PATCH /api/guards', idEmpleado, updateData);
 
@@ -739,30 +936,114 @@ app.post('/api/upgrade-admin-plan', async (req, res) => {
 
 // --- Cameras (filtrado por site_id) ---
 app.get('/api/cameras', authMiddleware, async (req, res) => {
-  const { data, error } = await supabase.from('cameras').select('*').in('site_id', req.siteIds);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data || []);
+  try {
+    const cameras = readCameras(req.siteIds);
+    res.json(cameras);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.post('/api/cameras', authMiddleware, async (req, res) => {
-  const camera = { ...req.body, site_id: req.activeSiteId };
-  const { error } = await supabase.from('cameras').insert([camera]);
-  if (error) return res.status(500).json({ error: error.message });
-  res.status(201).json({ message: 'Cámara registrada', camera });
+  try {
+    const cameras = readCameras();
+    const camera = buildCameraFromPayload(req.body, null, req.activeSiteId);
+    cameras.push(camera);
+    writeCameras(cameras);
+    res.status(201).json({ message: 'Cámara registrada', camera });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.patch('/api/cameras/:id', authMiddleware, async (req, res) => {
-  const updateData = { ...req.body };
-  delete updateData.site_id;
-  const { error } = await supabase.from('cameras').update(updateData).eq('id', req.params.id).in('site_id', req.siteIds);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ ...updateData, id: req.params.id });
+  try {
+    const cameras = readCameras();
+    const index = cameras.findIndex((camera) => camera.id === req.params.id && req.siteIds.includes(camera.site_id));
+
+    if (index === -1) {
+      return res.status(404).json({ error: 'Cámara no encontrada' });
+    }
+
+    const updatedCamera = buildCameraFromPayload(req.body, cameras[index], cameras[index].site_id);
+    cameras[index] = updatedCamera;
+    writeCameras(cameras);
+
+    res.json(updatedCamera);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 app.delete('/api/cameras/:id', authMiddleware, async (req, res) => {
-  const { error } = await supabase.from('cameras').delete().eq('id', req.params.id).in('site_id', req.siteIds);
-  if (error) return res.status(500).json({ error: error.message });
-  res.json({ message: 'Cámara eliminada' });
+  try {
+    const cameras = readCameras();
+    const camera = cameras.find((item) => item.id === req.params.id && req.siteIds.includes(item.site_id));
+
+    if (!camera) {
+      return res.status(404).json({ error: 'Cámara no encontrada' });
+    }
+
+    const filtered = cameras.filter((item) => item.id !== req.params.id);
+    writeCameras(filtered);
+    cameraStreamManager.stopStream(req.params.id, 'primary');
+    cameraStreamManager.stopStream(req.params.id, 'left');
+    cameraStreamManager.stopStream(req.params.id, 'right');
+
+    res.json({ message: 'Cámara eliminada' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/public/cameras', async (req, res) => {
+  try {
+    const siteId = req.query.site_id || DEFAULT_SITE_ID;
+    const cameras = readCameras([siteId]).filter((camera) => camera.activa);
+    res.json(cameras);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/public/camera-streams/:cameraId/:profile/:file', async (req, res) => {
+  try {
+    const siteId = req.query.site_id || DEFAULT_SITE_ID;
+    const camera = readCameras([siteId]).find((item) => item.id === req.params.cameraId);
+
+    if (!camera) {
+      return res.status(404).json({ error: 'Cámara no encontrada' });
+    }
+
+    const profile = getStreamProfile(camera, req.params.profile);
+    if (!profile || !profile.sourceUrl) {
+      return res.status(404).json({ error: 'Perfil de stream no configurado' });
+    }
+
+    if (profile.sourceType === 'hls') {
+      return res.redirect(profile.sourceUrl);
+    }
+
+    cameraStreamManager.ensureStream(camera.id, req.params.profile, profile.sourceUrl);
+
+    const targetFile = await cameraStreamManager.waitForFile(
+      camera.id,
+      req.params.profile,
+      req.params.file,
+      req.params.file === 'index.m3u8' ? 12000 : 5000
+    );
+
+    if (!targetFile) {
+      return res.status(504).json({
+        error: 'No fue posible iniciar el stream.',
+        details: cameraStreamManager.getLastError(camera.id, req.params.profile)
+      });
+    }
+
+    return sendMediaFile(res, targetFile);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 async function attachReportEvidenceUrls(reports) {
@@ -1830,6 +2111,7 @@ app.post(
 // ────────────────────────────────────────────────────────────────────────────
 
 process.on('uncaughtException', (err) => {
+  cameraStreamManager.stopAll();
   fs.writeFileSync(path.join(__dirname, 'server_crash.log'), `Uncaught Exception: ${err.message}\n${err.stack}`);
   process.exit(1);
 });
@@ -1838,6 +2120,17 @@ process.on('unhandledRejection', (reason, promise) => {
   fs.writeFileSync(path.join(__dirname, 'server_crash.log'), `Unhandled Rejection: ${reason}`);
 });
 
+process.on('SIGINT', () => {
+  cameraStreamManager.stopAll();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  cameraStreamManager.stopAll();
+  process.exit(0);
+});
+
 app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor de la API corriendo en http://localhost:${port}`);
 });
+

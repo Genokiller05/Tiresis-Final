@@ -203,6 +203,12 @@ const NewReportScreen = () => {
         report_type_id: selectedType?.id || 1,
         status_id: pendingStatus?.id || 1,
         priority_id: defaultPriority?.id || 1,
+        detalles: {
+          nombreGuardia: user?.nombre || user?.full_name || 'Guardia Registrado',
+          idGuardia: user?.idEmpleado || 'N/A',
+          descripcion: description,
+          area: selectedArea
+        }
       };
 
       const newReport = await addReport(newReportData as any);

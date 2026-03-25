@@ -114,12 +114,12 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
         datasets: [{
           label: 'Incidentes por Hora',
           data: hourData,
-          borderColor: '#7000FF',
-          backgroundColor: 'rgba(112, 0, 255, 0.1)',
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.1)',
           fill: true,
           tension: 0.4,
           pointRadius: 4,
-          pointBackgroundColor: '#7000FF'
+          pointBackgroundColor: '#2563eb'
         }]
       },
       options: {
@@ -166,7 +166,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
           label: 'Reportes',
           data: sortedGuards.map(g => g[1]),
           backgroundColor: [
-            'rgba(112, 0, 255, 0.6)',
+            'rgba(37, 99, 235, 0.6)',
             'rgba(59, 130, 246, 0.6)',
             'rgba(16, 185, 129, 0.6)',
             'rgba(245, 158, 11, 0.6)',
@@ -215,7 +215,7 @@ export class AnalyticsComponent implements OnInit, AfterViewInit {
         datasets: [{
           data: Object.values(typeCounts),
           backgroundColor: [
-            '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#7000FF', '#6366f1', '#ec4899'
+            '#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#2563eb', '#6366f1', '#ec4899'
           ],
           borderWidth: 0,
           hoverOffset: 10

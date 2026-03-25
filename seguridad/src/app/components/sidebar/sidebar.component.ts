@@ -63,6 +63,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.isPremiumUser = this.authService.isPremium();
     this.loadAdminProfile();
+    this.refreshPremiumStatus();
     this.loadAllBadges();
     this.measurePing();
 
@@ -99,6 +100,23 @@ export class SidebarComponent implements OnInit, OnDestroy {
         ? (parts[0][0] + parts[1][0]).toUpperCase()
         : this.adminName.substring(0, 2).toUpperCase();
     }
+  }
+
+  private refreshPremiumStatus(): void {
+    const user = this.authService.getCurrentUser();
+    if (!user || !user.email) return;
+
+    fetch(`http://localhost:3000/api/admins/${user.email}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.plan === 'Premium') {
+          this.isPremiumUser = true;
+          // Actualizar sesión local también para consistencia
+          user.plan = 'Premium';
+          this.authService.setCurrentUser(user);
+        }
+      })
+      .catch(err => console.error('[SIDEBAR] Error refreshing plan:', err));
   }
 
   // Load all badge data

@@ -15,6 +15,8 @@ object SupabaseClient {
     ) {
         install(Postgrest)
         install(Storage)
-        install(Realtime)
+        install(Realtime) {
+            connectOnSubscribe = true
+        }
     }
 }

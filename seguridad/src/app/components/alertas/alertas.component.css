@@ -2,7 +2,7 @@
 
 :host {
   --royal-blue: #0b112b;
-  --electric-purple: #7000ff;
+  --accent-blue: #2563eb;
   --vivid-blue: #2d5bff;
   --void-bg: #05070a;
   --glass-stroke: rgba(255, 255, 255, 0.05);
@@ -11,7 +11,7 @@
 
 .prism-void-container {
   background:
-    radial-gradient(circle at 0% 0%, rgba(112, 0, 255, 0.15), transparent 50%),
+    radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.15), transparent 50%),
     radial-gradient(circle at 100% 100%, rgba(45, 91, 255, 0.1), transparent 50%),
     var(--void-bg);
 }
@@ -34,14 +34,14 @@
   left: 0;
   width: 100%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--electric-purple), transparent);
+  background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
 }
 
 /* --- Alert Prism Card --- */
 .alert-prism-card {
   background: rgba(15, 18, 35, 0.6);
   backdrop-filter: blur(10px);
-  border-left: 4px solid var(--electric-purple);
+  border-left: 4px solid var(--accent-blue);
   border-top: 1px solid var(--glass-stroke);
   border-right: 1px solid var(--glass-stroke);
   border-bottom: 1px solid var(--glass-stroke);
@@ -52,9 +52,9 @@
 
 .alert-prism-card:hover {
   transform: translateX(10px);
-  background: rgba(112, 0, 255, 0.05);
+  background: rgba(37, 99, 235, 0.05);
   border-left-width: 8px;
-  box-shadow: -20px 0 40px rgba(112, 0, 255, 0.1);
+  box-shadow: -20px 0 40px rgba(37, 99, 235, 0.1);
 }
 
 /* --- Status Glows --- */
@@ -82,9 +82,9 @@
 
 /* --- AI / Guardia Tags --- */
 .tag-ia {
-  background: linear-gradient(135deg, rgba(112, 0, 255, 0.2), transparent);
-  color: #a78bfa;
-  border: 1px solid rgba(112, 0, 255, 0.3);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), transparent);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.3);
 }
 
 .tag-guardia {
@@ -95,7 +95,7 @@
 
 /* --- Text Gradients --- */
 .text-prism-gradient {
-  background: linear-gradient(135deg, #fff 30%, #a78bfa 100%);
+  background: linear-gradient(135deg, #fff 30%, #60a5fa 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -115,7 +115,7 @@
 }
 
 .prism-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, var(--electric-purple), var(--vivid-blue));
+  background: linear-gradient(to bottom, var(--accent-blue), var(--vivid-blue));
   border-radius: 10px;
 }
 
@@ -135,7 +135,7 @@
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 1px solid var(--electric-purple);
+  border: 1px solid var(--accent-blue);
   opacity: 0;
   transform: scale(0.1);
   animation: quantum-pulse 4s infinite cubic-bezier(0.2, 0, 0.4, 1);
@@ -153,7 +153,7 @@
   0% {
     transform: scale(0.1);
     opacity: 0;
-    border-color: var(--electric-purple);
+    border-color: var(--accent-blue);
   }
 
   50% {
@@ -172,13 +172,13 @@
   z-index: 10;
   width: 100px;
   height: 100px;
-  background: radial-gradient(circle, rgba(112, 0, 255, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, transparent 70%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(112, 0, 255, 0.2);
-  box-shadow: 0 0 30px rgba(112, 0, 255, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 30px rgba(37, 99, 235, 0.1);
 }
 
 .scanner-laser {
@@ -208,7 +208,7 @@
   margin-top: -20px;
   font-size: 11px;
   font-weight: 900;
-  color: var(--electric-purple);
+  color: var(--accent-blue);
   text-transform: uppercase;
   letter-spacing: 0.5em;
   animation: text-pulse 2s infinite ease-in-out;

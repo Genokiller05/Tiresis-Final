@@ -7,7 +7,7 @@
           {{ activeTab === 'search' ? 'person_search' : 'badge' }}
         </span>
         <h1 class="text-3xl font-bold text-gradient">
-          {{ activeTab === 'search' ? uiText.pageTitle : uiRegText.pageTitle }}
+          {{ activeTab === 'search' ? (uiText.pageTitle || 'Administrar Operativos') : (uiRegText.pageTitle || 'Alta de Personal') }}
         </h1>
       </div>
 
@@ -34,7 +34,7 @@
 
     <!-- SECTION: Search & Admin -->
     <div *ngIf="activeTab === 'search'" class="space-y-8 animate-in fade-in duration-500">
-      <div class="glass-effect p-8 rounded-3xl shadow-2xl border border-glass-border">
+      <div class="glass-effect p-8 rounded-3xl shadow-2xl border border-glass-border sticky top-0 z-30">
         <div class="mb-4">
           <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 ml-1" for="search-id">
             Identificación de Operativo
@@ -48,17 +48,41 @@
               <span class="material-icons absolute left-4 top-1/2 -translate-y-1/2 text-primary">search</span>
             </div>
             <div class="relative">
-              <select
-                id="area-filter"
-                [(ngModel)]="selectedAreaFilter"
-                class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium appearance-none cursor-pointer">
-                <option value="">Todas las areas</option>
-                <option *ngFor="let area of availableAreaFilters" [value]="area">{{ area }}</option>
-              </select>
-              <span class="material-icons absolute right-5 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
+              <!-- Overlay to close dropdown -->
+              <div *ngIf="isAreaDropdownOpen" (click)="isAreaDropdownOpen = false" class="fixed inset-0 z-40"></div>
+
+              <div 
+                (click)="isAreaDropdownOpen = !isAreaDropdownOpen"
+                class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-5 text-white hover:border-primary/50 cursor-pointer flex justify-between items-center transition-all select-none relative z-50 shadow-inner">
+                <span class="font-bold tracking-wide truncate mr-4">
+                  {{ selectedAreaFilter || 'Todas las áreas' }}
+                </span>
+                <span class="material-icons text-primary transition-transform duration-300 pointer-events-none" [class.rotate-180]="isAreaDropdownOpen">expand_more</span>
+              </div>
+              
+              <!-- Custom Dropdown Options -->
+              <div *ngIf="isAreaDropdownOpen" 
+                class="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[#0A192F]/95 backdrop-blur-3xl border border-glass-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                <div class="max-h-[300px] overflow-y-auto custom-scrollbar py-2">
+                  <div 
+                    (click)="selectAreaFilter(''); isAreaDropdownOpen = false"
+                    class="px-6 py-3 cursor-pointer transition-colors relative group"
+                    [ngClass]="selectedAreaFilter === '' ? 'bg-primary/20 text-white font-bold' : 'text-gray-400 hover:bg-black/50 hover:text-white'">
+                    <span *ngIf="selectedAreaFilter === ''" class="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(37,99,235,0.8)]"></span>
+                    Todas las áreas
+                  </div>
+                  <div *ngFor="let area of availableAreaFilters"
+                    (click)="selectAreaFilter(area); isAreaDropdownOpen = false"
+                    class="px-6 py-3 cursor-pointer transition-colors relative group"
+                    [ngClass]="selectedAreaFilter === area ? 'bg-primary/20 text-white font-bold' : 'text-gray-400 hover:bg-black/50 hover:text-white'">
+                    <span *ngIf="selectedAreaFilter === area" class="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(37,99,235,0.8)]"></span>
+                    {{ area }}
+                  </div>
+                </div>
+              </div>
             </div>
             <button (click)="onSearch()"
-              class="px-10 py-4 bg-gradient-premium rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm">
+              class="px-10 py-4 bg-gradient-premium rounded-2xl text-white font-black uppercase tracking-widest shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm">
               BUSCAR
             </button>
             <button (click)="clearSearch()"
@@ -73,7 +97,7 @@
         </div>
       </div>
 
-      <div class="glass-effect p-8 rounded-3xl shadow-2xl border border-glass-border">
+      <div class="glass-effect p-8 rounded-3xl shadow-2xl border border-glass-border relative z-10">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <div>
             <p class="text-[10px] font-black text-primary uppercase tracking-[0.25em]">Lista de Guardias</p>
@@ -117,8 +141,12 @@
                 <button
                   type="button"
                   (click)="viewGuardProfile(guard, $event)"
-                  class="px-4 py-2 rounded-xl border border-primary/30 bg-primary/10 text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:border-primary/60 hover:text-white transition-all">
-                  Ver perfil
+                  class="px-4 py-2 rounded-xl border transition-all text-[10px] font-black uppercase tracking-[0.2em] relative overflow-hidden group"
+                  [ngClass]="currentGuardId === guard.idEmpleado ? 'border-primary/80 bg-primary text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'border-primary/30 bg-primary/10 text-primary hover:border-primary/60 hover:text-white'">
+                  <span class="relative z-10 flex items-center gap-1">
+                    {{ currentGuardId === guard.idEmpleado ? 'CERRAR PERFIL' : 'VER PERFIL' }}
+                    <span class="material-icons text-[10px]" *ngIf="currentGuardId === guard.idEmpleado">keyboard_arrow_up</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -146,7 +174,7 @@
 
             <div class="relative z-10">
               <div class="flex items-center space-x-3 mb-6">
-                <div class="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-purple-600 rounded-full"></div>
+                <div class="w-1.5 h-8 bg-gradient-to-b from-cyan-400 to-blue-600 rounded-full"></div>
                 <h2 class="text-3xl font-black text-white tracking-tighter leading-none">{{ currentGuard.nombre ||
                   currentGuard.full_name }}</h2>
               </div>
@@ -215,15 +243,15 @@
 
             <div class="relative">
               <div class="absolute -inset-6 border border-cyan-400/20 rounded-[3rem] animate-spin-slow"></div>
-              <div class="absolute -inset-10 border border-purple-500/10 rounded-[3.5rem] animate-spin-reverse"></div>
+              <div class="absolute -inset-10 border border-blue-500/10 rounded-[3.5rem] animate-spin-reverse"></div>
 
               <div
-                class="w-64 h-64 bg-black/80 rounded-[2.5rem] overflow-hidden border-2 border-primary/50 group-hover:border-primary transition-all shadow-[0_0_50px_rgba(139,92,246,0.2)] relative z-10">
+                class="w-64 h-64 bg-black/80 rounded-[2.5rem] overflow-hidden border-2 border-primary/50 group-hover:border-primary transition-all shadow-[0_0_50px_rgba(59, 130, 246,0.2)] relative z-10">
                 <img alt="Ficha Táctica" class="w-full h-full object-cover transition-all" [src]="getGuardImageUrl()" />
                 <input type="file" #fileInputMain (change)="onGuardFileSelected($event)" class="hidden"
                   accept="image/*" />
                 <button (click)="fileInputMain.click()" title="Cambiar foto de perfil"
-                  class="absolute bottom-3 right-3 bg-purple-600/80 hover:bg-purple-500 p-2.5 rounded-full backdrop-blur-md border border-white/20 transition-all transform hover:scale-110 text-white flex items-center justify-center shadow-lg">
+                  class="absolute bottom-3 right-3 bg-blue-600/80 hover:bg-blue-500 p-2.5 rounded-full backdrop-blur-md border border-white/20 transition-all transform hover:scale-110 text-white flex items-center justify-center shadow-lg">
                   <span class="material-icons text-base">photo_camera</span>
                 </button>
               </div>
@@ -420,17 +448,35 @@
             </div>
 
             <div class="space-y-3">
-              <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1"
-                for="reg-area">Sector de Despliegue</label>
+              <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1">
+                Sector de Despliegue
+              </label>
               <div class="relative">
-                <select
-                  class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all font-medium appearance-none cursor-pointer"
-                  id="reg-area" name="area" [(ngModel)]="regForm.area" required>
-                  <option value="" disabled selected>Seleccionar sector...</option>
-                  <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
-                </select>
-                <span
-                  class="material-icons absolute right-5 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
+                <!-- Overlay to close dropdown -->
+                <div *ngIf="isRegAreaDropdownOpen" (click)="isRegAreaDropdownOpen = false" class="fixed inset-0 z-40"></div>
+
+                <div 
+                  (click)="isRegAreaDropdownOpen = !isRegAreaDropdownOpen"
+                  class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white hover:border-primary/50 cursor-pointer flex justify-between items-center transition-all select-none relative z-50 shadow-inner">
+                  <span class="font-bold tracking-wide truncate mr-4" [ngClass]="regForm.area === '' ? 'text-gray-500' : 'text-white'">
+                    {{ regForm.area || 'Seleccionar sector...' }}
+                  </span>
+                  <span class="material-icons text-primary transition-transform duration-300 pointer-events-none" [class.rotate-180]="isRegAreaDropdownOpen">expand_more</span>
+                </div>
+                
+                <!-- Custom Dropdown Options -->
+                <div *ngIf="isRegAreaDropdownOpen" 
+                  class="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[#0A192F]/95 backdrop-blur-3xl border border-glass-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div class="max-h-[250px] overflow-y-auto custom-scrollbar py-2">
+                    <div *ngFor="let area of areas"
+                      (click)="regForm.area = area; isRegAreaDropdownOpen = false"
+                      class="px-6 py-3 cursor-pointer transition-colors relative group"
+                      [ngClass]="regForm.area === area ? 'bg-primary/20 text-white font-bold' : 'text-gray-400 hover:bg-black/50 hover:text-white'">
+                      <span *ngIf="regForm.area === area" class="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_10px_rgba(37,99,235,0.8)]"></span>
+                      {{ area }}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -443,20 +489,12 @@
                 maxlength="10" minlength="10" (keypress)="$event.charCode >= 48 && $event.charCode <= 57" />
             </div>
 
-            <div class="space-y-3 md:col-span-2">
-              <label class="block text-[10px] font-black text-primary uppercase tracking-[0.2em] ml-1"
-                for="reg-address">Dirección de Residencia <span
-                  class="text-gray-500 normal-case tracking-normal font-medium">(Opcional)</span></label>
-              <input
-                class="w-full bg-black/60 border border-glass-border rounded-2xl px-6 py-4 text-white focus:ring-2 focus:ring-primary/50 outline-none transition-all placeholder:text-gray-700 font-medium"
-                id="reg-address" name="direccion" [(ngModel)]="regForm.direccion" type="text"
-                placeholder="Calle, Número, Colonia, Delegación/Municipio, CP" />
-            </div>
+
           </div>
 
           <div class="flex items-center space-x-6 pt-6">
             <button type="submit" [disabled]="isLoading"
-              class="flex-1 py-5 bg-gradient-premium text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+              class="flex-1 py-5 bg-gradient-premium text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-2xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               {{ isLoading ? 'Sincronizando...' : (uiRegText.registerButton || 'Autorizar Operativo') }}
             </button>
             <button type="button" (click)="resetRegForm()"
@@ -599,16 +637,29 @@
             class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all">
         </div>
 
-        <div class="space-y-1.5">
-          <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Área de
-            Operación</label>
+        <div class="space-y-1.5 relative">
+          <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Área de Operación</label>
           <div class="relative">
-            <select [(ngModel)]="editForm.area"
-              class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all cursor-pointer">
-              <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
-            </select>
-            <span
-              class="material-icons absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
+            <div *ngIf="isEditAreaDropdownOpen" (click)="isEditAreaDropdownOpen = false" class="fixed inset-0 z-40"></div>
+            <div 
+              (click)="isEditAreaDropdownOpen = !isEditAreaDropdownOpen"
+              class="w-full px-5 py-3 md:py-4 bg-black/60 border border-glass-border rounded-xl text-white font-bold hover:border-primary/50 cursor-pointer flex justify-between items-center transition-all select-none relative z-50">
+              <span class="truncate mr-4">{{ editForm.area || 'Seleccionar sector...' }}</span>
+              <span class="material-icons text-primary transition-transform duration-300 pointer-events-none" [class.rotate-180]="isEditAreaDropdownOpen">expand_more</span>
+            </div>
+            
+            <div *ngIf="isEditAreaDropdownOpen" 
+              class="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[#0A192F]/95 backdrop-blur-3xl border border-glass-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div class="max-h-[200px] overflow-y-auto custom-scrollbar py-2">
+                <div *ngFor="let area of areas"
+                  (click)="editForm.area = area; isEditAreaDropdownOpen = false"
+                  class="px-5 py-3 cursor-pointer transition-colors relative group"
+                  [ngClass]="editForm.area === area ? 'bg-primary/20 text-white font-bold' : 'text-gray-400 hover:bg-black/50 hover:text-white'">
+                  <span *ngIf="editForm.area === area" class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></span>
+                  {{ area }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -619,29 +670,33 @@
             class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all">
         </div>
 
-        <div class="space-y-1.5 md:col-span-1">
+        <div class="space-y-1.5 md:col-span-1 relative">
           <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Estado</label>
           <div class="relative">
-            <select [(ngModel)]="editForm.estado"
-              class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none appearance-none transition-all cursor-pointer">
-              <option value="En servicio">En servicio</option>
-              <option value="Fuera de servicio">Fuera de servicio</option>
-              <option value="Licencia">Licencia</option>
-              <option value="Baja temporal">Baja temporal</option>
-            </select>
-            <span
-              class="material-icons absolute right-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">expand_more</span>
+            <div *ngIf="isEditStateDropdownOpen" (click)="isEditStateDropdownOpen = false" class="fixed inset-0 z-40"></div>
+            <div 
+              (click)="isEditStateDropdownOpen = !isEditStateDropdownOpen"
+              class="w-full px-5 py-3 md:py-4 bg-black/60 border border-glass-border rounded-xl text-white font-bold hover:border-primary/50 cursor-pointer flex justify-between items-center transition-all select-none relative z-50">
+              <span class="truncate mr-4">{{ editForm.estado || 'Seleccionar...' }}</span>
+              <span class="material-icons text-primary transition-transform duration-300 pointer-events-none" [class.rotate-180]="isEditStateDropdownOpen">expand_more</span>
+            </div>
+            
+            <div *ngIf="isEditStateDropdownOpen" 
+              class="absolute left-0 right-0 top-[calc(100%+0.5rem)] bg-[#0A192F]/95 backdrop-blur-3xl border border-glass-border rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+              <div class="max-h-[200px] overflow-y-auto custom-scrollbar py-2">
+                <div *ngFor="let st of guardStates"
+                  (click)="editForm.estado = st; isEditStateDropdownOpen = false"
+                  class="px-5 py-3 cursor-pointer transition-colors relative group"
+                  [ngClass]="editForm.estado === st ? 'bg-primary/20 text-white font-bold' : 'text-gray-400 hover:bg-black/50 hover:text-white'">
+                  <span *ngIf="editForm.estado === st" class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></span>
+                  {{ st }}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="space-y-1.5 md:col-span-1">
-          <label class="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Dirección de
-            Residencia <span
-              class="text-gray-600 normal-case tracking-normal font-medium text-[9px]">(Opcional)</span></label>
-          <input type="text" [(ngModel)]="editForm.direccion"
-            class="w-full px-5 py-3 md:py-4 rounded-xl border border-glass-border bg-black/60 text-white font-bold focus:ring-2 focus:ring-primary/50 outline-none transition-all"
-            placeholder="Calle, número, colonia...">
-        </div>
+
       </div>
 
       <div
@@ -656,7 +711,7 @@
           <span>BAJA</span>
         </button>
         <button (click)="saveEditGuard()"
-          class="w-full sm:w-auto px-10 py-3.5 bg-gradient-premium text-white rounded-xl font-black uppercase tracking-widest shadow-xl shadow-purple-900/40 hover:scale-[1.02] active:scale-95 transition-all text-xs order-1 sm:order-3">
+          class="w-full sm:w-auto px-10 py-3.5 bg-gradient-premium text-white rounded-xl font-black uppercase tracking-widest shadow-xl shadow-blue-900/40 hover:scale-[1.02] active:scale-95 transition-all text-xs order-1 sm:order-3">
           ACTUALIZAR DATOS
         </button>
       </div>
