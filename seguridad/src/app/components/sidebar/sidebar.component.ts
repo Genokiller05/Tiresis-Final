@@ -5,6 +5,7 @@ import { Router, RouterModule, RouterLink } from '@angular/router';
 import { ReportService } from '../../services/report.service';
 import { AuthService } from '../../services/auth.service';
 import { interval, Subscription } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-sidebar',
@@ -43,6 +44,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   private refreshSubscription!: Subscription;
   private realtimeSubscription!: Subscription;
+  private apiUrl = environment.apiUrl;
 
   constructor(
     private router: Router,
@@ -106,7 +108,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     if (!user || !user.email) return;
 
-    fetch(`http://localhost:3000/api/admins/${user.email}`)
+    fetch(`${this.apiUrl}/admins/${user.email}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.plan === 'Premium') {
@@ -248,7 +250,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private async measurePing(): Promise<void> {
     const start = performance.now();
     try {
-      await fetch('http://localhost:3000/api/ping', { signal: AbortSignal.timeout(3000) });
+      await fetch(`${this.apiUrl}/ping`, { signal: AbortSignal.timeout(3000) });
       const ms = Math.round(performance.now() - start);
       this.pingMs = `${ms}`;
       this.systemStatus = ms < 300 ? 'OPERATIVO' : 'DEGRADADO';

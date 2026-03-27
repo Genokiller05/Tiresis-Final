@@ -9,6 +9,7 @@ import { AuthService } from '../../services/auth.service'; // Importar el AuthSe
 import { GuardService } from '../../services/guard.service';
 import { SupabaseService } from '../../services/supabase.service';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -22,6 +23,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   public searchId: string = '';
   public selectedAreaFilter: string = '';
   public isAreaDropdownOpen: boolean = false;
+  private apiUrl = environment.apiUrl;
   
   public errorMessage: string = '';
   public successMessage: string = '';
@@ -254,7 +256,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        fetch(`http://localhost:3000/api/admins/${user.email}`)
+        fetch(`${this.apiUrl}/admins/${user.email}`)
           .then(r => r.json())
           .then(data => {
             if (data && data.plan === 'Premium') {
@@ -552,7 +554,8 @@ export class HomeComponent implements OnInit, OnDestroy {
         return this.currentGuard.foto;
       } else {
         // It's a relative path from our local server
-        return `http://localhost:3000${this.currentGuard.foto}`;
+        const baseUrl = this.apiUrl.replace('/api', '');
+        return `${baseUrl}${this.currentGuard.foto}`;
       }
     }
     // Fallback for older data structures or if photo is missing

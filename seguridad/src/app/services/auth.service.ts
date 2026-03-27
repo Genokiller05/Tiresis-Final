@@ -3,10 +3,13 @@ import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 
+import { environment } from '../../environments/environment';
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private apiUrl = environment.apiUrl;
   private loggedIn: BehaviorSubject<boolean>;
 
   isLoggedIn$!: Observable<boolean>;
@@ -49,11 +52,11 @@ export class AuthService {
   }
 
   registerAdmin(adminData: any): Observable<any> {
-    return this.http.post('http://localhost:3000/api/register-admin', adminData);
+    return this.http.post(`${this.apiUrl}/register-admin`, adminData);
   }
 
   loginAdmin(credentials: any): Observable<any> {
-    return this.http.post('http://localhost:3000/api/login', credentials).pipe(
+    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
       tap((response: any) => {
         if (response && response.admin) {
           this.setCurrentUser(response.admin);

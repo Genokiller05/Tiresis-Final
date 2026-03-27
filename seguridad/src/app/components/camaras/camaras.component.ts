@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CameraService } from '../../services/camera.service';
+import { environment } from '../../../environments/environment';
 
 type StreamType = 'hls' | 'rtsp';
 type StreamMode = 'single' | 'stereo';
@@ -64,7 +65,7 @@ export class CamarasComponent implements OnInit, AfterViewInit, OnDestroy {
   public loadError = '';
   public playbackError = '';
 
-  private readonly apiBaseUrl = 'http://localhost:3000';
+  private readonly apiBaseUrl = environment.apiUrl.replace('/api', '');
   private readonly hlsInstances = new Map<string, any>();
   private viewReady = false;
 

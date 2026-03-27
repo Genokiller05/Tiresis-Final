@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, Subject, Observable } from 'rxjs';
 import { SupabaseService } from './supabase.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
 })
 export class GuardService {
-    private apiUrl = 'http://localhost:3000/api';
+    private apiUrl = environment.apiUrl;
     private guardUpdates = new Subject<any>();
 
     constructor(private http: HttpClient, private supabaseService: SupabaseService) {

@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
     providedIn: 'root'
 })
 export class CameraService {
-    private apiUrl = 'http://localhost:3000/api/cameras';
+    private apiUrl = `${environment.apiUrl}/cameras`;
 
     constructor(private http: HttpClient) { }
 

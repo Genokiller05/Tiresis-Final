@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 
 import { AuthService } from '../../services/auth.service';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-profile',
@@ -48,8 +49,8 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
     this.calculateCurrentWeek();
   }
 
-  ngOnDestroy(): void {
-  }
+  ngOnDestroy(): void { }
+  private apiUrl = environment.apiUrl;
 
   private loadProfile(): void {
     if (isPlatformBrowser(this.platformId)) {
@@ -81,7 +82,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
     const user = this.authService.getCurrentUser();
     if (!user || !user.email) return;
 
-    fetch(`http://localhost:3000/api/admins/${user.email}`)
+    fetch(`${this.apiUrl}/admins/${user.email}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.plan === 'Premium') {

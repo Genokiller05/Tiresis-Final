@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface WeeklyReportIncident {
   id: string;
@@ -39,7 +40,7 @@ export interface WeeklyReport {
 
 @Injectable({ providedIn: 'root' })
 export class WeeklyReportService {
-  private readonly apiUrl = 'http://localhost:3000/api';
+  private readonly apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

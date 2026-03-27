@@ -5,6 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { GeocodingService } from '../../services/geocoding.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
     selector: 'app-admin-register',
@@ -600,6 +601,7 @@ export class AdminRegisterComponent implements OnInit {
     // OXXO voucher
     oxxoReference: string = '';
     oxxoExpiresAt: string = '';
+    private apiUrl = environment.apiUrl;
     barcodeBars: number[] = [];
 
     constructor(
@@ -668,7 +670,7 @@ export class AdminRegisterComponent implements OnInit {
         if (!scriptLoaded || !(window as any).Stripe) return false;
 
         return await new Promise((resolve) => {
-            this.http.get<any>('http://localhost:3000/api/stripe/config').subscribe({
+            this.http.get<any>(`${this.apiUrl}/stripe/config`).subscribe({
                 next: (res) => {
                     if (res.publishableKey) {
                         this.stripeInstance = (window as any).Stripe(res.publishableKey);
@@ -742,7 +744,7 @@ export class AdminRegisterComponent implements OnInit {
         }
         const payload = { amountMXN: this.selectedPlan.price, email: this.adminData.email };
 
-        this.http.post<any>('http://localhost:3000/api/stripe/create-payment-intent', payload).subscribe({
+        this.http.post<any>(`${this.apiUrl}/stripe/create-payment-intent`, payload).subscribe({
             next: (res) => {
                 this.clientSecret = res.clientSecret;
                 this.isProcessingPayment = false;
@@ -797,7 +799,7 @@ export class AdminRegisterComponent implements OnInit {
         this.error = '';
         const payload = { amountMXN: this.selectedPlan.price, email: this.adminData.email, name: this.adminData.fullName };
 
-        this.http.post<any>('http://localhost:3000/api/stripe/create-oxxo-payment', payload).subscribe({
+        this.http.post<any>(`${this.apiUrl}/stripe/create-oxxo-payment`, payload).subscribe({
             next: (res) => {
                 this.isProcessingPayment = false;
                 // Backend ya confirmó el pago y devolvió datos del voucher
