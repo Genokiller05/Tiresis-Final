@@ -15,6 +15,24 @@ import javax.inject.Singleton
 class DataRepository @Inject constructor() {
 
     private val supabase = SupabaseClient.client
+    private val fallbackReporterProfileId = "00000000-0000-0000-0000-000000000000"
+    private val fallbackReportTypes = listOf(
+        IncidentType(1, "Incidente", "incident"),
+        IncidentType(2, "Novedad", "novelty"),
+        IncidentType(3, "Rondín", "patrol"),
+        IncidentType(4, "Alerta recibida", "received_alert")
+    )
+    private val fallbackReportStatuses = listOf(
+        ReportStatus(1, "Pendiente", "pending"),
+        ReportStatus(2, "En revisión", "in_review"),
+        ReportStatus(3, "Cerrado", "closed")
+    )
+    private val fallbackPriorities = listOf(
+        Priority(1, "Baja", "low"),
+        Priority(2, "Media", "medium"),
+        Priority(3, "Alta", "high"),
+        Priority(4, "Crítica", "critical")
+    )
 
     suspend fun fetchSites(): List<Site> {
         return try {
@@ -30,10 +48,71 @@ class DataRepository @Inject constructor() {
         }
     }
 
+    suspend fun fetchReportTypes(): List<IncidentType> {
+        return try {
+            val types = supabase.postgrest.from("report_types")
+                .select {
+                    order("id", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                }
+                .decodeList<IncidentType>()
+
+            if (types.isNotEmpty()) types else fallbackReportTypes
+        } catch (e: Exception) {
+            fallbackReportTypes
+        }
+    }
+
+    suspend fun fetchReportStatuses(): List<ReportStatus> {
+        return try {
+            val statuses = supabase.postgrest.from("report_statuses")
+                .select {
+                    order("id", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                }
+                .decodeList<ReportStatus>()
+
+            if (statuses.isNotEmpty()) statuses else fallbackReportStatuses
+        } catch (e: Exception) {
+            fallbackReportStatuses
+        }
+    }
+
+    suspend fun fetchPriorities(): List<Priority> {
+        return try {
+            val priorities = supabase.postgrest.from("priorities")
+                .select {
+                    order("id", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                }
+                .decodeList<Priority>()
+
+            if (priorities.isNotEmpty()) priorities else fallbackPriorities
+        } catch (e: Exception) {
+            fallbackPriorities
+        }
+    }
+
     suspend fun createReport(reportData: ReportInsert): Report {
-        return supabase.postgrest.from("reports")
-            .insert(reportData) { select() }
-            .decodeSingle<Report>()
+        return try {
+            supabase.postgrest.from("reports")
+                .insert(reportData) { select() }
+                .decodeSingle<Report>()
+        } catch (e: Exception) {
+            // Some environments still have a broken FK pointing created_by_guard_id to profiles.
+            // Retry with the known default profile so the guard can still submit the report.
+            if (
+                reportData.created_by_guard_id != null &&
+                (
+                    e.message?.contains("reports_created_by_guard_id_fkey", ignoreCase = true) == true ||
+                    e.message?.contains("profiles", ignoreCase = true) == true
+                )
+            ) {
+                val fallbackReport = reportData.copy(created_by_guard_id = fallbackReporterProfileId)
+                supabase.postgrest.from("reports")
+                    .insert(fallbackReport) { select() }
+                    .decodeSingle<Report>()
+            } else {
+                throw e
+            }
+        }
     }
 
     suspend fun fetchReports(): List<Report> {

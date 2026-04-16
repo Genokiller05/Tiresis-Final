@@ -145,7 +145,7 @@ import { environment } from '../../../environments/environment';
                     <!-- MINI-TARJETA BÁSICA -->
                     <div class="pricing-card basic !p-7 border-blue-500/20 bg-blue-500/5 hover:border-blue-500/40 transition-all duration-300">
                         <div class="text-lg font-semibold text-blue-400 mb-1">Plan Básico</div>
-                        <div class="text-4xl font-bold text-white mb-4">$10 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
+                        <div class="text-4xl font-bold text-white mb-4">$1200 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
                         <ul class="text-xs text-gray-400 space-y-3 mb-0">
                             <li class="flex items-start gap-2"><svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Hasta 2 guardias vinculados al sitio</span></li>
                             <li class="flex items-start gap-2"><svg class="w-4 h-4 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Reportes digitales con marca de agua</span></li>
@@ -157,7 +157,7 @@ import { environment } from '../../../environments/environment';
                     <div class="pricing-card premium !p-7 scale-105 border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_40px_rgba(16,185,129,0.1)]">
                         <div class="absolute -top-3 right-4 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Más Popular</div>
                         <div class="text-lg font-semibold text-emerald-400 mb-1">Plan Premium</div>
-                        <div class="text-4xl font-bold text-white mb-4">$15 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
+                        <div class="text-4xl font-bold text-white mb-4">$2800 <span class="text-sm font-normal text-gray-400">MXN / mes</span></div>
                         <ul class="text-xs text-gray-400 space-y-3 mb-0">
                             <li class="flex items-start gap-2"><svg class="w-4 h-4 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Guardias y Usuarios Ilimitados</span></li>
                             <li class="flex items-start gap-2"><svg class="w-4 h-4 text-emerald-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> <span>Marca Blanca (Usa tu propio Logo)</span></li>
@@ -240,7 +240,7 @@ import { environment } from '../../../environments/environment';
                 <div class="pricing-card basic">
                     <div class="text-xl font-semibold text-blue-400 mb-2">Básico / Demo</div>
                     <div class="text-4xl font-extrabold text-white mb-2 flex items-baseline">
-                        $10 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
+                        $1200 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
                     </div>
                     <p class="text-gray-400 text-sm mb-6 pb-6 border-b border-gray-700/50">Ideal para conocer el sistema o sitios con pocos requerimientos.</p>
                     
@@ -278,7 +278,7 @@ import { environment } from '../../../environments/environment';
                     
                     <div class="text-xl font-semibold text-emerald-400 mb-2">Premium</div>
                     <div class="text-4xl font-extrabold text-white mb-2 flex items-baseline">
-                        $15 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
+                        $2800 <span class="text-sm font-normal text-gray-400 ml-2">MXN / mes</span>
                     </div>
                     <p class="text-gray-400 text-sm mb-6 pb-6 border-b border-gray-700/50">Control total, auditorías y evidencia multimedia ilimitada.</p>
                     
@@ -329,11 +329,11 @@ import { environment } from '../../../environments/environment';
              <div class="bg-[#0a192f] border border-blue-500/20 rounded-xl p-6 mb-8 shadow-inner">
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-gray-400 text-sm">Mensualidad del plan</span>
-                    <span class="text-white font-bold text-xl">$ {{ selectedPlan.price }}.00 MXN</span>
+                    <span class="text-white font-bold text-xl">&#36; {{ getDisplayPrice(selectedPlan.price) }}.00 MXN</span>
                 </div>
                 <div class="flex justify-between items-center border-t border-gray-800 mt-4 pt-4">
                     <span class="text-gray-300 font-medium">Total a pagar ahora:</span>
-                    <span class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">$ {{ selectedPlan.price }}.00</span>
+                    <span class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-300">&#36; {{ getDisplayPrice(selectedPlan.price) }}.00</span>
                 </div>
                 <p *ngIf="selectedPlan.name === 'Premium'" class="mt-4 text-xs text-emerald-400 text-center font-bold">
                    Tu primer mes es totalmente GRATIS. No se te cobrará nada hoy.
@@ -414,7 +414,7 @@ import { environment } from '../../../environments/environment';
                  <button (click)="confirmCardPayment()" [disabled]="isProcessingPayment"
                         class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-50">
                     <span *ngIf="isProcessingPayment" class="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
-                    {{ isProcessingPayment ? 'Procesando pago...' : 'Pagar $' + selectedPlan.price + '.00 MXN' }}
+                    {{ isProcessingPayment ? 'Procesando pago...' : 'Pagar $' + getDisplayPrice(selectedPlan.price) + '.00 MXN' }}
                  </button>
                  <p class="text-center text-[10px] text-gray-600 mt-4 flex items-center justify-center gap-1">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -430,7 +430,7 @@ import { environment } from '../../../environments/environment';
                          <span class="text-sm text-gray-500">Ficha de pago</span>
                      </div>
                      <div class="text-center mb-4">
-                         <p class="text-2xl font-bold text-gray-900">MXN $10.00</p>
+                        <p class="text-2xl font-bold text-gray-900">MXN &#36;{{ getDisplayPrice(selectedPlan.price) }}.00</p>
                          <p class="text-sm text-gray-500 mt-1">Vence el {{ oxxoExpiresAt }}</p>
                      </div>
                      <div class="border-t border-b border-gray-300 py-4 my-4 text-center">
@@ -727,6 +727,12 @@ export class AdminRegisterComponent implements OnInit {
         this.step = 'payment';
     }
 
+    getDisplayPrice(price: number): number {
+        if (price === 10) return 1200;
+        if (price === 15) return 2800;
+        return price;
+    }
+
     processPayment() {
         if (this.selectedMethod === 'card') this.initCardForm();
         else if (this.selectedMethod === 'oxxo') this.initOxxoPayment();
@@ -837,7 +843,7 @@ export class AdminRegisterComponent implements OnInit {
             .instructions p{margin:8px 0;} hr{margin:20px 0;} .footer{text-align:center;color:#999;margin-top:30px;font-size:12px;}
             </style></head><body>
             <div class="title">OXXO - Ficha de Pago</div>
-            <div class="amount">MXN $${this.selectedPlan.price}.00</div>
+            <div class="amount">MXN $${this.getDisplayPrice(this.selectedPlan.price)}.00</div>
             <div class="expires">Vence el ${this.oxxoExpiresAt}</div>
             <div class="ref">${this.oxxoReference}</div>
             <div class="instructions">

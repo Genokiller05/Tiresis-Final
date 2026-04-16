@@ -27,7 +27,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.genokiller05.miappmovil.R
+import com.genokiller05.miappmovil.data.model.IncidentType
+import com.genokiller05.miappmovil.data.model.Priority
 import com.genokiller05.miappmovil.data.model.ReportInsert
+import com.genokiller05.miappmovil.data.model.ReportStatus
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import com.genokiller05.miappmovil.ui.viewmodel.UserViewModel
@@ -52,23 +55,18 @@ fun NewReportScreen(
     val repo = remember { DataRepository() }
     val user by userViewModel.user.collectAsState()
 
-    var selectedType by remember { mutableIntStateOf(0) }
+    var incidentTypes by remember { mutableStateOf<List<IncidentType>>(emptyList()) }
+    var reportStatuses by remember { mutableStateOf<List<ReportStatus>>(emptyList()) }
+    var priorities by remember { mutableStateOf<List<Priority>>(emptyList()) }
+    var selectedTypeId by remember { mutableStateOf<Int?>(null) }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var isLoading by remember { mutableStateOf(false) }
+    var isCatalogLoading by remember { mutableStateOf(true) }
     var showTypeDropdown by remember { mutableStateOf(false) }
     var showCamera by remember { mutableStateOf(false) }
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-
-    val incidentTypes = listOf(
-        Pair(1, "Robo / Hurto"),
-        Pair(2, "Vandalismo"),
-        Pair(3, "Rondín"),
-        Pair(4, "Incendio"),
-        Pair(5, "Falla técnica"),
-        Pair(6, "Actividad sospechosa"),
-        Pair(7, "Otro")
-    )
+    val selectedIncidentType = incidentTypes.firstOrNull { it.id == selectedTypeId }
 
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (!success) imageUri = null
@@ -76,6 +74,13 @@ fun NewReportScreen(
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imageUri = uri
+    }
+
+    LaunchedEffect(Unit) {
+        incidentTypes = repo.fetchReportTypes()
+        reportStatuses = repo.fetchReportStatuses()
+        priorities = repo.fetchPriorities()
+        isCatalogLoading = false
     }
 
     if (showCamera) {
@@ -138,7 +143,7 @@ fun NewReportScreen(
                 onExpandedChange = { showTypeDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = incidentTypes.find { it.first == selectedType }?.second
+                    value = selectedIncidentType?.name
                         ?: stringResource(R.string.new_report_select_incident_type),
                     onValueChange = {},
                     readOnly = true,
@@ -161,16 +166,25 @@ fun NewReportScreen(
                     onDismissRequest = { showTypeDropdown = false },
                     containerColor = colors.card
                 ) {
-                    incidentTypes.forEach { (id, name) ->
+                    incidentTypes.forEach { type ->
                         DropdownMenuItem(
-                            text = { Text(name, color = colors.text) },
+                            text = { Text(type.name, color = colors.text) },
                             onClick = {
-                                selectedType = id
+                                selectedTypeId = type.id
                                 showTypeDropdown = false
                             }
                         )
                     }
                 }
+            }
+
+            if (isCatalogLoading) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = colors.accent,
+                    trackColor = colors.border
+                )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -309,19 +323,41 @@ fun NewReportScreen(
             // Submit button
             Button(
                 onClick = {
-                    if (selectedType == 0 || description.isBlank()) {
+                    if (selectedTypeId == null || description.isBlank()) {
                         Toast.makeText(context, "Por favor completa todos los campos requeridos.", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
                     isLoading = true
                     scope.launch {
                         try {
-                            val guardId = user?.id ?: user?.document_id ?: ""
+                            // IMPORTANT: created_by_guard_id is UUID type in DB.
+                            // user.id is the UUID, document_id/idEmpleado are NOT UUIDs.
+                            val guardId = user?.id
+                            if (guardId.isNullOrEmpty()) {
+                                Toast.makeText(context, "Error: No se pudo identificar al guardia. Cierre sesión e intente de nuevo.", Toast.LENGTH_LONG).show()
+                                isLoading = false
+                                return@launch
+                            }
+
                             val nombreGuardia = user?.nombre?.ifEmpty { user?.full_name } ?: "Guardia"
                             val idEmpleadoStr = user?.idEmpleado?.ifEmpty { user?.document_id } ?: "---"
                             val areaGuardia = user?.area ?: "No asignada"
                             
-                            var finalDescription = "$description | Guardia: $nombreGuardia (ID: $idEmpleadoStr) | Area: $areaGuardia"
+                            // Resolve site_id: use guard's site_id, or fallback to first available site
+                            var siteId = user?.site_id
+                            if (siteId.isNullOrEmpty()) {
+                                try {
+                                    val sites = repo.fetchSites()
+                                    siteId = sites.firstOrNull()?.id
+                                } catch (_: Exception) { }
+                            }
+                            if (siteId.isNullOrEmpty()) {
+                                Toast.makeText(context, "Error: No hay sitio asignado. Contacte al administrador.", Toast.LENGTH_LONG).show()
+                                isLoading = false
+                                return@launch
+                            }
+
+                            var finalDescription = "Area: $areaGuardia | Guardia: $nombreGuardia (ID: $idEmpleadoStr) | $description"
                             var uploadedEvidenceId: String? = null
 
                             // Upload evidence if present first
@@ -365,13 +401,20 @@ fun NewReportScreen(
                                 }
                             }
 
+                            val pendingStatusId = reportStatuses.firstOrNull { it.code == "pending" }?.id
+                                ?: reportStatuses.firstOrNull()?.id
+                                ?: 1
+                            val mediumPriorityId = priorities.firstOrNull { it.code == "medium" }?.id
+                                ?: priorities.firstOrNull()?.id
+                                ?: 2
+
                             val reportData = ReportInsert(
-                                report_type_id = selectedType,
-                                status_id = 1,
-                                priority_id = 2,
+                                report_type_id = selectedTypeId,
+                                status_id = pendingStatusId,
+                                priority_id = mediumPriorityId,
                                 short_description = finalDescription,
                                 created_by_guard_id = guardId,
-                                site_id = user?.site_id
+                                site_id = siteId
                             )
 
                             val report = repo.createReport(reportData)
@@ -393,7 +436,7 @@ fun NewReportScreen(
                     .fillMaxWidth()
                     .height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                enabled = !isLoading,
+                enabled = !isLoading && !isCatalogLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = colors.accent)
             ) {
                 if (isLoading) {

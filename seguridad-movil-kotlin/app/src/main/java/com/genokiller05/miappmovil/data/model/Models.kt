@@ -147,18 +147,21 @@ data class CameraFeed(
     val playbackUrls: PlaybackUrls = PlaybackUrls()
 )
 
+@Serializable
 data class IncidentType(
     val id: Int,
     val name: String,
     val code: String
 )
 
+@Serializable
 data class ReportStatus(
     val id: Int,
     val name: String,
     val code: String
 )
 
+@Serializable
 data class Priority(
     val id: Int,
     val name: String,

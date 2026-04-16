@@ -19,7 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.genokiller05.miappmovil.R
+import com.genokiller05.miappmovil.data.model.IncidentType
 import com.genokiller05.miappmovil.data.model.Report
+import com.genokiller05.miappmovil.data.model.ReportStatus
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import coil.compose.AsyncImage
@@ -34,23 +36,15 @@ fun ReportDetailScreen(
 ) {
     val colors = AppTheme.colors
     var report by remember { mutableStateOf<Report?>(null) }
+    var reportTypes by remember { mutableStateOf<List<IncidentType>>(emptyList()) }
+    var reportStatuses by remember { mutableStateOf<List<ReportStatus>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     val repo = remember { DataRepository() }
 
-    val statusNames = mapOf(
-        1 to Pair("Pendiente", StatusAmber),
-        2 to Pair("En proceso", StatusBlue),
-        3 to Pair("Completado", StatusGreen),
-        4 to Pair("Cancelado", StatusRed)
-    )
-
-    val typeNames = mapOf(
-        1 to "Robo / Hurto", 2 to "Vandalismo", 3 to "Rondín",
-        4 to "Incendio", 5 to "Falla técnica", 6 to "Actividad sospechosa",
-        7 to "Otro", 8 to "Incidente", 9 to "Novedad"
-    )
-
     LaunchedEffect(reportId) {
+        reportTypes = repo.fetchReportTypes()
+        reportStatuses = repo.fetchReportStatuses()
+
         while(true) {
             report = repo.getReportById(reportId)
             isLoading = false
@@ -96,8 +90,8 @@ fun ReportDetailScreen(
             }
         } else {
             val r = report!!
-            val (statusText, statusColor) = statusNames[r.status_id] ?: Pair("—", StatusGray)
-            val typeName = typeNames[r.report_type_id] ?: "—"
+            val (statusText, statusColor) = reportStatusPresentation(r.status_id, reportStatuses)
+            val typeName = reportTypeName(r.report_type_id, reportTypes)
             
             var descriptionText = r.short_description ?: stringResource(R.string.general_no_description)
             var evidenceUri: String? = null

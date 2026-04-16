@@ -17,13 +17,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.genokiller05.miappmovil.data.model.IncidentType
 import com.genokiller05.miappmovil.R
 import com.genokiller05.miappmovil.data.model.Report
+import com.genokiller05.miappmovil.data.model.ReportStatus
 import com.genokiller05.miappmovil.data.repository.DataRepository
 import com.genokiller05.miappmovil.ui.theme.*
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun ReportsScreen(
@@ -32,37 +32,21 @@ fun ReportsScreen(
 ) {
     val colors = AppTheme.colors
     var reports by remember { mutableStateOf<List<Report>>(emptyList()) }
+    var reportTypes by remember { mutableStateOf<List<IncidentType>>(emptyList()) }
+    var reportStatuses by remember { mutableStateOf<List<ReportStatus>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
-    val scope = rememberCoroutineScope()
     val repo = remember { DataRepository() }
 
     LaunchedEffect(Unit) {
+        reportTypes = repo.fetchReportTypes()
+        reportStatuses = repo.fetchReportStatuses()
+
         while(true) {
             reports = repo.fetchReports()
             isLoading = false
             delay(5000) // 5 second polling matching simulated realtime
         }
     }
-
-    val statusNames = mapOf(
-        1 to Pair("Pendiente", StatusAmber),
-        2 to Pair("En proceso", StatusBlue),
-        3 to Pair("Completado", StatusGreen),
-        4 to Pair("Cancelado", StatusRed),
-        5 to Pair("Suspendido", StatusGray)
-    )
-
-    val typeNames = mapOf(
-        1 to "Robo / Hurto",
-        2 to "Vandalismo",
-        3 to "Rondín",
-        4 to "Incendio",
-        5 to "Falla técnica",
-        6 to "Actividad sospechosa",
-        7 to "Otro",
-        8 to "Incidente",
-        9 to "Novedad"
-    )
 
     Box(
         modifier = Modifier
@@ -116,8 +100,8 @@ fun ReportsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(reports) { report ->
-                        val (statusText, statusColor) = statusNames[report.status_id] ?: Pair("—", StatusGray)
-                        val typeName = typeNames[report.report_type_id] ?: "Reporte"
+                        val (statusText, statusColor) = reportStatusPresentation(report.status_id, reportStatuses)
+                        val typeName = reportTypeName(report.report_type_id, reportTypes)
 
                         Card(
                             modifier = Modifier
